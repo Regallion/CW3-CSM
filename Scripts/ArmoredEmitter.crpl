@@ -1,0 +1,205 @@
+#Modified Flip emitter script, with additional armor applied. Will take a while to beat down.
+#This is my custom flip emitter script. It will produce either creeper or anti-creeper depending on which it is submerged under. It has custom popup text to match my other custom emitters and also temporary visible text when "flipping".
+
+#Creeper amount and anticreeper amount are stored in separate variables so you can have it produce different amounts of each.
+$Armor:150 #How much health the emitter has as long as it has lives. Measures(in frames) the time it takes to die. Note that it will take damage in chunks equal to Cinterval, due to how those emitters are made.
+$Lives:1 #How many times this has to be killed before it becomes a normal flip emitter.
+$EmpowerRange:8.0 #The range of the empowering circle. Grants power to all enemy units in that radius.
+$EmpowerPow:2.5 #The power increase it grants. Multiplier, additive with tower multipliier.
+$Reincarnation:0 #Regains lives equal to this if re-captured by creeper.
+$HeadHoncho:0 #Does not work right now. If 1, acts as the head of a network. A network may only have 1 head, and it's capture state depends on whether or not this is captured.
+$Camt:30
+$ACamt:-30
+#Timers are also stored separately.
+$ACinterval:30
+$Cinterval:30
+$StartDelay:0
+$Deathamount:40
+$Deathlength:1
+$Name:"armoremitter"
+#Thresh is how much creeper/AC must flood the emitter in order for it to flip.
+$Thresh:1.0
+#ImageSlot can be changed if you want to use a different slot.
+$ImageSlot:"Custom0"
+$ImageCircle:"Custom4_256"
+$Empowerment:1
+Once
+
+#Initialize the state as creeper or AC.
+1 ->state
+1 ->Changed
+#Export a linebreak to help with text generation.
+"
+" ->lb
+@awake
+#The delay is to match the other emitters.
+Self CONST_HEALTH <-Armor SetUnitAttribute
+4 delay
+<-ACamt ->tAmount
+endonce
+
+
+
+GetGameTimeFrames <-StartDelay gt if
+	<-Changed if
+		<-Lives 0 gt if
+			CurrentCoords <-EmpowerRange GetEnemyUnitsInRange
+			0 do
+				->Unit
+				<-Unit GetUnitType "CRPLCORE" eq <-Unit Self neq and if
+					<-Unit "FlipEmitter.crpl" "Empowerment" <-Unit "FlipEmitter.crpl" "Empowerment" GetScriptVar <-EmpowerPow add SetScriptVar
+					<-Unit "EmitterACDeath.crpl" "Empowerment" <-Unit "EmitterACDeath.crpl" "Empowerment" GetScriptVar <-EmpowerPow add SetScriptVar
+					<-Unit "ArmoredEmitter.crpl" "Empowerment" <-Unit "ArmoredEmitter.crpl" "Empowerment" GetScriptVar  <-EmpowerPow add SetScriptVar
+				endif
+			loop
+		else
+			CurrentCoords <-EmpowerRange GetEnemyUnitsInRange
+			0 do
+				->Unit
+				<-Unit GetUnitType "CRPLCORE" eq <-Unit Self neq and if
+					<-Unit "FlipEmitter.crpl" "Empowerment" <-Unit "FlipEmitter.crpl" "Empowerment" GetScriptVar <-EmpowerPow sub SetScriptVar
+					<-Unit "EmitterACDeath.crpl" "Empowerment" <-Unit "EmitterACDeath.crpl" "Empowerment" GetScriptVar <-EmpowerPow sub SetScriptVar
+					<-Unit "ArmoredEmitter.crpl" "Empowerment" <-Unit "ArmoredEmitter.crpl" "Empowerment" GetScriptVar  <-EmpowerPow sub SetScriptVar
+				endif
+			loop
+		endif
+		0 ->Changed
+	endif	
+	#The timers are used to track how long since the emitter last flipped, and hide the "flip text" after 5 seconds.
+	GetTimer0 eq0 GetTimer1 eq0 and if "" SetText endif
+
+	#Now we act based on the current state of the emitter.
+	<-state if
+		<-Lives 0 gt if
+			CurrentCoords GetCreeper 0 lt if
+				Self CONST_HEALTH Self CONST_HEALTH GetUnitAttribute <-Cinterval sub 0 max SetUnitAttribute
+				Self CONST_HEALTH GetUnitAttribute eq0 if
+					<-Lives 1 sub ->Lives
+					Self CONST_HEALTH Self CONST_MAXHEALTH GetUnitAttribute SetUnitAttribute
+					<-Lives 0 gt if
+						"I will never surrender! Taste my wrath!" SetText
+						220 50 50 255 SetTextColor 20 SetTextY 1.1 SetTextSize
+						150 SetTimer1
+					else
+						"One last trick!" SetText
+						220 50 50 255 SetTextColor 20 SetTextY 1.1 SetTextSize
+						150 SetTimer1
+						1 ->Changed
+						Self "range" "NONE" SetImage
+					endif
+					CurrentCoords ->Y ->X 
+					<-Y <-Deathlength 1 add add <-Y <-Deathlength sub do
+						<-X <-Deathlength 1 add add <-X <-Deathlength sub do
+							I J <-Deathamount AddCreeper
+						loop
+					loop
+				endif
+			else
+				Self CONST_HEALTH Self CONST_HEALTH GetUnitAttribute <-Cinterval add Self CONST_MAXHEALTH GetUnitAttribute min SetUnitAttribute
+			endif
+			Self "main" 0.8 0.3 <-Lives mul add dup SetImageScale
+			Self "main" 150 25 <-Lives mul add 255 min 150 150 255 SetImageColor
+			@Cprod
+		else
+			#If we're producting creeper, we first check if we've been flooded with sufficient AC to trigger the flip.
+			CurrentCoords GetCreeper <-Thresh neg lt if
+				#Flavor text with a timer to remove it after 5 seconds
+				"In my defeat, I will serve you!" SetText
+				50 220 50 255 SetTextColor 20 SetTextY 1.1 SetTextSize
+				150 SetTimer1
+				#Swap out the state so it behaves properly on next invocation
+				0 ->state
+				Self "main" 255 255 255 255 SetImageColor
+				#AC production and Creeper production have been placed in functions so they can easily be activated immediately upon flipping.
+				@ACProd
+			else
+				@Cprod
+			endif
+		endif
+	else
+		#Acts like a normal flip emitter would
+		CurrentCoords GetCreeper <-Thresh gt if
+			"Ahh, reinforcements! A new chance for me!" SetText
+			50 220 50 255 SetTextColor 20 SetTextY 1.1 SetTextSize
+			150 SetTimer0
+			Self "main" 150 150 150 255 SetImageColor
+			<-Reincarnation if
+				<-Reincarnation ->Lives
+				Self "range" <-ImageCircle SetImage
+				Self "range" <-EmpowerRange 2 mul 0.9 add 3.0 div dup SetImageScale
+				Self "range" 255 50 50 255 SetImageColor
+				Self "main" 0.8 0.3 <-Lives mul add dup SetImageScale
+				Self "main" 150 25 <-Lives mul add 255 min 150 150 255 SetImageColor
+				1 ->Changed
+			endif
+			1 ->state
+			@CProd
+		else
+			@ACProd
+		endif
+	endif
+else
+	<-StartDelay GetGameTimeFrames sub 30.0 div ceil ->rem
+	"This emitter is currently slumbering. It will awake in " <-rem " seconds with an output of " <-Camt " Creeper." "
+	 It's anger will scorch you." "
+	 
+	 "
+	concat concat concat concat concat concat SetPopupText
+	Self "main" 0.8 0.3 <-Lives mul add dup SetImageScale
+	Self "main" 150 25 <-Lives mul add 255 min 150 150 255 SetImageColor
+	15 Delay
+endif
+:awake
+	ClearTraceLog
+	Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute Self CONST_NULLIFIERDAMAGES 0 SetUnitAttribute Self CONST_SUPPORTSDIGITALIS 0 SetUnitAttribute
+	Self CONST_MAXHEALTH <-Armor SetUnitAttribute
+	Self CONST_SHOWHEALTHBAR 1 SetUnitAttribute
+	Self "main" <-ImageSlot SetImage
+	Self "main" 0.8 0.3 <-Lives mul add dup SetImageScale
+	<-State 1 eq if
+		Self "main" 150 25 <-Lives mul add 255 min 150 150 255 SetImageColor
+	else
+		Self "main" 255 255 255 255 SetImageColor
+	endif
+	<-EmpowerRange 0 gt <-Lives 0 gt and if
+		Self "range" <-ImageCircle SetImage
+		Self "range" <-EmpowerRange 2 mul 0.9 add 3.0 div dup SetImageScale
+		Self "range" 255 50 50 255 SetImageColor
+	else
+		Self "range" "NONE" SetImage
+	endif
+#Creeper production function
+:CProd
+	#This should all be pretty self explanatory. The popup text may seem a bit complex, but just trust it ;) 
+	"Assault with anti-creeper to defeat this formidable foe" <-lb concat "Producing " concat <-Camt <-Empowerment <-NegaPower add 0.1 max mul concat " creeper every " concat <-Cinterval 30.00 div 2 Round 1000 mul concat " milliseconds." concat "
+	Remaining lives: " <-Lives concat concat ->PopupText
+	<-EmpowerRange 0 gt <-Lives 0 gt and if
+	<-PopupText "
+		Increases the output multiplier of enemies in range by " <-EmpowerPow concat concat <-lb <-lb concat concat <-lb <-lb concat concat ->PopupText
+	endif
+	<-PopupText SetPopupText
+	Self CONST_COUNTSFORVICTORY 1 SetUnitAttribute
+	CurrentCoords <-Camt <-Empowerment <-NegaPower add 0.1 max mul SetCreeperNoLower
+	<-Cinterval Delay
+		
+#AC production function.
+:ACProd
+	#Only update the tAmount value if multi has been flagged. Otherwise we stick with the base value.
+
+	<-multi if
+		<-TotalPower <-ACamt mul ->tAmount
+	endif
+	"Producing " <-tAmount abs concat " anti-creeper every " concat <-ACinterval 30.00 div 2 Round 1000 mul concat " milliseconds." concat ->PopupText SetPopupText
+	<-Reincarnation 0 gt if
+		<-PopupText "
+		If retaken by creeper will regain " <-Reincarnation concat concat 
+		<-Reincarnation 1 eq if
+			" life" concat <-lb <-lb concat concat ->PopupText
+		else
+			" lives" concat <-lb <-lb concat concat ->PopupText
+		endif
+	endif
+	<-PopupText SetPopupText
+	Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute
+	CurrentCoords <-tAmount SetCreeperNoLower
+	<-ACinterval Delay

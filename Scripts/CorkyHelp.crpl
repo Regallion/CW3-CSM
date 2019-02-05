@@ -1,0 +1,74 @@
+# CorkyHelp.crpl
+# Created on: 11/20/2018 7:04:10 PM
+# ------------------------------------------
+
+once
+    @Awake
+endonce
+
+
+"J" GetKeyDown if
+    "LeftControl" GetKey "RightControl" GetKey or
+    "LeftShift" GetKey "RightShift" GetKey or
+    and if
+        <-shown if
+            @Hide
+        else
+            @Show
+        endif
+    endif
+endif
+
+:Show
+    1 ->shown
+    4 0 do
+        Self "help" I 1 add concat 255 255 255 255 SetImageColor
+    loop
+    Self "bg" 255 255 255 128 SetImageColor
+
+:Hide
+    0 ->shown
+    4 0 do
+        Self "help" I 1 add concat 0 0 0 0 SetImageColor
+    loop
+    Self "bg" 0 0 0 0 SetImageColor
+    
+:SetPosition
+    1 SetScreenMode
+    266 ScreenHeight 286 sub SetScreenPixelCoords
+
+:Awake
+    @SetPosition
+    
+    Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute 
+    Self CONST_NULLIFIERDAMAGES 0 SetUnitAttribute
+    Self CONST_TAKEMAPSPACE 0 SetUnitAttribute
+    Self CONST_SUPPORTSDIGITALIS 0 SetUnitAttribute
+    Self CONST_CREATEPZ 0 SetUnitAttribute
+    
+    1 OperateWhilePaused
+    
+    Self "main" "none" SetImage
+    
+    Self "bg" "Custom0pp" SetImage
+    Self "bg" 21.33 dup SetImageScale
+    Self "bg" 0 0 -199 SetImagePosition
+    
+    Self "help1" "Custom4_256pp" SetImage
+    Self "help1" 10.67 dup SetImageScale
+    Self "help1" -128 -128 -200 SetImagePosition
+    
+    Self "help2" "Custom5_256pp" SetImage
+    Self "help2" 10.67 dup SetImageScale
+    Self "help2" -128 128 -200 SetImagePosition
+    
+    Self "help3" "Custom6_256pp" SetImage
+    Self "help3" 10.67 dup SetImageScale
+    Self "help3" 128 128 -200 SetImagePosition
+    
+    Self "help4" "Custom7_256pp" SetImage
+    Self "help4" 10.67 dup SetImageScale
+    Self "help4" 128 -128 -200 SetImagePosition
+    
+    @Hide
+    

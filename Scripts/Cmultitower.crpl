@@ -1,0 +1,129 @@
+#See ACmultiglobal.crpl for more info about functionality. The "green runner nest" image was a quick pick just to have something to put in, so feel free to use your own custom image if you're not satisfied with it.
+
+$Name:"cmulti"
+#Power is, of course, how much value the emitters receive from this tower. A power of 1.0 means it will double their strength (assuming no other towers are active, as the bonus is additive rather than multiplicative).
+$Power:0.1
+#The Thresh value determines how much AC much flood the unit for it to become "active".
+$Thresh:-4.0
+
+once
+HideTraceLog
+ClearTraceLog
+@awake
+5 delay
+0 ->Active
+<-Power 0 lte if
+		CurrentCoords GetCreeper <-Thresh lt if
+				Self "main" "Custom1pp" SetImage
+				Self "main" 225 225 225 255 SetImageColor
+				1 ->Active
+		else
+				Self "main" "Custom1pp" SetImage
+				Self "main" 50 50 50 255 SetImageColor
+				0 ->Active
+		endif
+		"Flood me with your emitters to ensure massive weakening!
+		Power: "  <-Power concat "
+
+
+		" concat SetPopupText
+	else
+		CurrentCoords GetCreeper <-Thresh lt if
+				Self "main" "Custom2pp" SetImage
+				Self "main" 225 225 225 255 SetImageColor
+				1 ->Active
+		else
+				Self "main" "Custom2pp" SetImage
+				Self "main" 50 50 50 255 SetImageColor
+				0 ->Active
+		endif
+
+		"Flood me with your emitters...great power will be unlocked! A Dog's guarantee!
+		Power: "  <-Power concat "
+
+
+		" concat SetPopupText
+	endif
+"Name" "acmultiglobal" GetCoresWithVar
+	0 do
+		->MultTower
+		break
+	loop
+<-MultTower "ACmultiglobal.crpl" "NegaPowers" GetScriptVar ->NegaPowers
+<-NegaPowers GetListCount ->Place
+<-Active if
+	<-NegaPowers <-Place <-Power SetListElement
+else
+	<-NegaPowers <-Place 0 SetListElement
+endif
+<-MultTower "ACmultiglobal.crpl" "NegaPowers" <-NegaPowers SetScriptVar
+<-MultTower "ACmultiglobal.crpl" "CChanged" 1 SetScriptVar
+endonce
+GetTimer0 eq0 if #this now only occurs every 10 or so frames to reduce lag
+	<-Power 0 lte if
+		CurrentCoords GetCreeper <-Thresh lt if
+			<-Active not if
+				Self "main" "Custom1pp" SetImage
+				Self "main" 225 225 225 255 SetImageColor
+				1 ->Active
+				1 ->Change
+			endif
+		else
+			<-Active if
+				Self "main" "Custom1pp" SetImage
+				Self "main" 50 50 50 255 SetImageColor
+				0 ->Active
+				1 ->Change
+			endif
+		endif
+		"Flood me with your emitters to ensure massive weakening!
+		Power: "  <-Power concat "
+
+
+		" concat SetPopupText
+	else
+		CurrentCoords GetCreeper <-Thresh lt if
+			<-Active not if
+				Self "main" "Custom2pp" SetImage
+				Self "main" 225 225 225 255 SetImageColor
+				1 ->Active
+				1 ->Change
+			endif
+		else
+			<-Active if
+				Self "main" "Custom2pp" SetImage
+				Self "main" 50 50 50 255 SetImageColor
+				0 ->Active
+				1 ->Change
+			endif
+		endif
+		"Flood me with your emitters...great power will be unlocked! A Dog's guarantee!
+		Power: "  <-Power concat "
+
+
+		" concat SetPopupText
+	endif
+	5 11 RandInt SetTimer0
+endif
+<-Change if
+	<-MultTower "ACmultiglobal.crpl" "NegaPowers" GetScriptVar ->NegaPowers
+	<-Active if
+		<-NegaPowers <-Place <-Power SetListElement
+	else
+		<-NegaPowers <-Place 0 SetListElement
+	endif
+	<-MultTower "ACmultiglobal.crpl" "NegaPowers" <-NegaPowers SetScriptVar
+	<-MultTower "ACmultiglobal.crpl" "CChanged" 1 SetScriptVar
+	0 ->Change
+endif
+
+:awake
+0 OperateWhilePaused
+Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute Self CONST_NULLIFIERDAMAGES 0 SetUnitAttribute Self CONST_SUPPORTSDIGITALIS 0 SetUnitAttribute
+Self CONST_CREATEPZ 0 SetUnitAttribute
+<-Power 0 lte if
+	Self "main" "Custom1pp" SetImage
+else
+	Self "main" "Custom2pp" SetImage
+endif
+Self "main" 1.2 1.2 SetImageScale

@@ -1,0 +1,411 @@
+#Note: A variation of StargateConnector, except this one creates a 1-1 relationship between the connected pods. PAIRS MUST HAVE THE SAME Color ID.
+#Note: this is copy-pasted from StargatePlug script by cornucanis, except it connect the plugged stargates on a separace channel instead of blicking them.
+
+#This unit will plug the stargate it's currently on top of. It is meant to start in the player area and can be moved any time. It can only be moved to stargates, however. Unit will be selected when you click on it. A shadow will follow the mouse when selected. The shadow will initially be red, but will change to green and snap to the center of the gate if you mouse over a stargate. Clicking on a stargate when the shadow is green will queue a move to the stargate. If a move is already queued, the move will first be cancelled. If leaving a stargate, run the uncap function. Upon arriving at a new stargate, the cap function will be run. The cap/uncap functions will simply cause the portal in question to toggle between their true color value and -1.
+
+#Will need image for selector and highlighter, also a shadow image. 
+
+#other scripts modified to accomodate this script: CreepPortal
+
+
+
+$Name:"StargateJoiner"
+$Size:2
+$Movable:0
+#JoinerID cannot be less than 1, and sequential. Putting 50 in here MIGHT break your everything, so don't
+$JoinerID:1
+$MovementSpeed:3
+$InitCooldownSeconds:0
+$UseCooldownSeconds:0
+$HighlighterSize:2.0
+
+$ImageNormal:"Custom36"
+$ImageActive:"Custom37"
+
+once
+ShowTraceLog
+ClearTraceLog
+HideTraceLog
+    0 ->Liberated
+	<-JoinerID SetText
+	@awake
+	<-Conduction 0 eq if
+		Self "dot" 0 0 0 255 SetImageColor
+	else
+		<-Conduction 1 eq if
+			Self "dot" 50 50 255 255 SetImageColor
+		else
+			Self "dot" 255 255 255 255 SetImageColor
+		endif
+	endif
+	<-Size @ChangeSize
+	##Initialize state variables##
+	-1 ->tetheredGate
+	-1 ->targetGate
+    -1 ->movingGate
+	0 ->moving
+	0 ->selected
+	0 ->greenShadow
+	0.0 ->selectorRotation
+	#Delay for 6 frames so the portals can cache their true color before the plug interferes
+	6 Delay
+    
+    #Find global portal
+    -1 ->portalGlobal
+    "Name" "PortalGlobal" GetCoresWithVar 0 do
+        ->portalGlobal
+    loop
+    
+    <-UseCooldownSeconds 30 mul ->cooldown
+endonce
+once
+	#check here if there is already a gate under me and plug it if so
+	@FindAndLockGate
+endonce
+<-Movable if
+	<-Liberated not if
+		CurrentCoords GetCreeper -4 lte if
+			Self "main" <-ImageActive SetImage
+			Self "main" 200 200 200 255 SetImageColor
+			"" SetPopupText
+			Self CONST_TAKEMAPSPACE 0 SetUnitAttribute
+			
+			150 SetTimer1
+			<-InitCooldownSeconds 30 mul SetTimer3
+			1 ->Liberated
+		else
+			return
+		endif
+	endif
+else
+	Self "main" 50 50 50 255 SetImageColor
+	return
+endif
+
+GetTimer1 eq0 if
+     
+endif
+
+GetTimer3 neq0 if
+    "This Stargate connector is charging up, it will be ready in " GetTimer3 30.0 div 0 Round " seconds" concat concat SetPopupText
+    return
+else
+    "" SetPopupText
+endif
+
+GetTimer2 neq0 if
+    "This Stargate connector will be usable again in " GetTimer2 30.0 div 0 Round " seconds" concat concat SetPopupText
+    return
+else
+     ""  SetPopupText
+endif
+
+
+
+#Check for click event
+0 GetMouseButtonDown if
+	#Check whether the click was in the UI area of the screen. We want to ignore those clicks.
+	GetMouseScreenPixelPosition 96 gt if
+		#Check whether the unit is selected yet.
+		<-selected eq0 if
+			#If the unit is not currently selected, we check to see if the click happened within a certain radius of the unit.
+			# 2 -> 0.75, 3 -> 1, 4 -> 2
+			GetMouseCell CurrentCoords Distance @CalculateClickRadius lt if
+				#Make sure we didn't already select another unit this click
+				"selected" 1 GetCoresWithVar dup eq0 if
+					pop
+					#Sets the selected state. We'll get to applying the effects in another block.
+					1 ->selected
+				else
+					0 do
+						pop
+					loop
+				endif
+				#Kill the selection process if shift is held. Multi unit selection should not be possible for this unit, including for vanilla units.
+				"RightShift" GetKey neq0 "LeftShift" GetKey neq0 or if
+					0 ->selected
+				endif
+				#The 1 delay is to prevent aberrant behavior with clicks being processed multiple times.
+				1 Delay
+			endif
+		else
+			#This else block will execute if the unit is already selected. Now we check whether the mouse location is valid.
+			<-greenShadow if
+				AbortMove
+				ClearQueuedMoves
+                @UnoccupySg
+                <-targetGate ->movingGate
+                @OccupySg
+				<-targetGate CONST_COORDX GetUnitAttribute <-targetGate CONST_COORDY GetUnitAttribute <-MovementSpeed QueueMove
+				1 ->moving
+				<-tetheredGate -1 neq if
+					@UnlockGate
+				endif
+			endif
+			
+			0 ->greenShadow
+			0 ->selected
+		endif
+	endif
+endif
+
+#Apply effects depending on selected state. Most of these could be triggered on change of the state instead, but I don't trust all states to be stored properly on save and load so I've updated these properties every frame. As long as there aren't tons of these units on the map it shouldn't be a performance concern.
+<-selected eq0 if
+	#These important part of these SetImageColor commands is the final 0. That's the alpha value. That means these calls will set the images to be invisible.
+	Self "shadow" 255 0 0 0 SetImageColor
+	self "selector" <-selectorRotation SetImageRotation
+	Self "selector" <-HighlighterSize dup SetImageScale
+	<-selectorRotation add(0.048 <-MovementSpeed mul) if(dup PI 2.0 mul gt) sub(PI 2.0 mul) endif ->selectorRotation
+	<-moving if
+		Self "selector" 0 0 0 0 SetImageColor
+	else
+		Self "selector" 255 10 10 225 SetImageColor
+	endif
+	#I don't really think this is necessary, but it's just to give the image a designated location after it stops following the mouse.
+	self "shadow" 0 0 -1.9 SetImagePosition
+else
+	#If the unit is selected first we display the selector image.
+	Self "selector" 255 255 255 255 SetImageColor
+	<-selectorRotation add(0.096 <-MovementSpeed mul) if(dup PI 2.0 mul gt) sub(PI 2.0 mul) endif ->selectorRotation
+	self "selector" <-selectorRotation SetImageRotation
+	@CheckMouseForPortal
+	<-greenShadow if
+		Self "shadow" 0 240 0 240 SetImageColor
+	else
+		GetMousePosition ->my ->mx
+		CurrentPixelCoords ->uy ->ux
+		<-my <-uy sub ->idy
+		<-mx <-ux sub ->idx
+		Self "shadow" <-idx <-idy -1.9 SetImagePosition
+		Self "shadow" 255 0 0 240 SetImageColor
+	endif
+	#Finally, check to see if the user presses "Space" or "Escape" and deselect the unit if they do.
+	"Space" GetKeyDown "Escape" GetKeyDown or if 0 ->selected endif
+endif
+
+<-moving if
+	GetQueuedMoveCount eq0 if
+		@FindAndLockGate
+		0 ->moving
+	endif
+endif
+
+:awake
+Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute 
+Self CONST_NULLIFIERDAMAGES 0 SetUnitAttribute 
+Self CONST_SUPPORTSDIGITALIS 0 SetUnitAttribute 
+Self CONST_CREATEPZ 0 SetUnitAttribute
+
+<-Movable if
+	<-Liberated if
+		Self "main" <-ImageActive SetImage
+		Self "main" 200 200 200 255 SetImageColor
+		"" SetPopupText
+		Self CONST_TAKEMAPSPACE 0 SetUnitAttribute
+	else
+		Self "main" <-ImageNormal SetImage
+		Self "main" 140 140 140 255 SetImageColor
+		"Flood me with anti-creeper to save me!" SetPopupText
+		Self CONST_TAKEMAPSPACE 1 SetUnitAttribute
+	endif
+else
+	Self "main" <-ImageNormal SetImage
+	Self "main" 50 50 50 255 SetImageColor
+	"" SetPopupText
+	Self CONST_TAKEMAPSPACE 0 SetUnitAttribute
+endif
+Self "main" -2 SetImagePositionZ
+Self "shadow" "Custom19" SetImage
+Self "shadow" -1.9 SetImagePositionZ
+Self "shadow" 255 255 255 0 SetImageColor
+Self "selector" "Custom20" SetImage
+Self "selector" -3 SetImagePositionZ
+Self "selector" 255 255 255 0 SetImageColor
+
+:FindAndLockGate 
+CurrentCoords 1 GetEnemyUnitsInRange 0 do
+	->unit
+	<-unit GetUnitType "CRPLCORE" eq if
+		<-unit "CreepPortal.crpl" "Size" GetScriptVar if
+			<-unit ->tetheredGate
+            <-unit ->movingGate
+			-1 ->targetGate
+            @OccupySg
+			<-tetheredGate CONST_COORDX GetUnitAttribute ->falg_tx
+			<-tetheredGate CONST_COORDY GetUnitAttribute ->falg_ty
+			Self CONST_COORDX <-falg_tx SetUnitAttribute
+			Self CONST_COORDY <-falg_ty SetUnitAttribute
+			@LockGate
+			return
+		endif
+	endif
+loop
+<-targetGate -1 neq if
+	 <-targetGate CONST_COORDX GetUnitAttribute <-targetGate CONST_COORDY GetUnitAttribute <-MovementSpeed QueueMove
+endif
+
+:LockGate
+<-tetheredGate "CreepPortal.crpl" "trueColor" GetScriptVar 5 eq not if 
+	<-JoinerID  SetText
+	<-portalGlobal "PortalGlobal.crpl" "ColorArray" GetScriptVar ->CopyColorArray  #get a copy of what colors exist
+	<-portalGlobal "PortalGlobal.crpl" "StartMaxColor" GetScriptVar <-JoinerID add ->ColorSum #Add however many colors there were at the initialization and the joiner ID to get an artificial color. Joiner ID has to be >0
+	<-portalGlobal "PortalGlobal.crpl" "MaxColor" GetScriptVar <-ColorSum lt if
+		<-ColorSum <-portalGlobal "PortalGlobal.crpl" "MaxColor" GetScriptVar do #prevention for the unfortunate case where something like ID 50 initializes first. Will scramble the array for a bit, but it's better than breaking outright, right?
+			<-CopyColorArray I "JoinerColor" <-ColorSum concat SetListElement #if not, add it in the color array
+		loop
+		<-portalGlobal "PortalGlobal.crpl" "ColorArray" <-CopyColorArray SetScriptVar  #port that array back to Portal
+		<-portalGlobal "PortalGlobal.crpl" "MaxColor" <-CopyColorArray GetListCount SetScriptVar #Also if the array became bigger than before, note that fact in portal
+	endif
+	<-tetheredGate "CreepPortal.crpl" "colorID" <-ColorSum 1 sub SetScriptVar #set the gate this is on to the artificial color
+	<-tetheredGate "CreepPortal.crpl" "Size" GetScriptVar @TrueSizeToSize @ChangeSize #that was there before
+	else
+	"E" SetText
+	<-tetheredGate "CreepPortal.crpl" "Size" GetScriptVar @TrueSizeToSize @ChangeSize
+endif
+
+:UnlockGate
+<-tetheredGate "CreepPortal.crpl" "colorID" <-tetheredGate "CreepPortal.crpl" "trueColor" GetScriptVar SetScriptVar #on unlock, restore the original color
+-1 ->tetheredGate
+2 @ChangeSize
+
+:ChangeSize #(int newSize) -> ()
+->cs_size
+<-cs_size ->Size
+<-cs_size 1 eq if
+	Self "main" 0.5 dup SetImageScale
+	Self "shadow" 0.15 dup SetImageScale
+	Self "selector" 0.3 0.3 SetImageScale
+else
+	<-cs_size 2 eq if
+		Self "main" 1.0 dup SetImageScale
+		Self "shadow" 0.3 dup SetImageScale
+		Self "selector" 0.6 0.6 SetImageScale
+	else
+		<-cs_size 3 eq if
+			Self "main" 1.75 dup SetImageScale
+			Self "shadow" 0.5 dup SetImageScale
+			Self "selector" 1 1 SetImageScale
+		else
+			<-cs_size 4 eq if
+				Self "main" 2.5 dup SetImageScale
+				Self "shadow" 0.875 dup SetImageScale
+				Self "selector" 1.75 1.75 SetImageScale
+			endif
+		endif
+	endif
+endif
+
+:ChangeShadowSize #(int newSize) -> ()
+->css_size
+<-css_size 1 eq if
+	Self "shadow" 0.15 0.15 SetImageScale
+else
+	<-css_size 2 eq if
+		Self "shadow" 0.3 0.3 SetImageScale
+	else
+		<-css_size 3 eq if
+			Self "shadow" 0.55 0.55 SetImageScale
+		else
+			<-css_size 4 eq if
+				Self "shadow" 0.875 0.875 SetImageScale
+			endif
+		endif
+	endif
+endif
+
+:SizeToTrueSize # (int size) -> (int trueSize)
+->stts_size
+<-stts_size 1 eq if
+1 return
+else
+	<-stts_size 2 eq if
+	5 return
+	else
+		<-stts_size 3 eq if
+		9 return
+		else
+		25 return
+		endif
+	endif
+endif
+
+
+:TrueSizeToSize	# (int size) -> (int trueSize)
+->tsts_size
+<-tsts_size 1 eq if
+1 return
+else
+	<-tsts_size 5 eq if
+	2 return
+	else
+		<-tsts_size 9 eq if
+		3 return
+		else
+		4 return
+		endif
+	endif
+endif
+
+:CalculateClickRadius #() -> (float radius)
+# 2 -> 0.75, 3 -> 1, 4 -> 2
+<-Size 2 eq if
+	0.75 return
+else
+	<-Size 3 eq if
+		1.0 return
+	else
+		2.0 return
+	endif
+endif
+
+:OccupySg
+    <-movingGate -1 neq if
+        <-movingGate "CreepPortal.crpl" "occupied" 1 SetScriptVar
+		<-movingGate "CreepPortal.crpl" "joined" 1 SetScriptVar
+		<-movingGate "BlockerDocker.crpl" "occupied" 1 SetScriptVar
+    endif
+
+:UnoccupySg
+    <-movingGate -1 neq if
+        <-movingGate "CreepPortal.crpl" "occupied" 0 SetScriptVar
+		<-movingGate "CreepPortal.crpl" "joined" 0 SetScriptVar
+		<-movingGate "BlockerDocker.crpl" "occupied" 0 SetScriptVar
+    endif
+
+:CheckMouseForPortal #() -> ()
+
+GetMouseCell 1 GetEnemyUnitsInRange 0 do
+	->unit
+	<-unit GetUnitType "CRPLCORE" eq if
+		<-unit "CreepPortal.crpl" "occupied" GetScriptVar if
+			break
+		endif
+		<-unit "CreepPortal.crpl" "Size" GetScriptVar if
+			1 ->greenShadow
+			<-unit ->targetGate
+			<-unit CONST_PIXELCOORDX GetUnitAttribute ->cmfp_ux
+			<-unit CONST_PIXELCOORDY GetUnitAttribute ->cmfp_uy
+			<-unit "CreepPortal.crpl" "Size" GetScriptVar @TrueSizeToSize @ChangeShadowSize
+			CurrentPixelCoords ->cmfp_y ->cmfp_x
+			<-cmfp_uy <-cmfp_y sub ->cmfp_idy
+			<-cmfp_ux <-cmfp_x sub ->cmfp_idx
+			Self "shadow" <-cmfp_idx <-cmfp_idy -1.9 SetImagePosition
+			return
+		endif
+		<-unit "BlockerDocker.crpl" "IsBlockerDocker" GetScriptVar <-unit "BlockerDocker.crpl" "occupied" GetScriptVar not and if
+                1 ->greenShadow
+				<-unit ->targetGate
+                <-unit CONST_COORDX GetUnitAttribute ->targetX
+                <-unit CONST_COORDY GetUnitAttribute ->targetY
+                <-unit CONST_PIXELCOORDX GetUnitAttribute ->cmfp_ux
+                <-unit CONST_PIXELCOORDY GetUnitAttribute ->cmfp_uy
+                CurrentPixelCoords ->cmfp_y ->cmfp_x
+                <-cmfp_uy <-cmfp_y sub ->cmfp_idy
+                <-cmfp_ux <-cmfp_x sub ->cmfp_idx
+                Self "shadow" <-cmfp_idx <-cmfp_idy -1.9 SetImagePosition
+				return
+            endif
+	endif
+loop
+0 ->greenShadow
+

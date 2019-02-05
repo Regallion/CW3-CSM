@@ -1,0 +1,232 @@
+# ConvertorBomb.crpl
+# Created on: 11/22/2018 10:39:03 PM
+# ------------------------------------------
+#Note: this is copy-pasted from StargatePlug script by cornucanis, except it connect the plugged stargates on a separace channel instead of blicking them.
+
+#This unit will plug the stargate it's currently on top of. It is meant to start in the player area and can be moved any time. It can only be moved to stargates, however. Unit will be selected when you click on it. A shadow will follow the mouse when selected. The shadow will initially be red, but will change to green and snap to the center of the gate if you mouse over a stargate. Clicking on a stargate when the shadow is green will queue a move to the stargate. If a move is already queued, the move will first be cancelled. If leaving a stargate, run the uncap function. Upon arriving at a new stargate, the cap function will be run. The cap/uncap functions will simply cause the portal in question to toggle between their true color value and -1.
+
+#Will need image for selector and highlighter, also a shadow image. 
+
+#other scripts modified to accomodate this script: CreepPortal
+
+$CreatedBy:-1
+#$MovementSpeed:(float)
+#$ConversionRadius:(int)
+#$SecondRadius:(int)
+#$SecondConversion:(int) - in frames, or 0 for disable
+
+$Image:"Custom40"
+$ImageCircle:"Custom4_256"
+
+once
+    ShowTraceLog
+    ClearTraceLog
+    HideTraceLog
+    
+    <-CreatedBy -1 eq if
+        Self 0 Destroy #destroy on recompile
+        return
+    endif
+
+	@Awake
+	
+	##Initialize state variables##
+	0 ->moving
+	0 ->selected
+	0 ->greenShadow
+	0.0 ->selectorRotation
+    0 ->waitingForSecond
+endonce
+
+<-waitingForSecond if
+    "Second explosion in " GetTimer2 30 div ", watch out!" concat concat SetText
+
+    GetTimer2 eq0 if
+        @SecondExplosion
+    endif
+    return
+endif
+
+#Check for click event
+0 GetMouseButtonDown if
+	#Check whether the click was in the UI area of the screen. We want to ignore those clicks.
+	GetMouseScreenPixelPosition 96 gt if
+		#Check whether the unit is selected yet.
+		<-selected eq0 if
+			GetMouseCell CurrentCoords Distance 1.5 lt if
+				->selected
+			endif
+		else
+			#This else block will execute if the unit is already selected. Now we check whether the mouse location is valid.
+			<-greenShadow if
+				ClearQueuedMoves
+				AbortMove
+				<-targetX <-targetY <-MovementSpeed QueueMove
+				1 ->moving
+                <-CreatedBy "ConvertorBase.crpl" dup2 "STATE_TRAVEL" GetScriptVar "state" swap SetScriptVar
+			endif
+			
+			0 ->greenShadow
+			0 ->selected
+		endif
+	endif
+endif
+
+#Apply effects depending on selected state. Most of these could be triggered on change of the state instead, but I don't trust all states to be stored properly on save and load so I've updated these properties every frame. As long as there aren't tons of these units on the map it shouldn't be a performance concern.
+<-selected eq0 if
+	#These important part of these SetImageColor commands is the final 0. That's the alpha value. That means these calls will set the images to be invisible.
+	Self "shadow" 255 0 0 0 SetImageColor
+    Self "range1" 255 0 0 0 SetImageColor
+    Self "range2" 255 0 0 0 SetImageColor
+	self "selector" <-selectorRotation SetImageRotation
+	Self "selector" 1.35 dup SetImageScale
+	<-selectorRotation add(0.048 <-MovementSpeed mul) if(dup PI 2.0 mul gt) sub(PI 2.0 mul) endif ->selectorRotation
+	<-moving if
+		Self "selector" 0 0 0 0 SetImageColor
+	else
+		Self "selector" 10 10 255 225 SetImageColor
+	endif
+	#I don't really think this is necessary, but it's just to give the image a designated location after it stops following the mouse.
+	self "shadow" 0 0 -1.9 SetImagePosition
+else
+	#If the unit is selected first we display the selector image.
+	Self "selector" 255 255 255 255 SetImageColor
+	<-selectorRotation add(0.096 <-MovementSpeed mul) if(dup PI 2.0 mul gt) sub(PI 2.0 mul) endif ->selectorRotation
+	self "selector" <-selectorRotation SetImageRotation
+	@CheckMouseForPortal
+	<-greenShadow if
+		Self "shadow" 0 240 0 240 SetImageColor
+	else
+		GetMousePosition ->my ->mx
+		CurrentPixelCoords ->uy ->ux
+		<-my <-uy sub ->idy
+		<-mx <-ux sub ->idx
+		Self "shadow" <-idx <-idy -1.9 SetImagePosition
+		Self "shadow" 255 0 0 240 SetImageColor
+        Self "range1" <-idx <-idy -50 SetImagePosition
+        Self "range2" <-idx <-idy -51 SetImagePosition
+        Self "range1" <-AC_R <-AC_G <-AC_B 255 SetImageColor
+        <-SecondConversion neq0 if
+            Self "range2" <-C_R <-C_G <-C_B 255 SetImageColor
+        endif
+	endif
+	#Finally, check to see if the user presses "Space" or "Escape" and deselect the unit if they do.
+	"Space" GetKeyDown "Escape" GetKeyDown or if 0 ->selected endif
+endif
+
+<-moving if
+	GetQueuedMoveCount eq0 if
+		@FirstExplosion
+		0 ->moving
+	endif
+endif
+
+:awake
+    Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute 
+    Self CONST_NULLIFIERDAMAGES 0 SetUnitAttribute 
+    Self CONST_SUPPORTSDIGITALIS 0 SetUnitAttribute 
+    Self CONST_CREATEPZ 0 SetUnitAttribute
+    Self CONST_TAKEMAPSPACE 0 SetUnitAttribute
+
+    Self "main" <-Image SetImage
+    Self "main" -2 SetImagePositionZ
+    <-SecondConversion neq0 if
+        Self "main" 255 128 255 255 SetImageColor
+    endif
+    Self "shadow" "Custom19" SetImage
+    Self "shadow" -1.9 SetImagePositionZ
+    Self "shadow" 255 255 255 0 SetImageColor
+    Self "selector" "Custom20" SetImage
+    Self "selector" -3 SetImagePositionZ
+    Self "selector" 255 255 255 0 SetImageColor
+
+    Self "range1" <-ImageCircle SetImage
+    Self "range1" <-ConversionRadius 2 mul 0.9 add 3.0 div dup SetImageScale
+    
+    Self "range2" <-ImageCircle SetImage
+    Self "range2" <-SecondRadius 2 mul 1.1 add 3.0 div dup SetImageScale
+    
+    GetCreeperColors 255 mul ->AC_B 255 mul ->AC_G 255 mul ->AC_R 255 mul ->C_B 255 mul ->C_G 255 mul ->C_R
+    
+:FirstExplosion
+    @ConverToAC
+    <-SecondConversion neq0 if
+        <-SecondConversion SetTimer2
+        <-CreatedBy "ConvertorBase.crpl" dup2 "STATE_SECOND" GetScriptVar "state" swap SetScriptVar
+        1 ->waitingForSecond
+        0 ->greenShadow
+		0 ->selected
+		Self "selector" 0 0 0 0 SetImageColor
+		Self "shadow" 0 0 0 0 SetImageColor
+        Self "range1" 0 0 0 0 SetImageColor
+        
+        Self "range2" <-C_R <-C_G <-C_B 255 SetImageColor
+        Self "range2" 0 0 -51 SetImagePosition
+    else
+        @Destroy
+    endif
+
+:SecondExplosion
+    @ConvertToCreep
+    @Destroy
+
+:ConverToAC
+    "Explosion4" PlaySound
+    1 CurrentPixelCoords -10 2 2 0.033 CreateEffect
+
+    CurrentX <-ConversionRadius add 1 add CurrentX <-ConversionRadius sub do # J = X
+        CurrentY <-ConversionRadius add 1 add CurrentY <-ConversionRadius sub do # I = Y
+            CurrentCoords J I Distance <-ConversionRadius lte if
+                J I dup2 GetCreeper abs neg SetCreeper
+            endif
+        loop
+    loop
+    
+:ConvertToCreep
+    "Explosion4" PlaySound
+    1 CurrentPixelCoords -10 2 2 0.033 CreateEffect
+    
+    CurrentX <-SecondRadius add 1 add CurrentX <-SecondRadius sub do # J = X
+        CurrentY <-SecondRadius add 1 add CurrentY <-SecondRadius sub do # I = Y
+            CurrentCoords J I Distance <-SecondRadius lte if
+                J I dup2 GetCreeper abs SetCreeper
+            endif
+        loop
+    loop
+
+:Destroy
+    <-CreatedBy "ConvertorBase.crpl" dup2 "STATE_RESET" GetScriptVar "state" swap SetScriptVar
+    Self 0 Destroy
+    
+:FindAndLockGate 
+
+:CheckMouseForPortal #() -> ()
+    0 ->greenShadow
+    GetMouseCell 1.5 GetEnemyUnitsInRange 0 do
+        ->unit
+        <-unit GetUnitType "CRPLCORE" eq if
+            <-unit "CreepPortal.crpl" "Name" GetScriptVar "" concat "Portal" eq
+            <-unit "ACEmitter.crpl" "Name" GetScriptVar "" concat "acemitter" eq
+            <-unit "EmitterACDeath.crpl" "Name" GetScriptVar "" concat "emitter" eq
+            <-unit "FlipEmitter.crpl" "Name" GetScriptVar "" concat "flipemitter" eq
+            or or or if
+                1 ->greenShadow
+                <-unit CONST_COORDX GetUnitAttribute ->targetX
+                <-unit CONST_COORDY GetUnitAttribute ->targetY
+                <-unit CONST_PIXELCOORDX GetUnitAttribute ->cmfp_ux
+                <-unit CONST_PIXELCOORDY GetUnitAttribute ->cmfp_uy
+                CurrentPixelCoords ->cmfp_y ->cmfp_x
+                <-cmfp_uy <-cmfp_y sub ->cmfp_idy
+                <-cmfp_ux <-cmfp_x sub ->cmfp_idx
+                Self "shadow" <-cmfp_idx <-cmfp_idy -1.9 SetImagePosition
+                
+                Self "range1" <-cmfp_idx <-cmfp_idy -50 SetImagePosition
+                Self "range2" <-cmfp_idx <-cmfp_idy -51 SetImagePosition
+                Self "range1" <-AC_R <-AC_G <-AC_B 255 SetImageColor
+                <-SecondConversion neq0 if
+                    Self "range2" <-C_R <-C_G <-C_B 255 SetImageColor
+                endif
+            endif
+        endif
+    loop
+

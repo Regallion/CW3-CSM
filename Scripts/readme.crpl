@@ -1,0 +1,97 @@
+#CWDig game mode and template by cornucanis. Thanks for taking the time to check out my custom game mode!
+
+
+#A few months ago I started developing maps for a new game mode called CWDig. Lately other mapmakers have expressed interest in the game mode so I thought I'd put together a quick template to facilitate map creation for others! But first, what is CWDig?
+
+#CWDig Basics
+
+#CWDig is a game mode inspired by certain maps from CW2. Specifically, the Creeper vs. Anti-Creeper maps popularized by the Blue vs Gray maps. Later an author named Kibitzer made some incredible maps that I would highly recommend. These maps were based around the same principle of winning through the use of AC emitters alone with no weapon support.
+
+#That was my inspiration for this game mode. You go into it with no (or very limited) weapons and must overcome the enemies by strategically using the AC produced by your AC emitters. Flip emitters play a central role in this gameplay. To facilitate these gameplay changes I had to modify some of the basic workings of the game through CRPL.
+
+#CWDig Mechanical Differences
+
+#The main difference in this game mode is that emitters cannot be killed through standard means (nullifiers). Instead I use custom emitters that die when they are flooded with a sufficient quantity of AC. This was necessary because otherwise it was far too easy to destroy emitters given that nullifier range in CW3 far exceeds the nullifier range of CW2.
+
+#The next change I made was to greatly increase the creeper flow rate. With the standard flow rates the emitters take far too long to "battle" one another and you end up sitting there watching a slow progress on 4x. Increased flow rate makes the action move along much more quickly, and also increases the threat from hostile emitters.
+
+#After doing this I found that terrain was largely irrelevant since emitters had to be rather powerful with high flow rate to make the action satisfying. I didn't want terrain to become irrelevant so I used terrain overrides to increase the "power" of terrain. By default the CWDig game mode will make any terrain 10 times higher than usual. 
+
+#For example, under normal circumstances creeper on height 1 terrain must reach a depth greater than 2.0 before it can overflow onto height 3 terrain. With the terrain 10 times more powerful, however, the creeper on height 1 terrain must now reach a depth greater than 20.0 before it is able to overflow onto height 3 terrain. This helps terrain continue to play a pivotal role while you have overly powerful creeper on the map.
+
+#Any height 10 terrain placed by the mapmaker in the editor will have a terrain override of 2000 applied to make it impassable to creeper. This allows you to make barriers the player can bring down at will. I  have applied a custom texture for height 10 terrain to help the player visualize this different terrain effect.
+
+#I wanted to prevent the player from terping their own height 10 terrain to abuse this effect, however, so I force any terrain terped up to height 10 to be reverted back to height 9. This means any height 10 terrain not captured by the walldigger.crpl script when it is first run on the map will be reverted back to 9 automatically. This includes any height 10 terrain you place manually in the editor after initializing the walldigger.crpl script. As such, I've included a "RefreshTerrain" option in the walldigger.crpl script. This resets all terrain overrides on the map so the script will once again register new height 10 terrain.
+
+#This means if you've already started running the script but want to add additional height 10 after the fact, you simply add the terrain in editor (make sure you don't unpause between these two steps) then open the core with walldigger.crpl attached and set the "RefreshTerrain" variable to 1 so the function executes and your new terrain is captured. It's a bit complicated but saves the script from having to perform unnecessary operations that would cause further performance issues.
+
+#So now that I've explained the essential differences, let's discuss the next topic:
+
+#CWDig Gameplay
+
+#The basic gameplay in CWDig revolves around setting up some reactors and terps as quickly as possible to start modifying the terrain to your advantage. As such I have decreased the unit cost of terps and reactors on my later CWDig maps to decrease the frustration of reactor wait times. Given that weapons are limited on these maps I'm not too concerned with the increased energy potential from lowering reactor cost.
+
+#Several strategies have emerged for weapon-less gameplay. For starters, an emitter on higher terrain will inherently overpower an identical emitter on lower terrain. "Ganging up" on enemy emitters is also a basic strategy; on a related note it is also important to know when to terp up a wall to cut off an emitter that is too powerful for you to deal with at the moment.
+
+#Another useful intermediate technique is to build up an "AC reservoir" behind a wall on a low terrain level, then when it reaches a satisfying level terp the "AC reservoir" up a few levels and bring down the wall. This wall cause a powerful flood of AC that will hopefully be enough to overpower a tough enemy, but can leave your AC reserves low as you now have to terp the terrain back down for your emitter to regain its effectiveness. As such, this is a moderate risk/moderate reward strategy.
+
+#There are also more advanced techniques I've discovered. This album( https://imgur.com/a/8atee ) from my most difficult CWDig map shows a strategy that involves making a "hallway" around your units which will funnel AC in a single direction and enable you to continue extending the hallway in that direction while keeping your units safe. 
+
+#If you throw weapons into the mix it changes things a bit. Obviously weapons will be necessary if you want to have digitalis that can be destroyed. I like to give the player a few cannons and maybe a mortar locked behind tech artifacts so they can use them strategically. Sometimes even more powerful units, depending on the map. Be very careful giving the player sprayers or bombers, though! Suicide sprayers/bombers can be extremely effective at instant killing emitters. I used this as a "feature" in my latest CWDig map, Kamikaze. All you have to do is fly the sprayer over the emitter and destroy it when they are overlapping. The AC burst will usually kill the emitter. Keep this in mind if you decide to include sprayers in your map.
+
+#CWDig Images
+
+#There are 3 images used with CWDig, and all 3 are attached to the template map. Two images are used for emitters images (AC emitters and Flip emitters) while the other image is the terrain texture for height 10 terrain. If you're using the template map you shouldn't have to add these images as they are included in the map. 
+
+#If you are already using one of the image slots for one of your other scripts, both emitter scripts have an input variable that will change the image slot used by the core. It should be pretty straightforward and self explanatory.
+
+#CWDig Mapmaking Tips
+
+#Most weapons have been disabled in the template map, but you are of course free to enable any you wish to enable. I recommend gating them behind tech artifacts if you choose to do so, however, to present more strategic decisions.
+
+#terrainmod.crpl can be a very useful tool for making CWDig maps. It will increase or decrease all terrain on the map by a given value. For example if you want to add a terrain level lower than all the ones currently on the map, but you're already used height 1 terrain for another portion of the map you can simple modify everything up a single height level with this script to give you an extra layer to work with. 
+
+#With this script in my toolbox I tend to start a map with height 4/5/6 and work from there knowing I can always move the play area up or down a few notches if necessary for later balance. You may or may not find this functionality useful. Note that void terrain and height 10 terrain is excluded from this script. Any terrain that would go higher than 9 or lower than 1 with the value you provide will instead be defaulted to 9 or 1.
+
+#Properly adjusting the walldigger.crpl timer can also help a lot with map testing. The script can be very resource intensive on large maps with a lot of terrain to be read every frame, so when making/testing maps I tend to leave the walldigger.crpl timer at a high value like 30 (about one invocation per second). This makes terrain changes (terps) slightly slower to update, but alleviates the performance hit from the script. When I'm ready to finalize the map, though, I decrease the timer to 5 or 10 so it feels more polished for the public release. It causes a little more lag but makes the gameplay feel smoother.
+
+#**ONE LAST IMPORTANT NOTE**
+
+#Make sure to enable the RefreshTerrain option at least once before finalizing your map. Just set the value to 1 and let the game run for a frame. As long as you don't change any terrain after doing this you should be fine. The reason you have to do this is because height 10 and height 0 terrain are handled in special ways, and can leave "remnant" terrain overrides if you change normal terrain to void terrain. 
+
+#You will also find that adding new height 10 terrain will not be permanent unless you run a RefreshTerrain before unpausing the game. This is because I had to add measures to prevent the player from terping cells up to 10 manually to receive the "inifinite height wall" effect. Having the script accomplish this would normally be very difficult and resource intensive, but I used a workaround that caused the script to not pick up new height 10 terrain you've added in the editor. You can solve this by just refreshing the terrain as soon as you add a new batch of height 10 terrain.
+
+#CWDig Scripts
+
+#Now let's discuss the scripts included in this template. There aren't many, but it may help to know what each of them does. All scripts are commented if you wish to look into them further.
+
+#ACEmitter.crpl
+#This is my custom AC emitter. Place a core and attach this script to create an AC emitter.
+
+#ACmultiglobal.crpl
+#This is the global script for the AC Multi Towers. You need exactly one of these on the map if you want to include the AC Multi Towers.
+
+#ACmultitower.crpl
+#The AC Multi Tower will increase the production of all AC emitters (including flip emitters in AC mode). If there are multiple towers on the map the bonus will be additive rather than multiplicative.
+
+#EmitterACDeath.crpl
+#This is the script for the creeper emitters that will die when submerged with AC. Use this script for standard emitters.
+
+#FlipEmitter.crpl
+#This, obviously, is the flip emitter script.
+
+#Readme.crpl
+#This contains info about the game mode. You may be reading it right now. The contents are the same as the forum post for the template.
+
+#SporeACDeath.crpl
+#This script allows you to make spore towers that will die when submerged in AC. Instead of creating a custom spore tower, I made a script that will kill a standard vanilla spore tower after the AC threshold is reached. See comments within the script for more details about how to incorporate.
+
+#terrainmod.crpl
+#This is a custom script I made to help modify the terrain on the map. It will increase or decrease all terrain on the map by a given value. For example if you want to add a terrain level lower than all the ones currently on the map, but you're already used height 1 terrain for another portion of the map you can simple modify everything up a single height level with this script to give you an extra layer to work with. With this script in my toolbox I tend to start a map with height 4/5/6 and work from there knowing I can always move the play area up or down a few notches if necessary for later balance. You may or may not find this functionality useful. Note that void terrain and height 10 terrain is excluded from this script. Any terrain that would go higher than 9 or lower than 1 with the value you provide will instead be defaulted to 9 or 1.
+
+#walldigger.crpl
+#This is the core script used for the game mode. Terrain overrides, creeper mechanics, and other global changes are handled by this script.
+
+#Concluding Remarks
+
+#I hope you guys enjoy the game mode and create some interesting maps with it. This is my first time creating a template, so I may have overlooked a few things. Please let me know if anything is confusing or should be expanded upon more as it's easy to overlook details with such a broad picture.

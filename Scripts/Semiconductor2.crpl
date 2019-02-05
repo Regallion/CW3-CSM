@@ -1,0 +1,465 @@
+# Semiconductor2.crpl
+# Created on: 11/8/2018 11:12:46 PM
+# ------------------------------------------
+
+$Size:3 # width and height in cell, this semiconductor must have a square size
+
+$Creeper:1 # 1 = creeper, 0 = anticreeper
+
+# Set one of them to "in", and 1-3 other ones to "out"
+$Top:"out"
+$Right:""
+$Bottom:"in"
+$Left:"out"
+
+$ImageBase:"Custom28"
+$ImageASB:"Custom29" #Arrow Straight Border
+$ImageASF:"Custom30" #Arrow Straight Fill
+$ImageATB:"Custom31" #Arrow Turn Border
+$ImageATF:"Custom32" #Arrow Turn Fill
+
+once
+    ShowTraceLog
+    ClearTraceLog
+    HideTraceLog
+    
+    Self CONST_CELLWIDTH <-Size SetUnitAttribute
+    Self CONST_CELLHEIGHT <-Size SetUnitAttribute
+    
+    Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute 
+    Self CONST_NULLIFIERDAMAGES 0 SetUnitAttribute
+    Self CONST_TAKEMAPSPACE 1 SetUnitAttribute
+    Self CONST_SUPPORTSDIGITALIS 0 SetUnitAttribute
+    Self CONST_CREATEPZ 0 SetUnitAttribute
+
+    CurrentX <-Size 2 div sub ->StartX
+    CurrentY <-Size 2 div sub ->StartY
+ 
+    <-StartX <-Size add <-StartX do
+        <-StartY <-Size add <-StartY do
+            #set terrain to max -> it will easily prevent the creeper flow
+            J I 10 SetTerrain
+            J I 2000 SetTerrainOverride
+        loop
+    loop
+    
+    @InitSides
+    @SetImages
+    @Awake
+    
+    <-Out GetListCount ->Count
+
+    #collect terrain
+    CreateList ->FlatX
+    CreateList ->FlatY
+    
+    <-startX ->x
+    <-startY ->y
+    <-Size 0 do
+        <-FlatX <-x AppendToList
+        <-FlatY <-y AppendToList
+        <-x <-stepX add ->x
+        <-y <-stepY add ->y
+    loop
+    
+    <-startX1 ->x
+    <-startY1 ->y
+    <-Size 0 do
+        <-FlatX <-x AppendToList
+        <-FlatY <-y AppendToList
+        <-x <-stepX1 add ->x
+        <-y <-stepY1 add ->y
+    loop
+    
+    <-startX2 ->x
+    <-startY2 ->y
+    <-Size 0 do
+        <-FlatX <-x AppendToList
+        <-FlatY <-y AppendToList
+        <-x <-stepX2 add ->x
+        <-y <-stepY2 add ->y
+    loop
+    
+    <-startX3 ->x
+    <-startY3 ->y
+    <-Size 0 do
+        <-FlatX <-x AppendToList
+        <-FlatY <-y AppendToList
+        <-x <-stepX3 add ->x
+        <-y <-stepY3 add ->y
+    loop
+    
+    #filter out void
+    0 ->i
+    while <-i <-FlatX GetListCount lt repeat
+        <-FlatX <-i GetListElement
+        <-FlatY <-i GetListElement
+        GetTerrain -1 eq if
+            <-FlatX <-i RemoveListElement
+            <-FlatY <-i RemoveListElement
+        else
+            <-i 1 add ->i
+        endif
+    endwhile
+    
+    @RecomputeTerrain
+endonce
+
+GetGameTimeFrames 100 mod Self 100 mod eq if
+    @RecomputeTerrain
+endif
+
+<-CanWork if
+    <-Creeper if
+        <-Count 1 gte if
+            <-startX ->sx
+            <-startY ->sy
+            <-startx1 ->tx
+            <-starty1 ->ty
+            <-Size 0 do
+                @EqCreep
+                <-sx <-stepX  add ->sx
+                <-sy <-stepY  add ->sy
+                <-tx <-stepx1 add ->tx
+                <-ty <-stepy1 add ->ty
+            loop
+        endif
+        <-Count 2 gte if
+            <-startX ->sx
+            <-startY ->sy
+            <-startx2 ->tx
+            <-starty2 ->ty
+            <-Size 0 do
+                @EqCreep
+                <-sx <-stepX  add ->sx
+                <-sy <-stepY  add ->sy
+                <-tx <-stepx2 add ->tx
+                <-ty <-stepy2 add ->ty
+            loop
+        endif
+        <-Count 3 gte if
+            <-startX ->sx
+            <-startY ->sy
+            <-startx3 ->tx
+            <-starty3 ->ty
+            <-Size 0 do
+                @EqCreep
+                <-sx <-stepX  add ->sx
+                <-sy <-stepY  add ->sy
+                <-tx <-stepx3 add ->tx
+                <-ty <-stepy3 add ->ty
+            loop
+        endif
+        @DistributeAC
+    else
+        <-Count 1 gte if
+            <-startX ->sx
+            <-startY ->sy
+            <-startx1 ->tx
+            <-starty1 ->ty
+            <-Size 0 do
+                @EqAc
+                <-sx <-stepX  add ->sx
+                <-sy <-stepY  add ->sy
+                <-tx <-stepx1 add ->tx
+                <-ty <-stepy1 add ->ty
+            loop
+        endif
+        <-Count 2 gte if
+            <-startX ->sx
+            <-startY ->sy
+            <-startx2 ->tx
+            <-starty2 ->ty
+            <-Size 0 do
+                @EqAc
+                <-sx <-stepX  add ->sx
+                <-sy <-stepY  add ->sy
+                <-tx <-stepx2 add ->tx
+                <-ty <-stepy2 add ->ty
+            loop
+        endif
+        <-Count 3 gte if
+            <-startX ->sx
+            <-startY ->sy
+            <-startx3 ->tx
+            <-starty3 ->ty
+            <-Size 0 do
+                @EqAc
+                <-sx <-stepX  add ->sx
+                <-sy <-stepY  add ->sy
+                <-tx <-stepx3 add ->tx
+                <-ty <-stepy3 add ->ty
+            loop
+        endif
+        @DistributeC
+    endif
+endif
+
+
+###   INITIALIZATION   ###
+
+:InitSides # -
+    @LS "Left" "Bottom" "Right" "Top" @LE ->Sides #start at Left and then spin CCW
+    0 ->CanWork
+    
+    #read config
+    
+    -1 ->In
+    CreateList ->Out
+    <-Sides dup GetListCount 0 do
+        dup I GetListElement <-! ToLower dup
+        "in" eq if
+            I ->In
+        endif
+        "out" eq if
+            <-Out I AppendToList
+        endif
+    loop pop
+    
+    <-In -1 eq if
+        CreateList ->Out
+        return
+    endif
+    
+    <-Out dup GetListCount 0 do
+        dup I dup2 GetListElement <-In sub 4 add 4 mod SetListElement
+        1 ->CanWork
+    loop pop
+    
+    <-CanWork not if
+        return
+    endif
+    
+    # REEEEEEEEEEEEEE
+    
+    <-Size  2 div ->half2
+    <-half2 1 add ->half1
+    
+    <-half1 neg ->startX
+    <-half2 neg ->startY
+    0  ->stepX
+    1  ->stepY
+    
+    <-half2     ->startX1
+    <-half1     ->startY1
+    -1 ->stepX1
+    0  ->stepY1
+    
+    <-half1     ->startX2
+    <-half2 neg ->startY2
+    0  ->stepX2
+    1  ->stepY2
+    
+    <-half2 neg ->startX3
+    <-half1 neg ->startY3
+    1  ->stepX3
+    0  ->stepY3
+    
+    <-In 0 do # rotate CCW
+        <-startX  <-startY  swap neg ->startY  ->startX
+        <-stepX   <-stepY   swap neg ->stepY   ->stepX
+        <-startX1 <-startY1 swap neg ->startY1 ->startX1
+        <-stepX1  <-stepY1  swap neg ->stepY1  ->stepX1
+        <-startX2 <-startY2 swap neg ->startY2 ->startX2
+        <-stepX2  <-stepY2  swap neg ->stepY2  ->stepX2
+        <-startX3 <-startY3 swap neg ->startY3 ->startX3
+        <-stepX3  <-stepY3  swap neg ->stepY3  ->stepX3
+    loop
+    
+    <-startX  CurrentX add ->startX
+    <-startY  CurrentY add ->startY
+    <-startX1 CurrentX add ->startX1
+    <-startY1 CurrentY add ->startY1
+    <-startX2 CurrentX add ->startX2
+    <-startY2 CurrentY add ->startY2
+    <-startX3 CurrentX add ->startX3
+    <-startY3 CurrentY add ->startY3
+    
+    <-Out dup GetListCount 0 do
+        dup I GetListElement ->i
+        "startX" <-i concat <-! "startx" I 1 add concat ->!
+        "startY" <-i concat <-! "starty" I 1 add concat ->!
+        "stepX"  <-i concat <-! "stepx"  I 1 add concat ->!
+        "stepY"  <-i concat <-! "stepy"  I 1 add concat ->!
+    loop pop
+
+:SetImages # -
+    Self RemoveImages
+
+    Self "main" <-ImageBase SetImage
+    Self "main" <-Size 3.0 div dup SetImageScale
+    
+    @LS "" "ImageAT" "ImageAS" "ImageAT" @LE ->names
+    @LS 0 -1 1 1 @LE ->scales
+    
+    <-Out dup GetListCount 0 do
+        dup I GetListElement ->i
+        
+        "border" <-i concat ->name
+        Self <-name <-names <-i GetListElement "B" concat <-! SetImage
+        Self <-name <-Size 3.0 div dup <-scales <-i GetListElement mul SetImageScale
+        Self <-name 0 0 -0.01 SetImagePosition
+        Self <-name <-In 1.57079632679 mul SetImageRotation
+        
+        "fill" <-i concat ->name
+        Self <-name <-names <-i GetListElement "F" concat <-! SetImage
+        Self <-name <-Size 3.0 div dup <-scales <-i GetListElement mul SetImageScale
+        Self <-name 0 0 -0.02 SetImagePosition
+        Self <-name <-In 1.57079632679 mul SetImageRotation
+    loop pop
+
+
+
+###   WORK   ###
+
+:EqCreep # - 
+    <-sx <-sy GetTerrainOverride ->st
+    <-tx <-ty GetTerrainOverride ->tt
+    
+    <-st -1 eq <-tt -1 eq or if
+        return
+    endif
+    
+    <-sx <-sy GetCreeper 0 max ->sc
+    <-tx <-ty GetCreeper ->tc
+    
+    <-st <-sc add <-tt <-tc add sub 2.0 div 0 max <-sc min ->diff
+    
+    <-sx <-sy <-diff neg AddCreeper
+    <-tx <-ty <-diff     AddCreeper
+
+:EqAc # - 
+    <-sx <-sy GetTerrainOverride ->st
+    <-tx <-ty GetTerrainOverride ->tt
+    
+    <-st -1 eq <-tt -1 eq or if
+        return
+    endif
+    
+    <-sx <-sy GetCreeper 0 min ->sc
+    <-tx <-ty GetCreeper ->tc
+    
+    <-st neg <-sc add <-tt neg <-tc add sub 2.0 div 0 min <-sc max ->diff
+    
+    <-sx <-sy <-diff neg AddCreeper
+    <-tx <-ty <-diff     AddCreeper
+    
+:RecomputeTerrain
+    CreateList ->TerLvl
+    CreateList ->TerXs
+    CreateList ->TerYs
+    
+    <-TerLvl 9999 AppendToList
+    
+    <-FlatX GetListCount 0 do
+        <-FlatX I GetListElement ->x
+        <-FlatY I GetListElement ->y
+        <-x <-y GetTerrainOverride ->ter
+        <-TerLvl GetListCount 0 do
+            <-TerLvl I GetListElement <-ter gt if
+                <-TerLvl I <-ter InsertListElement
+                <-TerXs I CreateList InsertListElement
+                <-TerYs I CreateList InsertListElement
+            endif
+            <-TerLvl I GetListElement <-ter eq if
+                <-TerXs I GetListElement <-x AppendToList
+                <-TerYs I GetListElement <-y AppendToList
+                break
+            endif
+        loop
+    loop
+    
+    <-TerXs GetListCount 1 do
+        <-TerXs I GetListElement # target
+        <-TerXs I 1 sub GetListElement #source
+        dup GetListCount 0 do
+            dup2 I GetListElement AppendToList
+        loop pop pop
+        
+        <-TerYs I GetListElement # target
+        <-TerYs I 1 sub GetListElement #source
+        dup GetListCount 0 do
+            dup2 I GetListElement AppendToList
+        loop pop pop
+    loop
+
+:DistributeAC
+    0 ->total
+    <-FlatY <-FlatX dup GetListCount 0 do
+        dup2 I GetListElement swap I GetListElement dup2 GetCreeper 0 dup2 min <-total add ->total max SetCreeper
+    loop pop pop
+    
+    <-TerLvl dup GetListCount 0 do
+        <-total 0 gte if
+            pop return
+        endif
+        dup I GetListElement ->l1
+        dup I 1 add GetListElement ->l2
+        <-TerXs I GetListElement GetListCount ->count
+        <-l1 <-l2 sub <-total <-count div max ->amt
+        <-TerYs I GetListElement <-TerXs I GetListElement <-count 0 do
+            dup2 I GetListElement swap I GetListElement <-amt AddCreeper
+        loop pop pop
+        <-total <-amt <-count mul sub 0 min ->total
+    loop pop
+
+:DistributeC
+    0 ->total
+    <-FlatY <-FlatX dup GetListCount 0 do
+        dup2 I GetListElement swap I GetListElement dup2 GetCreeper 0 dup2 max <-total add ->total min SetCreeper
+    loop pop pop
+    
+    <-TerLvl dup GetListCount 0 do
+        <-total 0 lte if
+            pop return
+        endif
+        dup I GetListElement ->l1
+        dup I 1 add GetListElement ->l2
+        <-TerXs I GetListElement GetListCount ->count
+        <-l2 <-l1 sub <-total <-count div min ->amt
+        <-TerYs I GetListElement <-TerXs I GetListElement <-count 0 do
+            dup2 I GetListElement swap I GetListElement <-amt AddCreeper
+        loop pop pop
+        <-total <-amt <-count mul sub 0 max ->total
+    loop pop
+    
+###   AWAKE   ###
+
+:ColorArrows
+    Self "fill1" <-fullR <-fullG <-fullB 255 SetImageColor
+    Self "fill2" <-fullR <-fullG <-fullB 255 SetImageColor
+    Self "fill3" <-fullR <-fullG <-fullB 255 SetImageColor
+    
+:Awake
+    <-Creeper if
+        GetCreeperColors pop pop pop 255.0 mul ->fullB 255.0 mul ->fullG 255.0 mul ->fullR
+    else
+        GetCreeperColors 255.0 mul ->fullB 255.0 mul ->fullG 255.0 mul ->fullR pop pop pop
+    endif
+    
+    @ColorArrows
+
+
+
+###   LIBRARY FUNCTIONS   ###
+
+:LS # - (List Start, recursive)
+    once
+        CreateList ->LSE
+    endonce
+    StackSize <-LSE swap PrependToList
+
+:LE # - list (List End, recursive)
+    <-LSE GetListCount 0 lt if
+        "ERROR: missing list start" Trace
+        TraceStack
+        CreateList #return
+    else
+        CreateList ->LSE_
+        StackSize <-LSE 0 GetListElement do
+            <-LSE_ swap PrependToList
+        loop
+        <-LSE 0 RemoveListElement
+        <-LSE_ #return
+    endif
+    

@@ -1,0 +1,105 @@
+#This is my custom flip emitter script. It will produce either creeper or anti-creeper depending on which it is submerged under. It has custom popup text to match my other custom emitters and also temporary visible text when "flipping".
+
+#Creeper amount and anticreeper amount are stored in separate variables so you can have it produce different amounts of each.
+$Camt:30
+$ACamt:-30
+#Timers are also stored separately.
+$ACinterval:30
+$Cinterval:30
+$StartDelay:0
+#StartState of 1 means the emitter will produce creeper initially. Value of 0 will create AC.
+$startState:1
+$Name:"flipemitter"
+#Thresh is how much creeper/AC must flood the emitter in order for it to flip.
+$Thresh:1.0
+#ImageSlot can be changed if you want to use a different slot.
+$ImageSlot:"Custom0"
+$Empowerment:1
+Once
+#Initialize the state as creeper or AC.
+<-startState ->state
+#Export a linebreak to help with text generation.
+"
+" ->lb
+@awake
+#The delay is to match the other emitters.
+4 delay
+<-ACamt ->tAmount
+endonce
+
+GetGameTimeFrames <-StartDelay gt if
+
+	#The timers are used to track how long since the emitter last flipped, and hide the "flip text" after 5 seconds.
+	GetTimer0 eq0 GetTimer1 eq0 and if "" SetText endif
+
+	#Now we act based on the current state of the emitter.
+	<-state if
+		#If we're producting creeper, we first check if we've been flooded with sufficient AC to trigger the flip.
+		CurrentCoords GetCreeper <-Thresh neg lt if
+			#Flavor text with a timer to remove it after 5 seconds
+			"Thanks for rescuing me from the evil creeps!" SetText
+			50 220 50 255 SetTextColor 20 SetTextY 1.1 SetTextSize
+			150 SetTimer1
+			#Swap out the state so it behaves properly on next invocation
+			0 ->state
+			#AC production and Creeper production have been placed in functions so they can easily be activated immediately upon flipping.
+			@ACProd
+		else
+		@Cprod
+		endif
+	else
+		#This is all essentially just a mirror of the previous section.
+		CurrentCoords GetCreeper <-Thresh gt if
+			"Nooo! Why did you let them capture me?!" SetText
+			50 220 50 255 SetTextColor 20 SetTextY 1.1 SetTextSize
+			150 SetTimer0
+			1 ->state
+			@CProd
+		else
+		@ACProd
+		endif
+	endif
+else
+	<-StartDelay GetGameTimeFrames sub 30.0 div ceil ->rem
+	<-startState if
+		"This emitter is currently slumbering. It will awake in " <-rem " seconds with an output of " <-Camt <-Empowerment <-NegaPower add 0.1 max mul " Creeper.
+		
+		
+		"
+		concat concat concat concat SetPopupText
+	else
+		"This emitter is currently slumbering. It will awake in " <-rem " seconds with an output of " <-ACamt neg " AC.
+		
+		
+		"
+		concat concat concat concat SetPopupText
+	endif
+	15 Delay
+endif
+
+:awake
+	Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute Self CONST_NULLIFIERDAMAGES 0 SetUnitAttribute Self CONST_SUPPORTSDIGITALIS 0 SetUnitAttribute
+	Self "main" <-ImageSlot SetImage
+	Self "main" 0.8 0.8 SetImageScale
+	Self "main" 150 150 150 255 SetImageColor
+
+#Creeper production function
+:CProd
+	#This should all be pretty self explanatory. The popup text may seem a bit complex, but just trust it ;) 
+	"Flood me with anti-creeper to save me!" <-lb concat "Producing " concat <-Camt <-Empowerment <-NegaPower add 0.1 max mul concat " creeper every " concat <-Cinterval 30.00 div 2 Round 1000 mul concat " milliseconds." concat <-lb <-lb concat concat SetPopupText
+	Self CONST_COUNTSFORVICTORY 1 SetUnitAttribute
+	Self "main" 150 150 150 255 SetImageColor
+	CurrentCoords <-Camt <-Empowerment <-NegaPower add 0.1 max mul SetCreeperNoLower
+	<-Cinterval Delay
+		
+#AC production function.
+:ACProd
+	#Only update the tAmount value if multi has been flagged. Otherwise we stick with the base value.
+	<-multi if
+		<-TotalPower <-ACamt mul ->tAmount
+	endif
+	"Producing " <-tAmount abs concat " anti-creeper every " concat <-ACinterval 30.00 div 2 Round 1000 mul concat " milliseconds." concat <-lb <-lb concat concat SetPopupText
+	Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute
+	Self "main" 255 255 255 255 SetImageColor
+	CurrentCoords <-tAmount SetCreeperNoLower
+	<-ACinterval Delay

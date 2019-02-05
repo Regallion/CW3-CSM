@@ -1,0 +1,32 @@
+# This will run once and increase terrain height of all non-void tiles by the designated modifier. If set to a negative number it will decrease the terrain height. This is designed to adjust the height of a map you're designing without throwing off the existing balance so you can make it more accommodating of a new area you're adding. Be careful not to increase/decrease by an amount that will cause terrain values to exceed normal bounds. I've added a check to reset any values below 1 back to 1 and any values above 9 back to 9, but you don't want to have unexpected values in the system in any case.
+
+# You will experience a huge lag spike when running the script, but it will only happen once per execution. This is an inevitable consequence of the SetTerrain command, but I feel like it's much faster than adjusting the terrain of the entire map bit by bit. 
+
+# written by cornucanis
+
+
+#Positive modifier increases all terrain, negative modifier decreases all terrain.
+$modifier:1
+
+
+once
+#Cycle through every cell on the map with a couple of loops
+MapHeight 0 do
+	MapWidth 0 do
+		#This block executes for ever cell on the map. First we check if the cell is height 10 or 0. Height 0 cells are void and height 10 cells have a special purpose on CWDig maps so we want to exclude both from this script.
+		if (I J GetTerrain 0 gt I J GetTerrain 10 lt and)
+			#We first apply the modifier to the current terrain to get a temporary modified value.
+			I J GetTerrain <-modifier add ->temp
+			#Now we check and make sure the terrain hasn't exceeded the bounds. We don't want the terrain to go below 1 or above 9 (since height 10 terrain is used for special purpose in these maps) so we reset back to 1 or 9 in those cases.
+			<-temp 1 lt if
+				1 ->temp
+			endif
+			<-temp 9 gt if
+				9 ->temp
+			endif
+			#Now we apply the final modified value to the terrain.
+			I J <-temp SetTerrain
+		endif
+	loop
+loop
+endonce

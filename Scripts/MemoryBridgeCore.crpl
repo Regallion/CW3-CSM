@@ -1,0 +1,212 @@
+#BridgeCore: manipulates terrain
+#Credit to GoodMorning for original PF scripts.
+
+$SizeX:3
+$SizeY:5
+$Height:1
+$StartState:0
+$BridgeID:"01" #For use with BridgeController script
+$Mode:"Frill" #Possible values: "Kill" "Freeze" , "Frill". Frill is a combination and allows you to see the shape of the bridge.
+$Reset:0 #if 1, wipes all memories
+once
+
+	"Name" "walldigger" GetCoresWithVar if
+		->Walldigger
+		ClearStack
+	endif
+	<-Walldigger "walldigger.crpl" "Voidaffects" GetScriptVar ->voidmod
+	<-Walldigger "walldigger.crpl" "Multi" GetScriptVar ->terrmod
+	<-Walldigger "walldigger.crpl" "Freeze" GetScriptVar ->freezeterr
+	3 8 RandInt ->Random
+    @awake
+	<-StartState ->State 
+	<-BridgeID SetText
+	Self CONST_CELLHEIGHT <-SizeY 1.7 mul floor SetUnitAttribute
+	Self CONST_CELLWIDTH <-SizeX 1.7 mul floor SetUnitAttribute
+	<-Reset if
+		CurrentX <-SizeX add CurrentX <-SizeX sub 1 add do # J = X
+			CurrentY <-SizeY add CurrentY <-SizeY sub 1 add do # I = Y
+				J I dup2 GetTerrain <-terrmod mul -1 max SetTerrainOverride
+			loop
+		loop
+	endif
+endonce
+<-Activated 1 eq <-State 1 eq and if
+	Self "main" "Custom11_128" SetImage
+	CurrentX <-SizeX add CurrentX <-SizeX sub 1 add do # J = X
+		CurrentY <-SizeY add CurrentY <-SizeY sub 1 add do # I = Y
+			J I GetTerrainOverride 1999 eq J I GetTerrainOverride 499 eq or if
+				J I <-Height SetTerrain
+				<-freezeterr not if
+					J I <-Height <-terrmod mul SetTerrainOverride
+				else
+					J I -1 SetTerrainOverride
+				endif
+			endif
+			<-Mode "Freeze" eq <-Mode "Frill" eq or if
+				J I 0 0  SetPinFieldCell
+			endif
+		loop
+	loop
+	0 ->Activated
+endif
+
+<-Activated 1 eq <-State 0 eq and if
+	Self "main" "Custom10_128" SetImage
+	CurrentX <-SizeX add CurrentX <-SizeX sub 1 add do # J = X
+		CurrentY <-SizeY add CurrentY <-SizeY sub 1 add do # I = Y
+			<-freezeterr not if
+				J I GetTerrain 0 gt if
+					J I 499 1500 <-voidmod mul add SetTerrainOverride
+					<-Mode "Frill" eq if
+						J I 1 SetCreeper
+					endif
+				else
+					J I GetTerrainOverride 499 1500 <-voidmod mul add neq if
+						J I -1 2001 <-voidmod mul add SetTerrainOverride
+					else
+						<-Mode "Frill" eq if
+							J I 1 SetCreeper
+						endif
+					endif
+				endif
+			else
+				J I -1 SetTerrainOverride
+			endif
+			J I -1 SetTerrain
+			<-Mode "Freeze" eq <-Mode "Frill" eq or if
+				J I 1 1 SetPinFieldCell
+			endif
+			<-Mode "Kill" eq if
+				J I 0 SetCreeper
+			endif
+		loop
+	loop
+	0 ->Activated
+endif
+
+
+
+<-ArtificialChecks <-Random gt <-Done eq0 and if
+	@SeekNetwork
+	1 ->Done
+endif
+<-ArtificialChecks 1 add ->ArtificialChecks
+
+Self "ControlInterface.crpl" "Mouseover" GetScriptVar ->Mouseover
+
+
+@NetworkMouseover -1 neq if
+	Self "highlight" "Custom0pp" SetImage
+	Self "highlight" <-SizeX 1.7 div <-SizeY 1.7 div SetImageScale
+	Self "highlight" 255 255 255 127 SetImageColor
+else
+	Self "highlight" "NONE" SetImage
+	Self "highlight" 255 255 255 0 SetImageColor
+endif
+
+<-Mouseover if
+	@AddNetworkPointers
+else
+	@RemoveNetworkPointers
+endif
+
+
+
+
+:awake
+Self "main" "Custom10_128" SetImage
+Self "main" <-SizeX 1.7 mul <-SizeY 1.7 mul SetImageScale
+<-Mode "-type" concat SetPopupText
+Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute 
+Self CONST_NULLIFIERDAMAGES 0 SetUnitAttribute 
+Self CONST_SUPPORTSDIGITALIS 0 SetUnitAttribute 
+Self CONST_CREATEPZ 0 SetUnitAttribute
+1 ->Activated
+Self "ControlInterface.crpl" "HasControlInterface" GetScriptVar eq0 if
+	Self "ControlInterface.crpl" AddScriptToUnit
+
+endif
+Self "ControlInterface.crpl" "NetName" <-BridgeID SetScriptVar
+Self "ControlInterface.crpl" "IsController" 0 SetScriptVar
+	
+	1 OperateWhilePaused
+
+
+:SeekNetwork
+	Self "ControlInterface.crpl" "NetName" GetScriptVar ->NetworkName
+	
+	<-NetworkName SetText
+	
+	CreateList ->Minions
+	CreateList ->Controllers
+	
+	"NetName" <-NetworkName GetCoresWithVar 0 do
+		->UID
+		
+		<-UID "ControlInterface.crpl" "IsController" GetScriptVar 1 eq if
+			<-Controllers <-UID AppendToList
+		else
+			<-Minions <-UID AppendToList
+		endif
+	loop
+
+:RemoveNetworkPointers
+	<-Controllers GetListCount 0 do
+		Self <-Controllers I GetListElement "_pointer" concat "NONE" SetImage
+	loop
+	
+	<-Minions GetListCount 0 do
+		Self <-Minions I GetListElement "_pointer" concat "NONE" SetImage
+	loop
+
+:AddNetworkPointers
+
+	<-Controllers GetListCount 0 do
+		<-Controllers I GetListElement 191 191 0 255 @AddPointerToUnit
+	loop
+	
+	<-Minions GetListCount 0 do
+		<-Minions I GetListElement 191 0 191 255 @AddPointerToUnit
+	loop
+	
+:AddPointerToUnit # [ UID R G B A - ]
+	->APTU_A ->APTU_B ->APTU_G ->APTU_R ->APTU_UID
+	
+	<-APTU_UID Self eq if return endif
+	
+	<-APTU_UID CONST_PIXELCOORDX GetUnitAttribute <-APTU_UID CONST_PIXELCOORDY GetUnitAttribute CurrentPixelCoords Distance ->APTU_PixelDist
+	
+	<-APTU_UID CONST_PIXELCOORDX GetUnitAttribute CurrentPixelCoords <-APTU_UID CONST_PIXELCOORDY GetUnitAttribute swap sub ->APTU_DPY sub ->APTU_DPX
+	
+	<-APTU_UID "_pointer" concat ->APTU_Slot
+	
+	Self <-APTU_Slot "Custom0pp" SetImage
+	Self <-APTU_Slot <-APTU_DPX 2 div <-APTU_DPY 2 div 0 SetImagePosition
+	Self <-APTU_Slot <-APTU_PixelDist 24 div 0.05 SetImageScale
+	
+	Self <-APTU_Slot <-APTU_DPY <-APTU_DPX atan2 SetImageRotation
+	
+	Self <-APTU_Slot <-APTU_R <-APTU_G <-APTU_B <-APTU_A SetImageColor
+
+:NetworkMouseover # [ - UID ] Return the unit in the network with the mouse over it, or none.
+	<-Mouseover if Self return endif
+	
+	<-Controllers GetListCount 0 do
+		<-Controllers I GetListElement "ControlInterface.crpl" "Mouseover" GetScriptVar if <-CoCommanders I GetListElement return endif
+	loop
+	
+	<-Minions GetListCount 0 do
+		<-Minions I GetListElement "ControlInterface.crpl" "Mouseover" GetScriptVar if <-Minions I GetListElement return endif
+	loop
+	
+	-1
+
+	
+:destroyed
+	0 OperateWhilePaused
+	CurrentX <-SizeX add CurrentX <-SizeX sub 1 add do # J = X
+		CurrentY <-SizeY add CurrentY <-SizeY sub 1 add do # I = Y
+				J I 0 0  	SetPinFieldCell
+		loop
+	loop 

@@ -1,0 +1,91 @@
+#So this is my custom emitter script. It produces creep like a normal emitter, with custom popup text and death text. Emitter can not be nullified. Instead it is killed by flooding it with an amount of AC determined by the "Thresh" variable. When killed the emitter will release a burst of creeper.
+
+#Thresh is how much AC must touch the emitter to kill it.
+$Thresh:-1.0
+$Name:"emitter"
+#Amount and delay behave as they do for a standard emitter.
+$Amount:30
+$Interval:15
+$StartDelay:0
+#These control the creeper burst upon death. Deathamount is how much creeper is deposited per cell. Deathlength determines the size of the "blast radius", and Deathtimer controls the time between death trigger and death. I would recomend leaving Deathtimer as is, and increasing Deathlength only slightly, and only for "powerful" emitters. You could also just make the Deathtimer 0 if you want to omit the special death effects.
+$Deathamount:40
+$Deathtimer:120
+$Deathlength:1
+#PZ determines whether the unit leaves a PZ upon death, and Digi determines whether the unit seeds digi.
+$PZ:0
+$Digi:1
+$Empowerment:1
+once
+
+0 ->dead
+@awake
+#The delay is present because my custom AC emitter script requires a delay so I needed to add one in this script as well to maintain the balance.
+4 delay
+endonce 
+
+GetGameTimeFrames <-StartDelay gt if
+	#First check if we've reached the "death threshhold."
+	CurrentCoords GetCreeper <-Thresh lt <-dead not and if
+		#If we've set the death timer to 0, skip straight to destruction.
+		<-Deathtimer eq0 if
+			self 3 destroy
+		endif
+		#Do a random roll to determine death text. I made a few different death texts for it to choose from.
+		0 3 RandInt ->rand
+		<-rand 0 eq if
+		"Nooooo! The anticreeper is too powerful!" SetText
+		endif
+		<-rand 1 eq if 
+		"But I still had so much to live for!" SetText
+		endif
+		<-rand 2 eq if
+		"If I close my eyes it'll all just go away..." SetText
+		endif
+		50 220 50 255 SetTextColor 20 SetTextY 1.1 SetTextSize
+		#Set the dead state so the emitter behaves properly in the interim period before being destroyed.
+		1 ->dead
+		<-Deathtimer SetTimer0
+	endif
+
+	#Check if we're dead yet.
+	<-dead if
+		#If we're dead, check the timer.
+		GetTimer0 eq0 if
+			#If the timer has run out, send him to meet his maker. He's not going out without a bang, though.
+			CurrentCoords ->Y ->X 
+			<-Y <-Deathlength 1 add add <-Y <-Deathlength sub do
+				<-X <-Deathlength 1 add add <-X <-Deathlength sub do
+					I J <-Deathamount AddCreeper
+				loop
+			loop
+			self 3 destroy
+		endif
+	else
+		#If we're not dead, standard emitter behavior ensues. 
+		CurrentCoords <-Amount <-Empowerment <-NegaPower add 0.1 max mul SetCreeperNoLower
+		"Producing " <-Amount <-Empowerment <-NegaPower add 0.1 max mul concat " creeper every " concat <-Interval 30.00 div 2 Round 1000 mul concat " milliseconds." concat "
+		" concat "Releases " concat <-Deathamount <-Deathlength 2 mul 1 add dup mul mul concat " creeper upon death!" concat "
+
+
+		" concat SetPopupText
+		#CONST_SUPPORTDIGITALIS doesn't actually "seed" digitalis under the unit as a normal emitter would, it only regenerates damaged digitalis, so I have to force it to do so.
+		<-Digi if CurrentCoords 1 SetDigitalis endif
+	endif
+	<-Interval Delay
+else
+	<-StartDelay GetGameTimeFrames sub 30.0 div ceil ->rem
+	"This emitter is currently slumbering. It will awake in " <-rem " seconds with an output of " <-Amount <-Empowerment <-NegaPower add 0.1 max mul ".
+	
+	
+	"
+	concat concat concat concat SetPopupText
+	15 Delay
+endif
+
+
+
+:awake
+	Self CONST_NULLIFIERDAMAGES 0 SetUnitAttribute Self CONST_CREATEPZ <-PZ SetUnitAttribute Self CONST_SUPPORTSDIGITALIS <-Digi SetUnitAttribute
+	Self "main" "CustomEmitter" SetImage
+	Self "main" 0.8 0.8 SetImageScale
+	Self "main" 180 180 200 255 SetImageColor
