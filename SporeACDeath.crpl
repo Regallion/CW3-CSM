@@ -1,0 +1,74 @@
+#I wanted to make a spore tower that died when flooded with AC, but creating a custom spore tower is very difficult so instead I opted to use a standard spore tower with an invisible unit over it to trigger death. Since the spore tower itself will be a vanilla spore tower it can still be nullified as usual, so make sure you disable nullifiers as they should always be on CWDig maps anyway.
+
+#To use this script, place a standard spore tower with the settings you'd like. Next, create a CRPL core with this script and drag it onto the spore tower. That's all you need to do! Just do this once for each spore tower you'd like to use.
+
+#Thresh determines how much AC is required to kill the spore tower.
+$Thresh:0.5
+
+once 
+@awake
+0 ->dead
+#The delay is to ensure the spore tower has time to establish itself before this unit tries to pick it up.
+2 Delay
+endonce
+
+once
+#Give the ID an initial value to avoid unwanted behavior
+-1 ->SporeTowerID
+#Check all nearby units to find the spore tower.
+CurrentCoords 1 GetEnemyUnitsInRange 0 do
+	dup GetUnitType "SPORETOWER" eq if ->SporeTowerID else pop endif
+loop
+
+#If no spore tower was found, there was a mistake so we destroy the core to prevent clutter.
+<-SporeTowerID -1 eq if self 0 Destroy endif
+
+#Otherwise we store the location of the spore tower for later use.
+<-SporeTowerID CONST_COORDX GetUnitAttribute ->x
+<-SporeTowerID CONST_COORDY GetUnitAttribute ->y
+endonce
+
+#First check if we've been flagged as dead already
+<-dead if
+	#If so, check if the death timer has expired
+	GetTimer0 eq0 if
+		#If the timer has run out, first we kill the spore tower
+		<-SporeTowerID 3 Destroy
+		#The spore tower leaves behind a PZ, so we need to get the ID of the PZ as well.
+		CurrentCoords 1 0 GetAllUnitsInRange 0 do
+			dup GetUnitType "POWERZONE" eq if ->PZ else pop endif
+		loop
+		#Now, finally, we destroy the PZ followed by the core itself.
+		<-PZ 0 Destroy
+		Self 0 Destroy
+	endif
+else
+	#If we're not dead, we check if we've exceeded the AC threshold
+	<-x <-y GetCreeper <-Thresh neg lt if
+		#Pick a random death message for flavor text
+		0 2 RandInt ->rand
+		<-rand 0 eq if
+		"Nooooo! The anticreeper is too powerful!" SetText
+		endif
+		<-rand 1 eq if 
+		"But I still had so much to live for!" SetText
+		endif
+		<-rand 2 eq if
+		"If I close my eyes it'll all just go away..." SetText
+		endif
+		50 220 50 255 SetTextColor 20 SetTextY 1.1 SetTextSize
+		#Mark the unit for death and set the timer
+		1 ->dead
+		120 SetTimer0
+	endif
+endif
+
+
+:awake
+	OperateWhilePaused(TRUE)
+	Self CONST_NULLIFIERDAMAGES 0 SetUnitAttribute 
+	Self CONST_CREATEPZ 0 SetUnitAttribute 
+	Self CONST_SUPPORTSDIGITALIS 0 SetUnitAttribute
+	Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute
+	Self CONST_TAKEMAPSPACE 0 SetUnitAttribute
+	Self "main" "None" SetImage

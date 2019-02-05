@@ -1,0 +1,331 @@
+$Name:"PortalGlobal"
+$DarkTimer:100
+$CreepProductionMulti:70
+$ACProductionMulti:70
+
+once
+@awake
+# i have NO idea why this is here, but i'm not touching it. Instead, just gotta make a list and check it twice.
+"Red" ->0
+"Green" ->1
+"Violet" ->2
+"Yellow" ->3
+"Orange" ->4
+"Dark" ->5
+"Brown" ->6
+"White" ->7
+0 ->cbActive
+# Make sure this contains all the colors
+1 ->MaxColor #safetycheck
+CreateList ->ColorArray
+"Red" "Green" "Violet" "Yellow" "Orange" "Dark" "Brown" "White" <-ColorArray AppendStackToList 
+<-ColorArray GetListCount ->StartMaxColor 
+<-StartMaxColor ->MaxColor 
+
+-1 ->starDisplay
+"IsStargateDisplay" 1 GetCoresWithVar 0 do
+    ->starDisplay
+loop
+
+#prepare countes for connector
+<-MaxColor 0 do
+    0 "connected" I concat ->!
+loop
+
+#spread the timers out to prevent lag spikes
+1 SetTimer0
+2 SetTimer1
+3 SetTimer2
+4 SetTimer3
+endonce
+
+
+"RightControl" GetKey "LeftControl" GetKey or "R" GetKeyDown and if
+	<-cbActive not ->cbActive
+endif
+<-starDisplay "StargateDisplay.crpl" "MaxColor" GetScriptVar <-MaxColor neq if
+	<-starDisplay "StargateDisplay.crpl" "MaxColor" <-MaxColor SetScriptVar
+	<-starDisplay "StargateDisplay.crpl" "Changed" 1 SetScriptVar
+endif
+GetTimer0 eq0 if
+	2 0 do
+        "connected" I concat <-! eq0 if #skip connected gates
+            "colorID" I GetCoresWithVar ->count <-count 1 gt if
+                @InitializeColorCycle
+                @GetCreeperLoop
+                <-totalcreep <-totalsize div ->avg
+                @SetCreeperLoop
+                <-starDisplay "StargateDisplay.crpl" "CreeperColors" GetScriptVar ->CreeperColors
+				<-CreeperColors I <-avg SetListElement
+				<-starDisplay "StargateDisplay.crpl" "CreeperColors" <-CreeperColors SetScriptVar
+            else
+				0 ->avg
+				<-starDisplay "StargateDisplay.crpl" "CreeperColors" GetScriptVar ->CreeperColors
+				<-CreeperColors I <-avg SetListElement
+				<-starDisplay "StargateDisplay.crpl" "CreeperColors" <-CreeperColors SetScriptVar
+			endif
+        endif
+	loop
+	5 SetTimer0
+endif
+
+GetTimer1 eq0 if
+	5 2 do
+        "connected" I concat <-! eq0 if #skip connected gates
+            "colorID" I GetCoresWithVar ->count <-count 1 gt if
+                @InitializeColorCycle
+                @GetCreeperLoop
+                <-totalcreep <-totalsize div ->avg
+                @SetCreeperLoop
+                <-starDisplay "StargateDisplay.crpl" "CreeperColors" GetScriptVar ->CreeperColors
+				<-CreeperColors I <-avg SetListElement
+				<-starDisplay "StargateDisplay.crpl" "CreeperColors" <-CreeperColors SetScriptVar
+            else
+				0 ->avg
+				<-starDisplay "StargateDisplay.crpl" "CreeperColors" GetScriptVar ->CreeperColors
+				<-CreeperColors I <-avg SetListElement
+				<-starDisplay "StargateDisplay.crpl" "CreeperColors" <-CreeperColors SetScriptVar
+			endif
+        endif
+	loop
+	30 SetTimer1
+endif
+
+GetTimer2 eq0 if
+	6 5 do
+        "connected" I concat <-! eq0 if #skip connected gates
+            "colorID" 5 GetCoresWithVar ->count <-count 1 gt if
+                @InitializeColorCycle
+                @GetCreeperLoop
+                <-totalcreep <-totalsize div ->avg
+                <-avg 0 lt if
+                    <-avg neg <-ACProductionMulti mul ->avg
+                else
+                    <-avg neg <-CreepProductionMulti mul ->avg
+                endif
+                @SetCreeperLoop
+                <-starDisplay "StargateDisplay.crpl" "CreeperColors" GetScriptVar ->CreeperColors
+				<-CreeperColors I <-avg SetListElement
+				<-starDisplay "StargateDisplay.crpl" "CreeperColors" <-CreeperColors SetScriptVar
+            else
+				0 ->avg
+				<-starDisplay "StargateDisplay.crpl" "CreeperColors" GetScriptVar ->CreeperColors
+				<-CreeperColors I <-avg SetListElement
+				<-starDisplay "StargateDisplay.crpl" "CreeperColors" <-CreeperColors SetScriptVar
+			endif
+        endif
+	loop
+	<-DarkTimer SetTimer2
+endif
+
+GetTimer3 eq0 if
+	<-MaxColor 6 do
+        "connected" I concat <-! eq0 if #skip connected gates
+            "colorID" I GetCoresWithVar ->count <-count 1 gt if
+                @InitializeColorCycle
+                @GetCreeperLoop
+                <-totalcreep <-totalsize div ->avg
+                @SetCreeperLoop
+                <-starDisplay "StargateDisplay.crpl" "CreeperColors" GetScriptVar ->CreeperColors
+				<-CreeperColors I <-avg SetListElement
+				<-starDisplay "StargateDisplay.crpl" "CreeperColors" <-CreeperColors SetScriptVar
+            else
+				0 ->avg
+				<-starDisplay "StargateDisplay.crpl" "CreeperColors" GetScriptVar ->CreeperColors
+				<-CreeperColors I <-avg SetListElement
+				<-starDisplay "StargateDisplay.crpl" "CreeperColors" <-CreeperColors SetScriptVar
+			endif
+        endif
+	loop
+    
+    #process connected gates
+    0.0 ->connectedTotal
+    0.0 ->connectedSize
+    <-MaxColor 0 do
+        "connected" I concat <-! neq0 if
+            "colorID" I GetCoresWithVar ->count <-count if
+                @InitializeColorCycle
+                @GetCreeperLoop
+                <-connectedTotal <-totalcreep add ->connectedTotal
+                <-connectedSize <-totalsize add ->connectedSize
+            endif
+        endif
+    loop
+    <-connectedTotal <-connectedSize div ->avg
+    <-MaxColor 0 do
+        "connected" I concat <-! neq0 if
+            "colorID" I GetCoresWithVar ->count <-count if
+                @InitializeColorCycle
+                @SetCreeperLoop
+                <-starDisplay "StargateDisplay.crpl" "CreeperColors" GetScriptVar ->CreeperColors
+				<-CreeperColors I <-avg SetListElement
+				<-starDisplay "StargateDisplay.crpl" "CreeperColors" <-CreeperColors SetScriptVar
+            else
+				0 ->avg
+				<-starDisplay "StargateDisplay.crpl" "CreeperColors" GetScriptVar ->CreeperColors
+				<-CreeperColors I <-avg SetListElement
+				<-starDisplay "StargateDisplay.crpl" "CreeperColors" <-CreeperColors SetScriptVar
+			endif
+        endif
+	loop
+    
+	10 SetTimer3
+endif
+
+:awake
+Self "main" "none" SetImage
+Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute 
+Self CONST_NULLIFIERDAMAGES 0 SetUnitAttribute
+Self CONST_TAKEMAPSPACE 0 SetUnitAttribute
+Self CONST_SUPPORTSDIGITALIS 0 SetUnitAttribute
+
+:InitializeColorCycle # requires proper loop index, outputs list and variables to initialize color loop.
+
+CreateList "list" I concat ->! "list" I concat <-! AppendStackToList 
+CreateList "friendly" I concat ->!
+CreateList "neutral" I concat ->!
+CreateList "hostile" I concat ->!
+0.0 ->totalcreep
+0.0 ->totalsize
+
+:GetCreeperLoop # Loop to check creeper level of all portals under a given color.
+<-count 0 do
+	@InitializePortalOperation
+	<-active if
+		<-conductable if
+			<-size 1 eq if
+				<-x <-y GetCreeper ->creep
+			else 
+				<-size 5 eq if
+					@GetCreeper2
+				else
+					<-size 9 eq if 
+						@GetCreeper3
+					else
+						@GetCreeper4
+					endif
+				endif
+			endif
+			<-creep <-totalcreep add ->totalcreep
+		endif
+		<-totalsize <-size add ->totalsize
+	endif
+loop
+
+
+:SetCreeperLoop #Loop to set creeper level of all portals under a given color.
+<-count 0 do
+	@InitializePortalOperation
+	<-active if
+		<-size 1 eq if
+			<-conductable if
+				<-x <-y 0 SetCreeper
+			endif
+			<-x <-y <-avg AddCreeper
+		else 
+			<-size 5 eq if
+				@SetCreeper2
+			else 
+				<-size 9 eq if
+					@SetCreeper3
+				else
+					@SetCreeper4
+				endif
+			endif
+		endif
+	endif
+loop
+
+:InitializePortalOperation # Requires proper loop placement, sets up variables for portal operations.
+
+"list" J concat <-! I GetListElement ->id
+<-id "CreepPortal.crpl" "Size" GetScriptVar ->size
+<-id "CreepPortal.crpl" "active" GetScriptVar ->active
+<-id "CreepPortal.crpl" "Conduction" GetScriptVar ->conduction
+<-id "CreepPortal.crpl" "conductable" GetScriptVar ->conductable
+<-id CONST_COORDX GetUnitAttribute ->x
+<-id CONST_COORDY GetUnitAttribute ->y
+
+:GetCreeper2 # requires(x, y)	output(creep total)
+
+
+<-x <-y GetCreeper 
+<-x 1 add <-y GetCreeper 
+<-x 1 sub <-y GetCreeper 
+<-x <-y 1 add GetCreeper 
+<-x <-y 1 sub GetCreeper 
+add add add add ->creep
+
+:GetCreeper3 # requires(x, y)	output(creep total)
+
+0.0
+<-y 2 add <-y 1 sub do
+	<-x 2 add <-x 1 sub do
+		I J GetCreeper add
+	loop
+loop
+->creep
+
+:GetCreeper4 # requires(x, y)	output(creep total)
+
+0.0
+<-y 3 add <-y 2 sub do
+	<-x 3 add <-x 2 sub do
+		I J GetCreeper add
+	loop
+loop
+->creep
+
+:SetCreeper2 # requires(x, y, avg)
+
+<-conductable if
+	<-x <-y 0 SetCreeper
+	<-x 1 add <-y 0 SetCreeper
+	<-x 1 sub <-y 0 SetCreeper
+	<-x <-y 1 add 0 SetCreeper
+	<-x <-y 1 sub 0 SetCreeper
+endif
+<-x <-y <-avg AddCreeper
+<-x 1 add <-y <-avg AddCreeper
+<-x 1 sub <-y <-avg AddCreeper
+<-x <-y 1 add <-avg AddCreeper
+<-x <-y 1 sub <-avg AddCreeper
+
+:SetCreeper3 # requires(x, y, avg)
+
+
+<-y 2 add <-y 1 sub do
+	<-x 2 add <-x 1 sub do
+		<-conductable if
+			I J 0 SetCreeper
+		endif
+		I J <-avg AddCreeper
+	loop
+loop
+
+:SetCreeper4 # requires(x, y, avg)
+
+<-y 3 add <-y 2 sub do
+	<-x 3 add <-x 2 sub do
+		<-conductable if
+			I J 0 SetCreeper
+		endif
+		I J <-avg AddCreeper
+	loop
+loop
+
+
+# I 3 eq if 
+	# cleartracelog
+	# showtracelog
+	# "totalcreep: " <-totalcreep concat
+	# "totalsize: " <-totalsize concat
+	# "x: " <-x concat
+	# "y: " <-y concat
+	# "creep: " <-creep concat
+	# "avg: " <-avg concat
+	# "size: " <-size concat
+	# "tsize: " <-tsize concat
+	# "frame: " GetGameTimeFrames concat
+	# tracestack
+# endif

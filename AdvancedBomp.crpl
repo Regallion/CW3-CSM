@@ -1,0 +1,574 @@
+#Advanced bomps: bigger, badder, more flexible. Preferred by dodongos. Required scripts: ChipFactory and FactoryChip
+#RangeIndicator for bombs by Kajacx
+$CreatedBy:-1
+#All below parameters are passed to this by ChipFactory. Left here for reference to their effects.
+#$MovementSpeed:0.5
+#$Radius:1 # defines the radius of the effect of the bomb. Does nothing for omega bombs or frenzy bomps, set to 0 for those.
+#$Power:1 # Defines the effect of certain bombs. Frenzy bombs multiply production by power, Singularity bombs pull harder. Negative effect for Defusers, as it amplifies their death throes effect. Does not affect other bomb types.
+#$SecondConversion:0 # - in frames, or 0 for disable. UNUSED
+#$Duration:10 # duration of bomp effect in seconds. Does nothing for conversion bomps, or omega bombs. For defusers longer durations are negative, as it essentially delays their effect. For flip bombs defines the interval between extra flips
+#$BombType:"Conversion" # valid values are "Conversion", "Freeze", "Singularity", "Defuser","Frenzy", "Omega", "OmegaORA", "Flip" . Omega bombs are not affected by any parameters other than move speed
+#$BombSpecial:"" #Freeform field for setting special traits for bombs. Currently only used to set a flag for flip bombs. 0 - Flips once. 1 - flips once but can target towers, 2 and above: does that many flips, but cannot target towers.
+$Image:"Custom40"
+$ImageCircle:"Custom4_256"
+
+once
+	0 ->Primed #denotes whether the bomp wants to explode
+	0 ->Active #Denotes whether the bomp applied it's effects
+
+    <-CreatedBy -1 eq if
+        Self 0 Destroy #destroy on recompile
+        return
+    endif
+
+	@Awake
+	
+	##Initialize state variables##
+	0 ->moving
+	0 ->selected
+	0 ->greenShadow
+	0.0 ->selectorRotation
+endonce
+
+<-Primed 1 eq if
+	<-BombType <-! 0 eq if #Conversion bomb. Activates immediately, converting in a radius. If fed with BombSpecial explodes twice.
+		<-Active eq0 if
+			<-Radius @convert
+			1 ->Active
+			Self "selector" 0 0 0 0 SetImageColor
+			Self "shadow" 0 0 0 0 SetImageColor
+			Self "range1" 0 0 0 0 SetImageColor
+			Self "range2" <-C_R <-C_G <-C_B 255 SetImageColor
+			Self "range2" 0 0 -51 SetImagePosition
+		endif
+		<-BombSpecial eq0 if
+			<-CreatedBy "ChipFactory.crpl" dup2 "STATE_RESET" GetScriptVar "state" swap SetScriptVar
+			@CancelReservation
+			Self 0 Destroy
+		endif
+		"Second explosion in " GetTimer0 30 div ", watch out!" concat concat SetText
+		GetTimer0 eq0 if
+			<-BombSpecial @deconvert
+			<-CreatedBy "ChipFactory.crpl" dup2 "STATE_RESET" GetScriptVar "state" swap SetScriptVar
+			@CancelReservation
+			Self 0 Destroy
+		endif
+	endif
+	<-BombType <-! 1 eq if #Freeze bomp. Freezes stuff in the radius for the duration.
+		<-Active eq0 if
+		<-Radius @freeze
+			1 ->Active
+		endif
+		GetTimer0 30.0 div 0 round SetText
+		GetTimer0 eq0 if
+			<-Radius @unfreeze
+			<-CreatedBy "ChipFactory.crpl" dup2 "STATE_RESET" GetScriptVar "state" swap SetScriptVar
+			@CancelReservation
+			Self 0 Destroy
+		endif
+	endif
+	<-BombType <-! 2 eq if #Singularity bomp. Pushes creeper in depending on Power and Radius
+		<-Active eq0 if
+			<-Radius <-Power -1000000 mul dup 0 0 EnableTowerField #no point in making that a function since it's already a damn function
+			1 ->Active
+		endif
+		GetTimer0 30.0 div 0 round SetText
+		GetTimer0 eq0 if
+			DisableTowerField
+			<-CreatedBy "ChipFactory.crpl" dup2 "STATE_RESET" GetScriptVar "state" swap SetScriptVar
+			@CancelReservation
+			Self 0 Destroy
+		endif
+	endif
+	<-BombType <-! 3 eq if #Defuser. Removes Creeper emitters without triggering their payload. However, sharply increases their power when active. Power+1 is the multiplier.
+		<-Active eq0 if
+			<-Power 0.5 <-TargetUnit @frenzy #doubles the speed, and multiplies power of emitter
+			1 ->Active
+		endif
+		GetTimer0 30.0 div 0 round SetText
+		GetTimer0 eq0 if
+			<-TargetUnit "BlockerDocker.crpl" "IsBlockerDocker" GetScriptVar 1 eq if #allows you to dispose of excess defusers by blowing them on blockers
+				<-TargetUnit "BlockerDocker.crpl" "Occupied" 0 SetScriptVar
+				<-CreatedBy "ChipFactory.crpl" dup2 "STATE_RESET" GetScriptVar "state" swap SetScriptVar
+				Self 0 Destroy
+			else
+				<-TargetUnit 3 Destroy
+				<-CreatedBy "ChipFactory.crpl" dup2 "STATE_RESET" GetScriptVar "state" swap SetScriptVar
+				Self 0 Destroy
+			endif
+		endif
+	endif
+	<-BombType <-! 4 eq if #Frenzy, causes emitters to provide excess output for the duration. Power is the multiplier.
+		<-Active eq0 if
+			<-Power 1 <-TargetUnit @frenzy 
+			1 ->Active
+		endif
+		GetTimer0 30.0 div 0 round SetText
+		GetTimer0 eq0 if
+			<-Power 1 <-TargetUnit @unfrenzy 
+			<-CreatedBy "ChipFactory.crpl" dup2 "STATE_RESET" GetScriptVar "state" swap SetScriptVar
+			@CancelReservation
+			Self 0 Destroy
+		endif
+	endif
+	<-BombType "Omega" eq if #OmegaBomp. Combines Freeze Singularity Frenzy and Conversion to create an ultimate creepsplosion. Is not affected by normal parameters, because well, why would it ever need to?
+		<-Active eq0 if #sets up the empowering
+			900	SetTimer1
+			10 1 <-TargetUnit @frenzy 
+			1 ->Active
+		endif
+		GetTimer1 30.0 div 0 round SetText
+		GetTimer1 800 eq if #enables singularity
+			40 40 -1000000 mul dup 0 0 EnableTowerField
+		endif
+		GetTimer1 500 eq if #disables singularity shortly after pinning in place
+			DisableTowerField
+		endif
+		GetTimer1 600 eq if #Freezes everything
+			50 @freeze
+		endif
+		GetTimer1 100 eq if #Cleans freeze right before explosion
+			50 @unfreeze
+		endif
+		GetTimer1 eq0 if #Massconverts
+			50 @convert
+			<-CreatedBy "ChipFactory.crpl" dup2 "STATE_RESET" GetScriptVar "state" swap SetScriptVar
+			10 1 <-TargetUnit @unfrenzy 
+			Self 0 Destroy
+		endif
+	endif
+	<-BombType "OmegaORA" eq if #OmegaBomp. Exactly the same as Omega except with EXTRA SHOUTING and ROADROLLA
+		<-Active eq0 if #sets up the empowering
+			900	SetTimer1
+			10 1 <-TargetUnit @frenzy 
+			1 ->Active
+			"MUDA DA" SetText
+			"MUDA" ->MUDA
+			220 10 10 255 SetTextColor 20 SetTextY 1.2 SetTextSize
+		endif
+		GetTimer1 800 eq  if #enables singularity
+			40 40 -1000000 mul dup 0 0 EnableTowerField
+			""	SetText
+		endif
+		GetTimer1 800 lt GetTimer1 600 gt and if #MUDA
+			GetTimer1 15 mod eq0 if
+				<-MUDA "MUDA" concat ->MUDA
+				<-MUDA SetText
+			endif
+		endif
+		GetTimer1 500 eq if #disables singularity shortly after pinning in place
+			DisableTowerField
+		endif
+		GetTimer1 600 eq if #Freezes everything
+			50 @freeze
+			"ZA WARUDO" SetText
+		endif
+		GetTimer1 300 eq if #Toki yo tomare
+			"Toki yo tomare" SetText
+		endif
+		GetTimer1 200 eq if #KURAE
+			"KURAE" SetText
+		endif
+		GetTimer1 100 eq if #Cleans freeze right before explosion
+			50 @unfreeze
+			"Soshite, toki wa ugoki dasu" SetText
+		endif
+		GetTimer1 eq0 <-ROADROLLA eq0 and if #Massconverts
+			50 @convert
+			150 SetTimer2
+			1 ->ROADROLLA
+			"ROAD ROLLA DA" SetText
+		endif
+		GetTimer2 eq0 <-ROADROLLA 1 eq and if #Drops a mass artifact, just for that ROADROLLA feel
+			"MASS" CurrentCoords FireAoo
+			<-CreatedBy "ChipFactory.crpl" dup2 "STATE_RESET" GetScriptVar "state" swap SetScriptVar
+			10 1 <-TargetUnit @unfrenzy 
+			@CancelReservation
+			Self 0 Destroy
+		endif
+	endif
+	<-BombType <-! 6 eq if #Flip bomb. Flips 1-X times.
+		<-Active eq0 if #Sets the amount of flips to perform
+			<-BombSpecial 1 max ->Dups
+			1 ->Active
+		endif
+		GetTimer1 30.0 div 0 round SetText
+		<-Dups 0 gt GetTimer1 eq0 and if
+			<-Radius @flip
+			<-Duration 30 mul SetTimer1
+			<-Dups 1 sub ->Dups
+		endif
+		<-Dups eq0 if
+			<-CreatedBy "ChipFactory.crpl" dup2 "STATE_RESET" GetScriptVar "state" swap SetScriptVar
+			@CancelReservation
+			Self 0 Destroy
+		endif
+	endif
+	<-BombType <-! 7 eq if #Frenzy, causes emitters to provide excess output for the duration. Power is the multiplier.
+		<-Active eq0 if
+			<-Power 1 <-TargetUnit @unfrenzy 
+			1 ->Active
+		endif
+		GetTimer0 30.0 div 0 round SetText
+		GetTimer0 eq0 if
+			<-Power 1 <-TargetUnit @frenzy 
+			<-CreatedBy "ChipFactory.crpl" dup2 "STATE_RESET" GetScriptVar "state" swap SetScriptVar
+			@CancelReservation
+			Self 0 Destroy
+		endif
+	endif
+	return
+endif
+#Check for click event
+0 GetMouseButtonDown if
+	#Check whether the click was in the UI area of the screen. We want to ignore those clicks.
+	GetMouseScreenPixelPosition 96 gt if
+		#Check whether the unit is selected yet.
+		<-selected eq0 if
+			GetMouseCell CurrentCoords Distance 1.5 lt if
+				->selected
+			endif
+		else
+			#This else block will execute if the unit is already selected. Now we check whether the mouse location is valid.
+			<-greenShadow if
+				ClearQueuedMoves
+				AbortMove
+				@CancelReservation
+				<-TargetUnit ->MovingUnit
+				@ReserveSpot
+				<-targetX <-targetY <-MovementSpeed QueueMove
+				1 ->moving
+                <-CreatedBy "ChipFactory.crpl" dup2 "STATE_TRAVEL" GetScriptVar "state" swap SetScriptVar
+			endif
+			
+			0 ->greenShadow
+			0 ->selected
+		endif
+	endif
+endif
+
+#Apply effects depending on selected state. Most of these could be triggered on change of the state instead, but I don't trust all states to be stored properly on save and load so I've updated these properties every frame. As long as there aren't tons of these units on the map it shouldn't be a performance concern.
+<-selected eq0 if
+	#These important part of these SetImageColor commands is the final 0. That's the alpha value. That means these calls will set the images to be invisible.
+	Self "shadow" 255 0 0 0 SetImageColor
+	self "selector" <-selectorRotation SetImageRotation
+	Self "selector" 1.35 dup SetImageScale
+	Self "range1" 255 0 0 0 SetImageColor
+	<-BombType <-! 0 eq <-BombSpecial 1 gte and if
+		Self "range2" 255 0 0 0 SetImageColor
+	endif
+	<-selectorRotation add(0.048 <-MovementSpeed mul) if(dup PI 2.0 mul gt) sub(PI 2.0 mul) endif ->selectorRotation
+	<-moving if
+		Self "selector" 0 0 0 0 SetImageColor
+	else
+		Self "selector" 10 10 255 225 SetImageColor
+	endif
+	#I don't really think this is necessary, but it's just to give the image a designated location after it stops following the mouse.
+	self "shadow" 0 0 -1.9 SetImagePosition
+else
+	#If the unit is selected first we display the selector image.
+	Self "selector" 255 255 255 255 SetImageColor
+	<-selectorRotation add(0.096 <-MovementSpeed mul) if(dup PI 2.0 mul gt) sub(PI 2.0 mul) endif ->selectorRotation
+	self "selector" <-selectorRotation SetImageRotation
+	@CheckMouseForPortal
+	<-greenShadow if
+		Self "shadow" 0 240 0 240 SetImageColor
+	else
+		GetMousePosition ->my ->mx
+		CurrentPixelCoords ->uy ->ux
+		<-my <-uy sub ->idy
+		<-mx <-ux sub ->idx
+		Self "shadow" <-idx <-idy -1.9 SetImagePosition
+		Self "shadow" 255 0 0 240 SetImageColor
+		Self "range1" <-AC_R <-AC_G <-AC_B 255 SetImageColor
+		Self "range1" <-idx <-idy -50 SetImagePosition
+		<-BombType <-! 0 eq <-BombSpecial 1 gte and if
+			Self "range2" <-idx <-idy -51 SetImagePosition
+			Self "range2" <-C_R <-C_G <-C_B 255 SetImageColor
+		endif
+	endif
+	#Finally, check to see if the user presses "Space" or "Escape" and deselect the unit if they do.
+	"Space" GetKeyDown "Escape" GetKeyDown or if 0 ->selected endif
+endif
+
+<-moving if
+	GetQueuedMoveCount eq0 if
+		@ExplodeBomp
+		0 ->moving
+	endif
+endif
+:awake
+    0 ->Conversion #setting up types for later 
+	1 ->Freeze
+	2 ->Singularity
+	3 ->Defuser
+	4 ->Frenzy
+	5 ->Omega
+	5 ->OmegaORA
+	6 ->Flip
+	7 ->Weaken
+	Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute 
+    Self CONST_NULLIFIERDAMAGES 0 SetUnitAttribute 
+    Self CONST_SUPPORTSDIGITALIS 0 SetUnitAttribute 
+    Self CONST_CREATEPZ 0 SetUnitAttribute
+    Self CONST_TAKEMAPSPACE 0 SetUnitAttribute
+
+    Self "main" <-Image SetImage
+	<-BombType <-! 0 eq if
+	Self "main" 10 150 150 255 SetImageColor
+	endif
+	<-BombType <-! 1 eq if 
+	Self "main" 10 10 250 255 SetImageColor
+	endif
+	<-BombType <-! 2 eq if
+	Self "main" 200 200 200 255 SetImageColor
+	endif
+	<-BombType <-! 3 eq if
+	Self "main" 150 150 10 255 SetImageColor
+	endif
+	<-BombType <-! 4 eq if
+	Self "main" 250 10 10 255 SetImageColor
+	endif
+	<-BombType <-! 5 eq if
+	Self "main" 5 5 5 255 SetImageColor
+	endif
+	<-BombType <-! 6 eq if
+	Self "main" 10 200 200 255 SetImageColor
+	endif
+	<-BombType <-! 7 eq if
+	Self "main" 10 250 10 255 SetImageColor
+	endif
+    Self "main" -2 SetImagePositionZ
+    Self "shadow" "Custom19" SetImage
+    Self "shadow" -1.9 SetImagePositionZ
+    Self "shadow" 255 255 255 0 SetImageColor
+    Self "selector" "Custom20" SetImage
+    Self "selector" -3 SetImagePositionZ
+    Self "selector" 255 255 255 0 SetImageColor
+	Self "range1" <-ImageCircle SetImage
+    Self "range1" <-Radius 2 mul 0.9 add 3.0 div dup SetImageScale
+	<-BombType <-! 0 eq <-BombSpecial 1 gte and if
+		Self "range2" <-ImageCircle SetImage
+		Self "range2" <-BombSpecial 2 mul 1.1 add 3.0 div dup SetImageScale
+	endif
+    GetCreeperColors 255 mul ->AC_B 255 mul ->AC_G 255 mul ->AC_R 255 mul ->C_B 255 mul ->C_G 255 mul ->C_R
+
+
+:ReserveSpot
+	<-MovingUnit "CreepPortal.crpl" "OccupiedBomp" 1 SetScriptVar
+	<-MovingUnit "ACEmitter.crpl" "OccupiedBomp" 1 SetScriptVar
+	<-MovingUnit "EmitterACDeath.crpl" "OccupiedBomp" 1 SetScriptVar
+	<-MovingUnit "EmitterACDread.crpl" "OccupiedBomp" 1 SetScriptVar
+	<-MovingUnit "FlipEmitter.crpl" "OccupiedBomp" 1 SetScriptVar
+	<-MovingUnit "ArmoredEmitter.crpl" "OccupiedBomp" 1 SetScriptVar
+	<-MovingUnit "BlockerDocker.crpl" "occupied" 1 SetScriptVar
+	<-MovingUnit "ACmultitower.crpl" "OccupiedBomp" 1 SetScriptVar
+	<-MovingUnit "Cmultitower.crpl" "OccupiedBomp" 0 SetScriptVar
+:CancelReservation
+	<-MovingUnit "CreepPortal.crpl" "OccupiedBomp" 0 SetScriptVar
+	<-MovingUnit "ACEmitter.crpl" "OccupiedBomp" 0 SetScriptVar
+	<-MovingUnit "EmitterACDeath.crpl" "OccupiedBomp" 0 SetScriptVar
+	<-MovingUnit "EmitterACDread.crpl" "OccupiedBomp" 0 SetScriptVar
+	<-MovingUnit "FlipEmitter.crpl" "OccupiedBomp" 0 SetScriptVar
+	<-MovingUnit "ArmoredEmitter.crpl" "OccupiedBomp" 0 SetScriptVar
+	<-MovingUnit "BlockerDocker.crpl" "occupied" 0 SetScriptVar
+	<-MovingUnit "ACmultitower.crpl" "OccupiedBomp" 0 SetScriptVar
+	<-MovingUnit "Cmultitower.crpl" "OccupiedBomp" 0 SetScriptVar
+:ExplodeBomp 
+	1 ->Primed
+	<-Duration 30 mul SetTimer0
+	0 ->greenShadow
+	0 ->selected
+
+
+:CheckMouseForPortal #() -> () Speficifes which bombs can target which units
+    0 ->greenShadow
+    GetMouseCell 1.5 GetEnemyUnitsInRange 0 do
+        ->unit
+        <-unit GetUnitType "CRPLCORE" eq if
+			<-unit "BombRepulsor.crpl" "Name" GetScriptVar "" concat "Repulsor" eq if
+				return
+			endif
+		endif
+	loop
+	GetMouseCell 1.5 GetEnemyUnitsInRange 0 do
+        ->unit
+        <-unit GetUnitType "CRPLCORE" eq if
+			<-BombType "Conversion" eq if
+				<-unit "CreepPortal.crpl" "Name" GetScriptVar "" concat "Portal" eq <-unit "CreepPortal.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "ACEmitter.crpl" "Name" GetScriptVar "" concat "acemitter" eq <-unit "ACEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "EmitterACDeath.crpl" "Name" GetScriptVar "" concat "emitter" eq <-unit "EmitterACDeath.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "EmitterACDread.crpl" "Name" GetScriptVar "" concat "Demitter" eq <-unit "EmitterACDread.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "FlipEmitter.crpl" "Name" GetScriptVar "" concat "flipemitter" eq <-unit "FlipEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "ArmoredEmitter.crpl" "Name" GetScriptVar "" concat "armoremitter" eq <-unit "ArmoredEmitter.crpl" "OccupiedBomp" GetScriptVar not and
+				or or or or or if
+					@SetTargetUnit
+					return
+				endif
+			endif
+			<-BombType "OmegaORA" eq <-BombType "Omega" eq or if
+				<-unit "ACEmitter.crpl" "Name" GetScriptVar "" concat "acemitter" eq <-unit "ACEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "EmitterACDeath.crpl" "Name" GetScriptVar "" concat "emitter" eq <-unit "EmitterACDeath.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "EmitterACDread.crpl" "Name" GetScriptVar "" concat "Demitter" eq <-unit "EmitterACDread.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "FlipEmitter.crpl" "Name" GetScriptVar "" concat "flipemitter" eq <-unit "FlipEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "ArmoredEmitter.crpl" "Name" GetScriptVar "" concat "armoremitter" eq <-unit "ArmoredEmitter.crpl" "OccupiedBomp" GetScriptVar not and
+				or or or or if
+					@SetTargetUnit
+					return
+				endif
+			endif
+			<-BombType "Singularity" eq <-BombType "Freeze" eq or if
+				<-unit "CreepPortal.crpl" "Name" GetScriptVar "" concat "Portal" eq <-unit "CreepPortal.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "ACEmitter.crpl" "Name" GetScriptVar "" concat "acemitter" eq <-unit "ACEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "EmitterACDeath.crpl" "Name" GetScriptVar "" concat "emitter" eq <-unit "EmitterACDeath.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "EmitterACDread.crpl" "Name" GetScriptVar "" concat "Demitter" eq <-unit "EmitterACDread.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "FlipEmitter.crpl" "Name" GetScriptVar "" concat "flipemitter" eq <-unit "FlipEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "ArmoredEmitter.crpl" "Name" GetScriptVar "" concat "armoremitter" eq <-unit "ArmoredEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
+				or or or or or if
+					@SetTargetUnit
+					return
+				endif
+			endif
+			<-BombType "Frenzy" eq <-BombType "Weaken" eq or if
+				<-unit "ACEmitter.crpl" "Name" GetScriptVar "" concat "acemitter" eq <-unit "ACEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "EmitterACDeath.crpl" "Name" GetScriptVar "" concat "emitter" eq <-unit "EmitterACDeath.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "EmitterACDread.crpl" "Name" GetScriptVar "" concat "Demitter" eq <-unit "EmitterACDread.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "FlipEmitter.crpl" "Name" GetScriptVar "" concat "flipemitter" eq <-unit "FlipEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "ArmoredEmitter.crpl" "Name" GetScriptVar "" concat "armoremitter" eq <-unit "ArmoredEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
+				or or or or if
+					@SetTargetUnit
+					return
+				endif
+            endif
+			<-BombType "Defuser" eq if
+				<-unit "EmitterACDeath.crpl" "Name" GetScriptVar "" concat "emitter" eq <-unit "EmitterACDeath.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "EmitterACDread.crpl" "Name" GetScriptVar "" concat "Demitter" eq <-unit "EmitterACDread.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "BlockerDocker.crpl" "IsBlockerDocker" GetScriptVar <-unit "BlockerDocker.crpl" "occupied" GetScriptVar not and
+				or or if
+					@SetTargetUnit
+					return
+				endif
+            endif
+			<-BombType "Flip" eq if
+				<-unit "CreepPortal.crpl" "Name" GetScriptVar "" concat "Portal" eq <-unit "CreepPortal.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "ACEmitter.crpl" "Name" GetScriptVar "" concat "acemitter" eq <-unit "ACEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "EmitterACDeath.crpl" "Name" GetScriptVar "" concat "emitter" eq <-unit "EmitterACDeath.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "EmitterACDread.crpl" "Name" GetScriptVar "" concat "Demitter" eq <-unit "EmitterACDread.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "FlipEmitter.crpl" "Name" GetScriptVar "" concat "flipemitter" eq <-unit "FlipEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "ArmoredEmitter.crpl" "Name" GetScriptVar "" concat "armoremitter" eq <-unit "ArmoredEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-BombSpecial 1 eq if
+					<-unit "ACmultitower.crpl" "Name" GetScriptVar "" concat "acmulti" eq <-unit "ACmultitower.crpl" "OccupiedBomp" GetScriptVar not and 
+					<-unit "Cmultitower.crpl" "Name" GetScriptVar "" concat "cmulti" eq <-unit "Cmultitower.crpl" "OccupiedBomp" GetScriptVar not and or or
+				endif
+				or or or or or if
+				@SetTargetUnit
+					return
+				endif
+			endif
+        endif
+    loop
+:SetTargetUnit
+1 ->greenShadow
+<-unit ->TargetUnit
+<-TargetUnit CONST_COORDX GetUnitAttribute ->targetX
+<-TargetUnit CONST_COORDY GetUnitAttribute ->targetY
+<-TargetUnit CONST_PIXELCOORDX GetUnitAttribute ->cmfp_ux
+<-TargetUnit CONST_PIXELCOORDY GetUnitAttribute ->cmfp_uy
+CurrentPixelCoords ->cmfp_y ->cmfp_x
+<-cmfp_uy <-cmfp_y sub ->cmfp_idy
+<-cmfp_ux <-cmfp_x sub ->cmfp_idx
+Self "shadow" <-cmfp_idx <-cmfp_idy -1.9 SetImagePosition
+Self "range1" <-cmfp_idx <-cmfp_idy -50 SetImagePosition
+Self "range1" <-AC_R <-AC_G <-AC_B 255 SetImageColor
+<-BombType <-! 0 eq <-BombSpecial 1 gte and if
+	Self "range2" <-cmfp_idx <-cmfp_idy -51 SetImagePosition
+	Self "range2" <-C_R <-C_G <-C_B 255 SetImageColor
+endif
+
+
+:convert #induces conversion effect. Takes Radius as parameter
+		->RadCon
+		"Explosion4" PlaySound
+		1 CurrentPixelCoords -10 2 2 0.033 CreateEffect
+		CurrentX <-RadCon add 1 add CurrentX <-RadCon sub do # J = X
+			CurrentY <-RadCon add 1 add CurrentY <-RadCon sub do # I = Y
+				CurrentCoords J I Distance <-RadCon lte if
+					J I dup2 GetCreeper abs neg SetCreeper
+				endif
+			loop
+		loop
+:deconvert #induces deconversion effect. Takes Radius as parameter
+		->DRadCon
+		"Explosion4" PlaySound
+		1 CurrentPixelCoords -10 2 2 0.033 CreateEffect
+		CurrentX <-DRadCon add 1 add CurrentX <-DRadCon sub do # J = X
+			CurrentY <-DRadCon add 1 add CurrentY <-DRadCon sub do # I = Y
+				CurrentCoords J I Distance <-DRadCon lte if
+					J I dup2 GetCreeper abs SetCreeper
+				endif
+			loop
+		loop
+	
+:freeze #freezes. Takes Radius as parameter
+		->RadFreez
+			CurrentX <-RadFreez add 1 add CurrentX <-RadFreez sub do # J = X
+				CurrentY <-RadFreez add 1 add CurrentY <-RadFreez sub do # I = Y
+					CurrentCoords J I Distance <-RadFreez lte if
+						J I 1 1 SetPinFieldCell
+					endif
+				loop
+			loop
+:unfreeze #unfreezes. Takes Radius as parameter
+		->RadUFreez	
+			CurrentX <-RadUFreez add 1 add CurrentX <-RadUFreez	sub do # J = X
+				CurrentY <-RadUFreez add 1 add CurrentY <-RadUFreez	 sub do # I = Y
+					CurrentCoords J I Distance <-RadUFreez lte if
+						J I 0 0 SetPinFieldCell
+					endif
+				loop
+			loop
+:frenzy #alters emitter output, takes Power Interval Unit as parameters.
+			->FrenzyTarget
+			->IntervalMod
+			->PowerMod
+			<-FrenzyTarget "EmitterACDeath.crpl" "Amount" <-FrenzyTarget "EmitterACDeath.crpl" "Amount" GetScriptVar <-PowerMod mul SetScriptVar
+			<-FrenzyTarget "EmitterACDread.crpl" "Amount" <-FrenzyTarget "EmitterACDread.crpl" "Amount" GetScriptVar <-PowerMod mul SetScriptVar
+			<-FrenzyTarget "ACEmitter.crpl" "Amount" <-FrenzyTarget "ACEmitter.crpl" "Amount" GetScriptVar <-PowerMod mul SetScriptVar
+			<-FrenzyTarget "FlipEmitter.crpl" "Camt" <-FrenzyTarget "FlipEmitter.crpl" "Camt" GetScriptVar <-PowerMod mul SetScriptVar
+			<-FrenzyTarget "FlipEmitter.crpl" "ACamt" <-FrenzyTarget "FlipEmitter.crpl" "ACamt" GetScriptVar <-PowerMod mul SetScriptVar
+			<-FrenzyTarget "ArmoredEmitter.crpl" "Camt" <-FrenzyTarget "ArmoredEmitter.crpl" "Camt" GetScriptVar <-PowerMod mul SetScriptVar
+			<-FrenzyTarget "ArmoredEmitter.crpl" "ACamt" <-FrenzyTarget "ArmoredEmitter.crpl" "ACamt" GetScriptVar <-PowerMod mul SetScriptVar
+			<-FrenzyTarget "EmitterACDeath.crpl" "Interval" <-FrenzyTarget "EmitterACDeath.crpl" "Interval" GetScriptVar <-IntervalMod mul SetScriptVar
+			<-FrenzyTarget "EmitterACDread.crpl" "Interval" <-FrenzyTarget "EmitterACDread.crpl" "Interval" GetScriptVar <-IntervalMod mul SetScriptVar
+			<-FrenzyTarget "ACEmitter.crpl" "Interval" <-FrenzyTarget "ACEmitter.crpl" "Interval" GetScriptVar <-IntervalMod mul SetScriptVar
+			<-FrenzyTarget "FlipEmitter.crpl" "ACinterval" <-FrenzyTarget "FlipEmitter.crpl" "ACinterval" GetScriptVar <-IntervalMod mul SetScriptVar
+			<-FrenzyTarget "FlipEmitter.crpl" "Cinterval" <-FrenzyTarget "FlipEmitter.crpl" "Cinterval" GetScriptVar <-IntervalMod mul SetScriptVar
+			<-FrenzyTarget "ArmoredEmitter.crpl" "ACinterval" <-FrenzyTarget "ArmoredEmitter.crpl" "ACinterval" GetScriptVar <-IntervalMod mul SetScriptVar
+			<-FrenzyTarget "ArmoredEmitter.crpl" "Cinterval" <-FrenzyTarget "ArmoredEmitter.crpl" "Cinterval" GetScriptVar <-IntervalMod mul SetScriptVar
+:unfrenzy #alters emitter output, takes Power Interval Unit as parameters.
+			->UFrenzyTarget
+			->UIntervalMod
+			->UPowerMod
+			<-UFrenzyTarget "EmitterACDeath.crpl" "Amount" <-UFrenzyTarget "EmitterACDeath.crpl" "Amount" GetScriptVar <-UPowerMod div SetScriptVar
+			<-UFrenzyTarget "EmitterACDread.crpl" "Amount" <-UFrenzyTarget "EmitterACDread.crpl" "Amount" GetScriptVar <-UPowerMod div SetScriptVar
+			<-UFrenzyTarget "ACEmitter.crpl" "Amount" <-UFrenzyTarget "ACEmitter.crpl" "Amount" GetScriptVar <-UPowerMod div SetScriptVar
+			<-UFrenzyTarget "FlipEmitter.crpl" "Camt" <-UFrenzyTarget "FlipEmitter.crpl" "Camt" GetScriptVar <-UPowerMod div SetScriptVar
+			<-UFrenzyTarget "FlipEmitter.crpl" "ACamt" <-UFrenzyTarget "FlipEmitter.crpl" "ACamt" GetScriptVar <-UPowerMod div SetScriptVar
+			<-UFrenzyTarget "ArmoredEmitter.crpl" "Camt" <-UFrenzyTarget "ArmoredEmitter.crpl" "Camt" GetScriptVar <-UPowerMod div SetScriptVar
+			<-UFrenzyTarget "ArmoredEmitter.crpl" "ACamt" <-UFrenzyTarget "ArmoredEmitter.crpl" "ACamt" GetScriptVar <-UPowerMod div SetScriptVar
+			<-UFrenzyTarget "EmitterACDeath.crpl" "Interval" <-UFrenzyTarget "EmitterACDeath.crpl" "Interval" GetScriptVar <-UIntervalMod div SetScriptVar
+			<-UFrenzyTarget "EmitterACDread.crpl" "Interval" <-UFrenzyTarget "EmitterACDread.crpl" "Interval" GetScriptVar <-UIntervalMod div SetScriptVar
+			<-UFrenzyTarget "ACEmitter.crpl" "Interval" <-UFrenzyTarget "ACEmitter.crpl" "Interval" GetScriptVar <-UIntervalMod div SetScriptVar
+			<-UFrenzyTarget "FlipEmitter.crpl" "ACinterval" <-UFrenzyTarget "FlipEmitter.crpl" "ACinterval" GetScriptVar <-UIntervalMod div SetScriptVar
+			<-UFrenzyTarget "FlipEmitter.crpl" "Cinterval" <-UFrenzyTarget "FlipEmitter.crpl" "Cinterval" GetScriptVar <-UIntervalMod div SetScriptVar
+			<-UFrenzyTarget "ArmoredEmitter.crpl" "ACinterval" <-UFrenzyTarget "ArmoredEmitter.crpl" "ACinterval" GetScriptVar <-UIntervalMod div SetScriptVar
+			<-UFrenzyTarget "ArmoredEmitter.crpl" "Cinterval" <-UFrenzyTarget "ArmoredEmitter.crpl" "Cinterval" GetScriptVar <-UIntervalMod div SetScriptVar
+:flip
+	->RadFlip
+	CurrentX <-RadFlip add 1 add CurrentX <-RadFlip sub do # J = X
+					CurrentY <-RadFlip add 1 add CurrentY <-RadFlip sub do # I = Y
+						CurrentCoords J I Distance <-RadFlip lte if
+							J I dup2 GetCreeper neg SetCreeper
+						endif
+					loop
+				loop	

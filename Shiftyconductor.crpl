@@ -1,0 +1,448 @@
+# Modification of semiconductor. Allows you to set several additional behaviors which allows the semicoductor to rotate, flip and change the C-AC setting on a timer.
+# Semiconductor.crpl
+# Created on: 7/23/2018 9:02:06 PM
+# ------------------------------------------
+
+$CellWidth:5
+$CellHeight:5
+$Creeper:1 # 1 = creeper, 0 = anticreeper
+
+#Set 1 for output
+$Left:0 #
+$Top:0 # 
+$Right:1 #
+$Bottom:0 #
+$Flip:0 # will occasionally flip the arrow if set to 1
+$FlipInterval:10 # how many seconds between flips
+$Rotate:0 # will rotate clockwise if 1, counterclockwise if 2, doesn't if 0
+$RotateInterval:10 # how many seconds between rotations
+$Switch:0 # will occasionally switch color if set to 1
+$SwitchInterval:10 # how many seconds between color switches
+$Honest:0 #tells you what's going on
+$Barrier:0.0 # put artificial "wall" on the input of the semiconductor
+
+$FlowCoef:0.5 # relative flow coeficient: equalize the creeper difference by this amount each frame
+
+$ImageSquare:"Custom0pp"
+$ImageMain:"_128"
+$ImageMainOffset:0
+
+once
+	1 ->Unlock #initializing Unlock for shifty behaviors
+	"" ->HonestText #initializing honest text
+	<-FlipInterval 30 mul SetTimer0 
+	<-SwitchInterval 30 mul SetTimer2 
+	<-RotateInterval 30 mul SetTimer1 #initializing timers to prevent immediate rotations 
+    ShowTraceLog
+    ClearTraceLog
+    HideTraceLog
+    
+    Self CONST_CELLWIDTH <-CellWidth SetUnitAttribute
+    Self CONST_CELLHEIGHT <-CellHeight SetUnitAttribute
+    
+    Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute 
+    Self CONST_NULLIFIERDAMAGES 0 SetUnitAttribute
+    Self CONST_TAKEMAPSPACE 1 SetUnitAttribute
+    Self CONST_SUPPORTSDIGITALIS 0 SetUnitAttribute
+
+    CurrentX <-CellWidth 2 div sub ->StartX
+    CurrentY <-CellHeight 2 div sub ->StartY
+ 
+    <-StartX <-CellWidth add <-StartX do
+        <-StartY <-CellHeight add <-StartY do
+            #set terrain to max -> it will easily prevent the creeper flow
+            J I 10 SetTerrain
+            J I 2000 SetTerrainOverride
+        loop
+    loop
+    
+    <-Left 1 eq if
+        <-CellWidth ->OffsetX
+        0 ->OffsetY
+        -1 ->TargetX
+        0 ->TargetY
+        0 ->AddX
+        1 ->AddY
+        <-CellHeight ->Length
+        0 ->Direction
+    endif
+    <-Top 1 eq if
+        0 ->OffsetX
+        <-CellHeight ->OffsetY
+        0 ->TargetX
+        -1 ->TargetY
+        1 ->AddX
+        0 ->AddY
+        <-CellWidth ->Length
+        1 ->Direction
+    endif
+    <-Right 1 eq if
+        -1 ->OffsetX
+        0 ->OffsetY
+        <-CellWidth ->TargetX
+        0 ->TargetY
+        0 ->AddX
+        1 ->AddY
+        <-CellHeight ->Length
+        2 ->Direction
+    endif
+    <-Bottom 1 eq if
+        0 ->OffsetX
+        -1 ->OffsetY
+        0 ->TargetX
+        <-CellHeight ->TargetY
+        1 ->AddX
+        0 ->AddY
+        <-CellWidth ->Length
+        3 ->Direction
+    endif
+    
+    <-StartX <-OffsetX add ->START_X
+    <-StartY <-OffsetY add ->START_Y
+    <-StartX <-TargetX add ->TARGET_X
+    <-StartY <-TargetY add ->TARGET_Y
+ 
+    0 ->active
+    @SetImages
+    @awake
+    
+    <-Creeper if
+        <-Barrier ->C_Barrier
+        0 ->AC_Barrier
+    else
+        <-Barrier neg ->AC_Barrier
+        0 ->C_Barrier
+    endif
+    
+    0 ->coefBuffer
+endonce
+
+<-Flip 1 eq if #every N seconds reverses the direction
+	GetTimer0 eq0 if
+		<-Direction 0 eq <-Unlock and if
+			0 ->Left
+			1 ->Right
+			@ResetImagery
+			0 ->Unlock
+		endif	
+		<-Direction 2 eq <-Unlock and if
+			1 ->Left
+			0 ->Right
+			@ResetImagery
+			0 ->Unlock
+		endif
+		<-Direction 1 eq <-Unlock and if
+			0 ->Top
+			1 ->Bottom
+			@ResetImagery
+			0 ->Unlock
+		endif	
+		<-Direction 3 eq <-Unlock and if
+			1 ->Top
+			0 ->Bottom
+			@ResetImagery
+			0 ->Unlock
+		endif
+		1 ->Unlock
+	<-FlipInterval 30 mul SetTimer0 
+			"Flip " <-Flip concat trace
+	"Direction " <-Direction concat trace
+	endif
+endif
+<-Rotate 1 eq if #every N seconds rotates clockwise
+	GetTimer1 eq0 if
+		<-Direction 0 eq <-Unlock and if
+			0 ->Left
+			1 ->Top
+			@ResetImagery
+			0 ->Unlock
+		endif	
+		<-Direction 2 eq <-Unlock and if
+			1 ->Bottom
+			0 ->Right
+			@ResetImagery
+			0 ->Unlock
+		endif
+		<-Direction 1 eq <-Unlock and if
+			0 ->Top
+			1 ->Right
+			@ResetImagery
+			0 ->Unlock
+		endif	
+		<-Direction 3 eq <-Unlock and if
+			1 ->Left
+			0 ->Bottom
+			@ResetImagery
+			0 ->Unlock
+		endif
+		1 ->Unlock
+	<-RotateInterval 30 mul SetTimer1 
+			"Rotate " <-Rotate concat trace
+	"Direction " <-Direction concat trace
+	endif
+endif
+<-Rotate 2 eq if #every N seconds rotates counterclockwise
+	GetTimer1 eq0 if
+		<-Direction 0 eq <-Unlock and if
+			0 ->Left
+			1 ->Bottom
+			@ResetImagery
+			0 ->Unlock
+		endif	
+		<-Direction 2 eq <-Unlock and if
+			1 ->Top
+			0 ->Right
+			@ResetImagery
+			0 ->Unlock
+		endif
+		<-Direction 1 eq <-Unlock and if
+			0 ->Top
+			1 ->Left
+			@ResetImagery
+			0 ->Unlock
+		endif	
+		<-Direction 3 eq <-Unlock and if
+			1 ->Right
+			0 ->Bottom
+			@ResetImagery
+			0 ->Unlock
+		endif
+	<-RotateInterval 30 mul SetTimer1 
+	1 ->Unlock
+		"Rotate " <-Rotate concat trace
+	"Direction " <-Direction concat trace
+	endif
+endif
+<-Switch 1 eq if #every N seconds changes whether it allows C or AC to flow
+	GetTimer2 eq0 if
+		<-Creeper eq0 <-Unlock and if
+			1 ->Creeper 
+			"Creeper inside 0 " <-Creeper concat trace
+			@ResetImagery
+			0 ->Unlock
+		endif	
+		<-Creeper 1 eq <-Unlock and if
+			0 ->Creeper
+			"Creeper inside 1 " <-Creeper concat trace
+			@ResetImagery
+			0 ->Unlock
+		endif
+	<-SwitchInterval 30 mul SetTimer2 
+	1 ->Unlock
+	"Switch " <-Switch concat trace
+	"Creeper " <-Creeper concat trace
+	endif
+endif
+<-Honest 1 eq if
+	<-Flip 1 eq if
+	"
+	"	<-HonestText "This conductor will reverse direction in " GetTimer0 30.0 div 0 Round " seconds
+	" concat concat concat concat ->HonestText
+	endif
+	<-Rotate 1 eq if
+	"
+	"	<-HonestText "This conductor will rotate clockwise in " GetTimer1 30.0 div 0 Round " seconds
+	" concat concat concat concat ->HonestText
+	endif
+	<-Rotate 2 eq if
+	"
+	"	<-HonestText "This conductor will rotate counterclockwise in " GetTimer1 30.0 div 0 Round " seconds
+	" concat concat concat concat ->HonestText
+	endif
+	<-Switch 1 eq if
+	"
+	"	<-HonestText "This conductor will switch the blocked type in " GetTimer2 30.0 div 0 Round " seconds
+	" concat concat concat concat ->HonestText
+	endif
+
+	<-HonestText SetPopupText
+	"" ->HonestText
+endif
+		
+	
+
+
+#move creeper
+<-START_X ->sourceX
+<-START_Y ->sourceY
+<-TARGET_X ->targetX
+<-TARGET_Y ->targetY
+
+0 ->maxInput # maximum input value
+
+<-Length 0 do
+    <-sourceX <-sourceY GetCreeper ->sourceCreeper
+    <-targetX <-targetY GetCreeper ->targetCreeper
+    
+    <-sourceX <-sourceY GetTerrainOverride ->sourceTerrain
+    <-targetX <-targetY GetTerrainOverride ->targetTerrain
+    
+    <-maxInput <-sourceCreeper <-Creeper not if neg endif max ->maxInput
+    
+    0 ->flow # total maximum flow
+    
+    ### FLOW CREEPER FORWARD  ###
+    <-sourceCreeper 0 gt if
+        <-sourceTerrain <-sourceCreeper <-C_Barrier sub add <-targetTerrain <-targetCreeper add sub dup 0 gt if
+            2.0 div <-sourceCreeper <-C_Barrier sub min <-flow add ->flow
+        else            
+            pop
+        endif
+    endif
+    
+    ### FLOW CREEPER BACKWARD ###
+    <-Creeper not if
+        <-targetCreeper 0 gt if 
+            <-targetTerrain <-targetCreeper add <-sourceTerrain <-sourceCreeper add sub dup 0 gt if
+                2.0 div <-targetCreeper min <-flow swap sub ->flow
+            else            
+                pop
+            endif
+        endif
+    endif
+    
+    ### FLOW AC FORWARD       ###
+    <-sourceCreeper 0 lt if 
+        <-sourceTerrain <-sourceCreeper <-AC_Barrier sub sub <-targetTerrain <-targetCreeper sub sub dup 0 gt if
+            2.0 div <-sourceCreeper <-AC_Barrier sub neg min <-flow swap sub ->flow
+        else            
+            pop
+        endif
+    endif
+    
+    ### FLOW AC BACKWARD      ###
+    <-Creeper if
+        <-targetCreeper 0 lt if 
+            <-targetTerrain <-targetCreeper sub <-sourceTerrain <-sourceCreeper sub sub dup 0 gt if
+                2.0 div <-targetCreeper neg min <-flow add ->flow
+            else            
+                pop
+            endif
+        endif
+    endif
+    
+    <-flow <-FlowCoef mul ->flow
+    
+    <-sourceX <-sourceY <-sourceCreeper <-flow sub SetCreeper
+    <-targetX <-targetY <-targetCreeper <-flow add SetCreeper
+    
+    <-sourceX <-AddX add ->sourceX
+    <-sourceY <-AddY add ->sourceY
+    <-targetX <-AddX add ->targetX
+    <-targetY <-AddY add ->targetY
+loop
+
+<-coefBuffer 0.9 mul <-maxInput 0.1 mul add ->coefBuffer
+<-coefBuffer @DisplayArrow
+
+:DisplayArrow # f -
+    ->maxInput
+    <-Barrier neq0 if
+        <-maxInput <-Barrier div 1 min ->coef
+        <-Left neq0 if
+            Self "arrow" <-CellWidth <-coef mul 3.1 div <-CellHeight 3.1 div SetImageScale
+            Self "arrow" 1 <-coef sub <-CellWidth 4 mul mul SetImagePositionX
+        endif
+        <-Top neq0 if
+            Self "arrow" <-CellWidth 3.1 div <-CellHeight <-coef mul 3.1 div SetImageScale
+            Self "arrow" 1 <-coef sub <-CellHeight -4 mul mul SetImagePositionY
+        endif
+        <-Right neq0 if
+            Self "arrow" <-CellWidth <-coef mul 3.1 div <-CellHeight 3.1 div SetImageScale
+            Self "arrow" 1 <-coef sub <-CellWidth -4 mul mul SetImagePositionX
+        endif
+        <-Bottom neq0 if
+            Self "arrow" <-CellWidth 3.1 div <-CellHeight <-coef mul 3.1 div SetImageScale
+            Self "arrow" 1 <-coef sub <-CellHeight 4 mul mul SetImagePositionY
+        endif
+    endif
+
+:SetImages
+    Self "main" "Custom" <-ImageMainOffset <-Direction add <-ImageMain concat concat SetImage
+    Self "main" <-CellWidth 3.0 div <-CellHeight 3.0 div SetImageScale
+    Self "main" 0 0 0 SetImagePosition
+    
+    Self "arrow" <-ImageSquare SetImage
+    Self "arrow" 0 0 0.01 SetImagePosition
+    Self "arrow" 0 0 SetImageScale #for now
+    <-Barrier eq0 if
+        Self "arrow" <-CellWidth 3.1 div <-CellHeight 3.1 div SetImageScale
+    endif
+    
+    Self "arrowB" <-ImageSquare SetImage
+    Self "arrowB" 0 0 0.02 SetImagePosition
+    Self "arrowB" <-CellWidth 3.1 div <-CellHeight 3.1 div SetImageScale
+
+:ColorArrow
+    Self "arrow"  <-fullR <-fullG <-fullB 255 SetImageColor
+    Self "arrowB" <-halfR <-halfG <-halfB 255 SetImageColor
+    
+:awake
+    <-Creeper if
+        GetCreeperColors pop pop pop 255.0 mul ->fullB 255.0 mul ->fullG 255.0 mul ->fullR
+    else
+        GetCreeperColors 255.0 mul ->fullB 255.0 mul ->fullG 255.0 mul ->fullR pop pop pop
+    endif
+    <-fullR 128 add 4 div ->halfR
+    <-fullG 128 add 4 div ->halfG
+    <-fullB 128 add 4 div ->halfB
+    
+    <-Barrier if
+        "Input barrier: " <-Barrier 0 Round <-Creeper if " creeper" else " anticreeper" endif concat concat SetPopupText
+    else
+        "" SetPopupText
+    endif
+    
+    @ColorArrow
+	
+ :ResetImagery
+     <-Left 1 eq if
+        <-CellWidth ->OffsetX
+        0 ->OffsetY
+        -1 ->TargetX
+        0 ->TargetY
+        0 ->AddX
+        1 ->AddY
+        <-CellHeight ->Length
+        0 ->Direction
+    endif
+    <-Top 1 eq if
+        0 ->OffsetX
+        <-CellHeight ->OffsetY
+        0 ->TargetX
+        -1 ->TargetY
+        1 ->AddX
+        0 ->AddY
+        <-CellWidth ->Length
+        1 ->Direction
+    endif
+    <-Right 1 eq if
+        -1 ->OffsetX
+        0 ->OffsetY
+        <-CellWidth ->TargetX
+        0 ->TargetY
+        0 ->AddX
+        1 ->AddY
+        <-CellHeight ->Length
+        2 ->Direction
+    endif
+    <-Bottom 1 eq if
+        0 ->OffsetX
+        -1 ->OffsetY
+        0 ->TargetX
+        <-CellHeight ->TargetY
+        1 ->AddX
+        0 ->AddY
+        <-CellWidth ->Length
+        3 ->Direction
+    endif
+    
+    <-StartX <-OffsetX add ->START_X
+    <-StartY <-OffsetY add ->START_Y
+    <-StartX <-TargetX add ->TARGET_X
+    <-StartY <-TargetY add ->TARGET_Y
+ 
+    0 ->active
+    @SetImages
+    @awake
+ 

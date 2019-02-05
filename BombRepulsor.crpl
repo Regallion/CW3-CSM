@@ -1,0 +1,36 @@
+#Does nothing by itself: AdvancedBomps will not target units this is placed under. Scales to the size of whatever it is placed under
+$Image:"Custom27"
+$Name:"Repulsor"
+once
+    @awake
+	CurrentCoords 0 0 GetAllUnitsInRange
+	0 do
+		->Unit
+		<-Unit Self neq if
+			ClearStack
+			break
+		else
+			0 ->Unit
+		endif
+	loop
+endonce
+GetTimer0 eq0 if
+	0 ->X
+	<-Unit "main" "WHYYY" GetImageScaleX ->X
+	<-X if
+		Self "main" 1.2 <-X mul dup SetImageScale
+	else
+		Self "main" 1 dup SetImageScale
+	endif
+	60 90 RandInt SetTimer0
+endif
+
+
+:awake
+Self "main" <-Image SetImage
+Self "main" 255 0 0 255 SetImageColor
+self "main" 0.1 SetImagePositionZ
+Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute 
+Self CONST_NULLIFIERDAMAGES 0 SetUnitAttribute 
+Self CONST_SUPPORTSDIGITALIS 0 SetUnitAttribute 
+Self CONST_CREATEPZ 0 SetUnitAttribute

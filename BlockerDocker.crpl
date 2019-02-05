@@ -1,0 +1,17 @@
+# BlockerDocker.crpl
+# Created on: 11/10/2018 2:29:01 PM
+# ------------------------------------------
+
+$Image:"Custom27"
+$IsBlockerDocker:1
+
+once
+    @awake
+endonce
+
+:awake
+Self "main" <-Image SetImage
+Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute 
+Self CONST_NULLIFIERDAMAGES 0 SetUnitAttribute 
+Self CONST_SUPPORTSDIGITALIS 0 SetUnitAttribute 
+Self CONST_CREATEPZ 0 SetUnitAttribute

@@ -1,0 +1,49 @@
+#This is my custom AC emitter script. It behaves pretty similarly to a standard AC emitter. It has custom popup text to match my custom creeper emitter, and functionality to be improved with my ACmultitower.crpl script.
+$Name:"acemitter"
+#ImageSlot can be changed if you want to use a different slot.
+$ImageSlot:"Custom1"
+$Amount:-30
+$Interval:15
+$StartDelay:0
+
+once 
+	@awake
+	#The 4 delay is to make sure the AC multi tower has time to establish its variables before being picked up by this script. My custom creeper emitter script also has this delay to avoid unbalance.
+	4 delay
+endonce 
+ 
+GetGameTimeFrames <-StartDelay gt if
+	#Since the AC multi tower check only happens once, you will have to recompile if you add the AC multi global tower in after adding the AC emitter in. If you plan to include the AC multi tower functionality in a map it's recommended to add the global multi tower before adding any AC emitters to sidestep this pitfall.
+	once
+		<-Amount ->tAmount
+	endonce
+	 
+	#If we've flagged a multi tower, we have to check on every invocation to update our amount in case the global multi has changed since our last check. Otherwise the total amount remains at the value we set back in the initial check.
+	<-multi if
+		<-TotalPower <-Amount mul ->tAmount
+	endif
+
+	CurrentCoords <-tAmount SetCreeperNoLower
+	"Producing " <-tAmount abs concat " anti-creeper every " concat <-Interval 30.00 div 2 Round 1000 mul concat " milliseconds." concat "
+
+
+	" concat SetPopupText
+	<-Interval Delay
+else
+	<-StartDelay GetGameTimeFrames sub 30.0 div ceil ->rem
+	"This emitter is currently slumbering. It will awake in " <-rem " seconds with an output of " <-Amount neg ".
+	
+	
+	"
+	concat concat concat concat SetPopupText
+	15 Delay
+endif
+
+
+
+:awake
+	Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute Self CONST_NULLIFIERDAMAGES 0 SetUnitAttribute Self CONST_SUPPORTSDIGITALIS 0 SetUnitAttribute
+	Self CONST_CREATEPZ 0 SetUnitAttribute
+	Self "main" <-ImageSlot SetImage
+	Self "main" 0.8 0.8 SetImageScale
+	Self "main" 255 255 255 255 SetImageColor
