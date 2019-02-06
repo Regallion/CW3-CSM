@@ -5,6 +5,7 @@ $StartDelay:0
 $Conduction:0
 $Thresh:1
 
+$ImageLine:"Custom3pp"
 
 once
 	<-colorID ->trueColor
@@ -63,70 +64,179 @@ once
     endif
 endonce
 
-<-active if
-	<-Conduction neq0 if
-		<-conductable if
-			<-Conduction 1 eq if
-				CurrentCoords GetCreeper <-Thresh lt if 
-					0 ->conductable
-				endif
-			else
-				<-Conduction -1 eq if
-					CurrentCoords GetCreeper <-Thresh gt if 
-						0 ->conductable
-					endif
-				endif
-			endif
-		else
-			<-Conduction 1 eq if
-				CurrentCoords GetCreeper <-Thresh gte if 
-					1 ->conductable
-				endif
-			else
-				<-Conduction -1 eq if
-					CurrentCoords GetCreeper <-Thresh lte if 
-						1 ->conductable
-					endif
-				endif
-			endif
-		endif
-	endif
-else
-	GetGameTimeFrames <-StartDelay gte if
-		1 ->active
-	endif
-endif
-GetTimer3 eq0 if
-	<-parentCore if
-		<-parentCore "PortalGlobal.crpl" "cbActive" GetScriptVar if
-			Self "shape" 255 255 255 255 SetImageColor
-			# Self "letter" 255 255 255 255 SetImageColor
-		else
-			Self "shape" 255 50 50 0 SetImageColor
-			# Self "letter" 0 0 0 0 SetImageColor
-		endif
-	else
-		"Name" "PortalGlobal" GetCoresWithVar if ->parentCore endif
-	endif
-	30 SetTimer3
-endif
+IsPaused not if
+    <-active if
+        <-Conduction neq0 if
+            <-conductable if
+                <-Conduction 1 eq if
+                    CurrentCoords GetCreeper <-Thresh lt if 
+                        0 ->conductable
+                    endif
+                else
+                    <-Conduction -1 eq if
+                        CurrentCoords GetCreeper <-Thresh gt if 
+                            0 ->conductable
+                        endif
+                    endif
+                endif
+            else
+                <-Conduction 1 eq if
+                    CurrentCoords GetCreeper <-Thresh gte if 
+                        1 ->conductable
+                    endif
+                else
+                    <-Conduction -1 eq if
+                        CurrentCoords GetCreeper <-Thresh lte if 
+                            1 ->conductable
+                        endif
+                    endif
+                endif
+            endif
+        endif
+    else
+        GetGameTimeFrames <-StartDelay gte if
+            1 ->active
+        endif
+    endif
+    <-Timer3 0 lte if
+        <-parentCore if
+            <-parentCore "PortalGlobal.crpl" "cbActive" GetScriptVar if
+                Self "shape" 255 255 255 255 SetImageColor
+                # Self "letter" 255 255 255 255 SetImageColor
+            else
+                Self "shape" 255 50 50 0 SetImageColor
+                # Self "letter" 0 0 0 0 SetImageColor
+            endif
+        else
+            "Name" "PortalGlobal" GetCoresWithVar if ->parentCore endif
+        endif
+        30 ->Timer3
+    endif
 
-<-isDark GetTimer0 eq0 and if
-    Self "dots" <-darkRotation -0.78539816339 mul SetImageRotation
-    <-darkRotation 1 add ->darkRotation
-    30 SetTimer0
-endif
+    <-isDark <-Timer0 0 lte and if
+        Self "dots" <-darkRotation -0.78539816339 mul SetImageRotation
+        <-darkRotation 1 add ->darkRotation
+        30 ->Timer0
+    endif
 
+    <-Timer0 1 sub ->Timer0
+    <-Timer3 1 sub ->Timer3
+endif # IsPaused
+    
 # cleartracelog
 # showtracelog
 # "C: " <-conductable concat trace
 # "A: " <-active concat trace
+
+
+#### LINE RENDERING ####
+
+once
+    return # dirty trick to wait 1 frame for other gates to init their "trueColor" variable
+endonce
+
+once
+    @InitColor
+    @InitLineImages
+endonce
+
+GetMouseCell CurrentCoords Distance 1.5 lte if #hardwired 3x3 size, but meh, it's for visual effect only
+    <-LINE_ALPHA 17 add 255 min ->LINE_ALPHA
+else
+    <-LINE_ALPHA 17 sub 0 max ->LINE_ALPHA
+endif
+
+@RenderLineImages
+
+:InitColor # -
+    <-trueColor 0 eq if #red
+        255 ->R
+        0 ->G
+        0 ->B
+        return
+    endif
+    <-trueColor 1 eq if #green
+        0 ->R
+        255 ->G
+        0 ->B
+        return
+    endif
+    <-trueColor 2 eq if #pink
+        255 ->R
+        64 ->G
+        128 ->B
+        return
+    endif
+    <-trueColor 3 eq if #yellow
+        255 ->R
+        255 ->G
+        0 ->B
+        return
+    endif
+    <-trueColor 4 eq if #blue
+        0 ->R
+        0 ->G
+        255 ->B
+        return
+    endif
+    <-trueColor 5 eq if #black
+        128 ->R
+        128 ->G
+        128 ->B
+        return
+    endif
+    <-trueColor 6 eq if #brown
+        192 ->R
+        98 ->G
+        0 ->B
+        return
+    endif
+    <-trueColor 7 eq if #white
+        255 ->R
+        255 ->G
+        255 ->B
+        return
+    endif
+    # unknow color - use teal
+    0 ->R
+    255 ->G
+    255 ->B
+    
+:InitLineImages # -
+    0 ->LINES
+    "trueColor" <-trueColor GetCoresWithVar 0 do
+        ->ILI_Uid
+        <-ILI_Uid Self neq if
+            CurrentPixelCoords
+                <-ILI_Uid CONST_PIXELCOORDY GetUnitAttribute swap sub ->ILI_Y
+                <-ILI_Uid CONST_PIXELCOORDX GetUnitAttribute swap sub ->ILI_X
+            
+            "line" <-LINES concat ->ILI_Name
+            Self <-ILI_Name <-ImageLine SetImage
+            Self <-ILI_Name <-ILI_X <-ILI_Y 0 0 Distance 24 sub 24.0 div 0.15 SetImageScale
+            Self <-ILI_Name <-ILI_Y <-ILI_X atan2 SetImageRotation
+            Self <-ILI_Name <-ILI_X 2.0 div <-ILI_Y 2.0 div -11 SetImagePosition
+            Self <-ILI_Name 0 0 0 0 SetImageColor #hide for now, color will be set in render
+            
+            <-LINES 1 add ->LINES
+        endif
+    loop
+    
+    0 ->LINE_ALPHA
+
+:RenderLineImages # -
+    <-LINES 0 do
+        "line" I concat ->ILI_Name
+        Self <-ILI_Name <-R <-G <-B <-LINE_ALPHA SetImageColor
+    loop
 
 :awake
 Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute 
 Self CONST_NULLIFIERDAMAGES 0 SetUnitAttribute 
 Self CONST_SUPPORTSDIGITALIS 0 SetUnitAttribute 
 Self CONST_CREATEPZ 0 SetUnitAttribute
+
+1 OperateWhilePaused
 
 <-colorID -1 eq <-joined 1 eq or if
 	Self "main" "Custom" <-trueColor 2 add concat SetImage
@@ -157,7 +267,7 @@ endif
     Self "main" "Custom25" SetImage
     Self "dots" "Custom26" SetImage
     Self "dots" 0 0 -1 SetImagePosition
-    0 SetTimer0 #to make sure all dark portal animations are always synchronized
+    0 ->Timer0 #to make sure all dark portal animations are always synchronized
 else
     Self "dots" "none" SetImage
 endif
