@@ -6,43 +6,34 @@ $ACamt:-10
 #Timers are also stored separately.
 $ACinterval:150
 $Cinterval:150
-$StartDelay:0
 $Range:5
 #StartState of 1 means the emitter will produce creeper initially. Value of 0 will create AC.
-$startState:1
 $Name:"DiscoEmitter"
 #Thresh is how much creeper/AC must flood the emitter in order for it to flip.
-$Thresh:1.0
 #ImageSlot can be changed if you want to use a different slot.
-$ImageSlot:"Custom40"
+$ImageSlot:"Custom0"
 $Empowerment:1
 Once
-#Initialize the state as creeper or AC.
-<-startState ->state
-#Export a linebreak to help with text generation.
-"
-" ->lb
 @awake
 #The delay is to match the other emitters.
 4 delay
 <-ACamt ->tAmount
-<-Creepin
+1 ->Creepin
 CurrentCoords ->Y ->X 
 endonce
-
 GetTimer0 eq0 <-Creepin and if
 	@CProd
-	Self "main" 0 256 RandInt 0 256 RandInt 0 256 RandInt SetImageColor
+	Self "main" 0 256 RandInt 0 256 RandInt 0 256 RandInt 125 256 RandInt SetImageColor
 	0 ->Creepin
 	1 ->Acreepin
 	<-ACinterval SetTimer1
 endif
 GetTimer1 eq0 <-Acreepin and if
 	<-multi if
-		<-TotalPower <-Amount mul ->tAmount
+		<-TotalPower <-ACamt mul ->tAmount
 	endif
 	@ACProd
-	Self "main" 0 256 RandInt 0 256 RandInt 0 256 RandInt SetImageColor
+	Self "main" 0 256 RandInt 0 256 RandInt 0 256 RandInt 125 256 RandInt SetImageColor
 	1 ->Creepin
 	0 ->Acreepin
 	<-Cinterval SetTimer0
@@ -51,7 +42,6 @@ endif
 	Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute Self CONST_NULLIFIERDAMAGES 0 SetUnitAttribute Self CONST_SUPPORTSDIGITALIS 0 SetUnitAttribute
 	Self "main" <-ImageSlot SetImage
 	Self "main" 0.8 0.8 SetImageScale
-	 Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute
 	"DISCO" SetPopupText
 	Self "EmitterInterface.crpl" "HasEmitterInterface" GetScriptVar eq0 if
 		Self "EmitterInterface.crpl" AddScriptToUnit
@@ -69,7 +59,6 @@ endif
 #AC production function.
 :ACProd
 	#Only update the tAmount value if multi has been flagged. Otherwise we stick with the base value.
-	CurrentCoords <-tAmount SetCreeperNoLower
 	<-Y <-Range 1 add add <-Y <-Range sub do
 		<-X <-Range 1 add add <-X <-Range sub do
 			I J <-tAmount AddCreeper
