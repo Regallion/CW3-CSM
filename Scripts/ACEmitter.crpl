@@ -1,9 +1,9 @@
 #This is my custom AC emitter script. It behaves pretty similarly to a standard AC emitter. It has custom popup text to match my custom creeper emitter, and functionality to be improved with my ACmultitower.crpl script.
-$Name:"acemitter"
+$Name:"ACEmitter"
 #ImageSlot can be changed if you want to use a different slot.
 $ImageSlot:"Custom1"
-$Amount:-30
-$Interval:15
+$ACamt:-30
+$ACinterval:15
 $StartDelay:0
 
 once 
@@ -15,23 +15,23 @@ endonce
 GetGameTimeFrames <-StartDelay gt if
 	#Since the AC multi tower check only happens once, you will have to recompile if you add the AC multi global tower in after adding the AC emitter in. If you plan to include the AC multi tower functionality in a map it's recommended to add the global multi tower before adding any AC emitters to sidestep this pitfall.
 	once
-		<-Amount ->tAmount
+		<-ACamt ->tAmount
 	endonce
 	 
-	#If we've flagged a multi tower, we have to check on every invocation to update our amount in case the global multi has changed since our last check. Otherwise the total amount remains at the value we set back in the initial check.
+	#If we've flagged a multi tower, we have to check on every invocation to update our ACamt in case the global multi has changed since our last check. Otherwise the total ACamt remains at the value we set back in the initial check.
 	<-multi if
-		<-TotalPower <-Amount mul ->tAmount
+		<-TotalPower <-ACamt mul ->tAmount
 	endif
 
 	CurrentCoords <-tAmount SetCreeperNoLower
-	"Producing " <-tAmount abs concat " anti-creeper every " concat <-Interval 30.00 div 2 Round 1000 mul concat " milliseconds." concat "
+	"Producing " <-tAmount abs concat " anti-creeper every " concat <-ACinterval 30.00 div 2 Round 1000 mul concat " milliseconds." concat "
 
 
 	" concat SetPopupText
-	<-Interval Delay
+	<-ACinterval Delay
 else
 	<-StartDelay GetGameTimeFrames sub 30.0 div ceil ->rem
-	"This emitter is currently slumbering. It will awake in " <-rem " seconds with an output of " <-Amount neg ".
+	"This emitter is currently slumbering. It will awake in " <-rem " seconds with an output of " <-ACamt neg ".
 	
 	
 	"
@@ -47,3 +47,8 @@ endif
 	Self "main" <-ImageSlot SetImage
 	Self "main" 0.8 0.8 SetImageScale
 	Self "main" 255 255 255 255 SetImageColor
+	Self "EmitterInterface.crpl" "HasEmitterInterface" GetScriptVar eq0 if
+		Self "EmitterInterface.crpl" AddScriptToUnit
+	endif
+	Self "EmitterInterface.crpl" "EmitterType" <-Name SetScriptVar
+	Self "EmitterInterface.crpl" "NetName" 0 SetScriptVar

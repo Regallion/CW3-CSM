@@ -1,11 +1,11 @@
-#So this is my custom emitter script. It produces creep like a normal emitter, with custom popup text and death text. Emitter can not be nullified. Instead it is killed by flooding it with an amount of AC determined by the "Thresh" variable. When killed the emitter will release a burst of creeper.
+#So this is my custom emitter script. It produces creep like a normal emitter, with custom popup text and death text. Emitter can not be nullified. Instead it is killed by flooding it with an Camt of AC determined by the "Thresh" variable. When killed the emitter will release a burst of creeper.
 
 #Thresh is how much AC must touch the emitter to kill it.
 $Thresh:-1.0
-$Name:"emitter"
-#Amount and delay behave as they do for a standard emitter.
-$Amount:30
-$Interval:15
+$Name:"EmitterACDeath"
+#Camt and delay behave as they do for a standard emitter.
+$Camt:30
+$Cinterval:15
 $StartDelay:0
 #These control the creeper burst upon death. Deathamount is how much creeper is deposited per cell. Deathlength determines the size of the "blast radius", and Deathtimer controls the time between death trigger and death. I would recomend leaving Deathtimer as is, and increasing Deathlength only slightly, and only for "powerful" emitters. You could also just make the Deathtimer 0 if you want to omit the special death effects.
 $Deathamount:40
@@ -62,8 +62,8 @@ GetGameTimeFrames <-StartDelay gt if
 		endif
 	else
 		#If we're not dead, standard emitter behavior ensues. 
-		CurrentCoords <-Amount <-Empowerment <-NegaPower add 0.1 max mul SetCreeperNoLower
-		"Producing " <-Amount <-Empowerment <-NegaPower add 0.1 max mul concat " creeper every " concat <-Interval 30.00 div 2 Round 1000 mul concat " milliseconds." concat "
+		CurrentCoords <-Camt <-Empowerment <-NegaPower add 0.1 max mul SetCreeperNoLower
+		"Producing " <-Camt <-Empowerment <-NegaPower add 0.1 max mul concat " creeper every " concat <-Cinterval 30.00 div 2 Round 1000 mul concat " milliseconds." concat "
 		" concat "Releases " concat <-Deathamount <-Deathlength 2 mul 1 add dup mul mul concat " creeper upon death!" concat "
 
 
@@ -71,10 +71,10 @@ GetGameTimeFrames <-StartDelay gt if
 		#CONST_SUPPORTDIGITALIS doesn't actually "seed" digitalis under the unit as a normal emitter would, it only regenerates damaged digitalis, so I have to force it to do so.
 		<-Digi if CurrentCoords 1 SetDigitalis endif
 	endif
-	<-Interval Delay
+	<-Cinterval Delay
 else
 	<-StartDelay GetGameTimeFrames sub 30.0 div ceil ->rem
-	"This emitter is currently slumbering. It will awake in " <-rem " seconds with an output of " <-Amount <-Empowerment <-NegaPower add 0.1 max mul ".
+	"This emitter is currently slumbering. It will awake in " <-rem " seconds with an output of " <-Camt <-Empowerment <-NegaPower add 0.1 max mul ".
 	
 	
 	"
@@ -89,3 +89,8 @@ endif
 	Self "main" "CustomEmitter" SetImage
 	Self "main" 0.8 0.8 SetImageScale
 	Self "main" 180 180 200 255 SetImageColor
+	Self "EmitterInterface.crpl" "HasEmitterInterface" GetScriptVar eq0 if
+		Self "EmitterInterface.crpl" AddScriptToUnit
+	endif
+	Self "EmitterInterface.crpl" "EmitterType" <-Name SetScriptVar
+	Self "EmitterInterface.crpl" "NetName" 0 SetScriptVar

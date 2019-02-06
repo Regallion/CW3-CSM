@@ -16,7 +16,7 @@ $Cinterval:30
 $StartDelay:0
 $Deathamount:40
 $Deathlength:1
-$Name:"armoremitter"
+$Name:"ArmoredEmitter"
 #Thresh is how much creeper/AC must flood the emitter in order for it to flip.
 $Thresh:1.0
 #ImageSlot can be changed if you want to use a different slot.
@@ -168,6 +168,11 @@ endif
 	else
 		Self "range" "NONE" SetImage
 	endif
+	Self "EmitterInterface.crpl" "HasEmitterInterface" GetScriptVar eq0 if
+		Self "EmitterInterface.crpl" AddScriptToUnit
+	endif
+	Self "EmitterInterface.crpl" "EmitterType" <-Name SetScriptVar
+	Self "EmitterInterface.crpl" "NetName" 0 SetScriptVar
 #Creeper production function
 :CProd
 	#This should all be pretty self explanatory. The popup text may seem a bit complex, but just trust it ;) 

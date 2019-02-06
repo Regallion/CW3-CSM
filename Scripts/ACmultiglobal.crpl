@@ -1,0 +1,48 @@
+#This script is optional, along with ACmultitower.crpl. If included, the output of all AC emitters on the map will be increased depending on how many AC multi towers are "active" (submerged in AC). If you omit this script, emitters should simply retain the values you've given them. I personally didn't use this script on any of my CWDig maps other than the introduction but there could be more potential.
+
+$DefaultPower:1
+$Name:"acmultiglobal"
+
+
+once
+<-DefaultPower ->TotalPower 
+CreateList ->Powers
+CreateList ->NegaPowers
+@awake
+endonce
+<-Changed if
+	#First reset the Power total to our default
+	<-DefaultPower ->TotalPower
+	#Go over our power list and add up TotalPower
+	<-Powers GetListCount 0 do
+		<-TotalPower <-Powers I GetListElement add ->TotalPower
+	loop
+	
+	<-TotalPower 1 max ->TotalPower
+	"HasEmitterInterface" 1 GetCoresWithVar
+	0 do
+		->Target
+		<-Target "EmitterInterface.crpl" "EmitterType" GetScriptVar ->EmitterType
+		<-Target <-EmitterType ".crpl" concat "TotalPower" <-TotalPower SetScriptVar
+		<-Target <-EmitterType ".crpl" concat "multi" 1 SetScriptVar
+	loop
+	
+	0 ->Changed
+	endif
+<-CChanged if
+	#First reset the Power total to our default
+	0 ->TotalNegaPower
+	#Go over our power list and add up TotalPower
+	<-NegaPowers GetListCount 0 do
+		<-TotalNegaPower <-NegaPowers I GetListElement add ->TotalNegaPower
+	loop
+	"HasEmitterInterface" 1 GetCoresWithVar
+	0 do
+		->Target
+		<-Target "EmitterInterface.crpl" "EmitterType" GetScriptVar ->EmitterType
+		<-Target <-EmitterType ".crpl" concat "NegaPower" <-TotalNegaPower SetScriptVar
+	loop
+	0 ->CChanged
+endif
+:Awake
+self "main" "none" SetImage

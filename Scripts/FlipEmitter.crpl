@@ -9,7 +9,7 @@ $Cinterval:30
 $StartDelay:0
 #StartState of 1 means the emitter will produce creeper initially. Value of 0 will create AC.
 $startState:1
-$Name:"flipemitter"
+$Name:"FlipEmitter"
 #Thresh is how much creeper/AC must flood the emitter in order for it to flip.
 $Thresh:1.0
 #ImageSlot can be changed if you want to use a different slot.
@@ -82,6 +82,11 @@ endif
 	Self "main" <-ImageSlot SetImage
 	Self "main" 0.8 0.8 SetImageScale
 	Self "main" 150 150 150 255 SetImageColor
+	Self "EmitterInterface.crpl" "HasEmitterInterface" GetScriptVar eq0 if
+		Self "EmitterInterface.crpl" AddScriptToUnit
+	endif
+	Self "EmitterInterface.crpl" "EmitterType" <-Name SetScriptVar
+	Self "EmitterInterface.crpl" "NetName" 0 SetScriptVar
 
 #Creeper production function
 :CProd

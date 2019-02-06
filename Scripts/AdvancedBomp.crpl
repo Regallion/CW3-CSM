@@ -363,7 +363,7 @@ endif
 	<-MovingUnit "ArmoredEmitter.crpl" "OccupiedBomp" 1 SetScriptVar
 	<-MovingUnit "BlockerDocker.crpl" "occupied" 1 SetScriptVar
 	<-MovingUnit "ACmultitower.crpl" "OccupiedBomp" 1 SetScriptVar
-	<-MovingUnit "Cmultitower.crpl" "OccupiedBomp" 0 SetScriptVar
+	<-MovingUnit "Cmultitower.crpl" "OccupiedBomp" 1 SetScriptVar
 :CancelReservation
 	<-MovingUnit "CreepPortal.crpl" "OccupiedBomp" 0 SetScriptVar
 	<-MovingUnit "ACEmitter.crpl" "OccupiedBomp" 0 SetScriptVar
@@ -396,22 +396,22 @@ endif
         <-unit GetUnitType "CRPLCORE" eq if
 			<-BombType "Conversion" eq if
 				<-unit "CreepPortal.crpl" "Name" GetScriptVar "" concat "Portal" eq <-unit "CreepPortal.crpl" "OccupiedBomp" GetScriptVar not and 
-				<-unit "ACEmitter.crpl" "Name" GetScriptVar "" concat "acemitter" eq <-unit "ACEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
-				<-unit "EmitterACDeath.crpl" "Name" GetScriptVar "" concat "emitter" eq <-unit "EmitterACDeath.crpl" "OccupiedBomp" GetScriptVar not and 
-				<-unit "EmitterACDread.crpl" "Name" GetScriptVar "" concat "Demitter" eq <-unit "EmitterACDread.crpl" "OccupiedBomp" GetScriptVar not and 
-				<-unit "FlipEmitter.crpl" "Name" GetScriptVar "" concat "flipemitter" eq <-unit "FlipEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
-				<-unit "ArmoredEmitter.crpl" "Name" GetScriptVar "" concat "armoremitter" eq <-unit "ArmoredEmitter.crpl" "OccupiedBomp" GetScriptVar not and
+				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "ACEmitter" eq <-unit "ACEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "EmitterACDeath" eq <-unit "EmitterACDeath.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "EmitterACDread" eq <-unit "EmitterACDread.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "FlipEmitter" eq <-unit "FlipEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "ArmoredEmitter" eq <-unit "ArmoredEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
 				or or or or or if
 					@SetTargetUnit
 					return
 				endif
 			endif
 			<-BombType "OmegaORA" eq <-BombType "Omega" eq or if
-				<-unit "ACEmitter.crpl" "Name" GetScriptVar "" concat "acemitter" eq <-unit "ACEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
-				<-unit "EmitterACDeath.crpl" "Name" GetScriptVar "" concat "emitter" eq <-unit "EmitterACDeath.crpl" "OccupiedBomp" GetScriptVar not and 
-				<-unit "EmitterACDread.crpl" "Name" GetScriptVar "" concat "Demitter" eq <-unit "EmitterACDread.crpl" "OccupiedBomp" GetScriptVar not and 
-				<-unit "FlipEmitter.crpl" "Name" GetScriptVar "" concat "flipemitter" eq <-unit "FlipEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
-				<-unit "ArmoredEmitter.crpl" "Name" GetScriptVar "" concat "armoremitter" eq <-unit "ArmoredEmitter.crpl" "OccupiedBomp" GetScriptVar not and
+				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "ACEmitter" eq <-unit "ACEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "EmitterACDeath" eq <-unit "EmitterACDeath.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "EmitterACDread" eq <-unit "EmitterACDread.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "FlipEmitter" eq <-unit "FlipEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "ArmoredEmitter" eq <-unit "ArmoredEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
 				or or or or if
 					@SetTargetUnit
 					return
@@ -419,30 +419,30 @@ endif
 			endif
 			<-BombType "Singularity" eq <-BombType "Freeze" eq or if
 				<-unit "CreepPortal.crpl" "Name" GetScriptVar "" concat "Portal" eq <-unit "CreepPortal.crpl" "OccupiedBomp" GetScriptVar not and 
-				<-unit "ACEmitter.crpl" "Name" GetScriptVar "" concat "acemitter" eq <-unit "ACEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
-				<-unit "EmitterACDeath.crpl" "Name" GetScriptVar "" concat "emitter" eq <-unit "EmitterACDeath.crpl" "OccupiedBomp" GetScriptVar not and 
-				<-unit "EmitterACDread.crpl" "Name" GetScriptVar "" concat "Demitter" eq <-unit "EmitterACDread.crpl" "OccupiedBomp" GetScriptVar not and 
-				<-unit "FlipEmitter.crpl" "Name" GetScriptVar "" concat "flipemitter" eq <-unit "FlipEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
-				<-unit "ArmoredEmitter.crpl" "Name" GetScriptVar "" concat "armoremitter" eq <-unit "ArmoredEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "ACEmitter" eq <-unit "ACEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "EmitterACDeath" eq <-unit "EmitterACDeath.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "EmitterACDread" eq <-unit "EmitterACDread.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "FlipEmitter" eq <-unit "FlipEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "ArmoredEmitter" eq <-unit "ArmoredEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
 				or or or or or if
 					@SetTargetUnit
 					return
 				endif
 			endif
 			<-BombType "Frenzy" eq <-BombType "Weaken" eq or if
-				<-unit "ACEmitter.crpl" "Name" GetScriptVar "" concat "acemitter" eq <-unit "ACEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
-				<-unit "EmitterACDeath.crpl" "Name" GetScriptVar "" concat "emitter" eq <-unit "EmitterACDeath.crpl" "OccupiedBomp" GetScriptVar not and 
-				<-unit "EmitterACDread.crpl" "Name" GetScriptVar "" concat "Demitter" eq <-unit "EmitterACDread.crpl" "OccupiedBomp" GetScriptVar not and 
-				<-unit "FlipEmitter.crpl" "Name" GetScriptVar "" concat "flipemitter" eq <-unit "FlipEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
-				<-unit "ArmoredEmitter.crpl" "Name" GetScriptVar "" concat "armoremitter" eq <-unit "ArmoredEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "ACEmitter" eq <-unit "ACEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "EmitterACDeath" eq <-unit "EmitterACDeath.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "EmitterACDread" eq <-unit "EmitterACDread.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "FlipEmitter" eq <-unit "FlipEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "ArmoredEmitter" eq <-unit "ArmoredEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
 				or or or or if
 					@SetTargetUnit
 					return
 				endif
             endif
 			<-BombType "Defuser" eq if
-				<-unit "EmitterACDeath.crpl" "Name" GetScriptVar "" concat "emitter" eq <-unit "EmitterACDeath.crpl" "OccupiedBomp" GetScriptVar not and 
-				<-unit "EmitterACDread.crpl" "Name" GetScriptVar "" concat "Demitter" eq <-unit "EmitterACDread.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "EmitterACDeath" eq <-unit "EmitterACDeath.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "EmitterACDread" eq <-unit "EmitterACDread.crpl" "OccupiedBomp" GetScriptVar not and 
 				<-unit "BlockerDocker.crpl" "IsBlockerDocker" GetScriptVar <-unit "BlockerDocker.crpl" "occupied" GetScriptVar not and
 				or or if
 					@SetTargetUnit
@@ -451,11 +451,11 @@ endif
             endif
 			<-BombType "Flip" eq if
 				<-unit "CreepPortal.crpl" "Name" GetScriptVar "" concat "Portal" eq <-unit "CreepPortal.crpl" "OccupiedBomp" GetScriptVar not and 
-				<-unit "ACEmitter.crpl" "Name" GetScriptVar "" concat "acemitter" eq <-unit "ACEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
-				<-unit "EmitterACDeath.crpl" "Name" GetScriptVar "" concat "emitter" eq <-unit "EmitterACDeath.crpl" "OccupiedBomp" GetScriptVar not and 
-				<-unit "EmitterACDread.crpl" "Name" GetScriptVar "" concat "Demitter" eq <-unit "EmitterACDread.crpl" "OccupiedBomp" GetScriptVar not and 
-				<-unit "FlipEmitter.crpl" "Name" GetScriptVar "" concat "flipemitter" eq <-unit "FlipEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
-				<-unit "ArmoredEmitter.crpl" "Name" GetScriptVar "" concat "armoremitter" eq <-unit "ArmoredEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "ACEmitter" eq <-unit "ACEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "EmitterACDeath" eq <-unit "EmitterACDeath.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "EmitterACDread" eq <-unit "EmitterACDread.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "FlipEmitter" eq <-unit "FlipEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "ArmoredEmitter" eq <-unit "ArmoredEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
 				<-BombSpecial 1 eq if
 					<-unit "ACmultitower.crpl" "Name" GetScriptVar "" concat "acmulti" eq <-unit "ACmultitower.crpl" "OccupiedBomp" GetScriptVar not and 
 					<-unit "Cmultitower.crpl" "Name" GetScriptVar "" concat "cmulti" eq <-unit "Cmultitower.crpl" "OccupiedBomp" GetScriptVar not and or or
@@ -531,38 +531,22 @@ endif
 			->FrenzyTarget
 			->IntervalMod
 			->PowerMod
-			<-FrenzyTarget "EmitterACDeath.crpl" "Amount" <-FrenzyTarget "EmitterACDeath.crpl" "Amount" GetScriptVar <-PowerMod mul SetScriptVar
-			<-FrenzyTarget "EmitterACDread.crpl" "Amount" <-FrenzyTarget "EmitterACDread.crpl" "Amount" GetScriptVar <-PowerMod mul SetScriptVar
-			<-FrenzyTarget "ACEmitter.crpl" "Amount" <-FrenzyTarget "ACEmitter.crpl" "Amount" GetScriptVar <-PowerMod mul SetScriptVar
-			<-FrenzyTarget "FlipEmitter.crpl" "Camt" <-FrenzyTarget "FlipEmitter.crpl" "Camt" GetScriptVar <-PowerMod mul SetScriptVar
-			<-FrenzyTarget "FlipEmitter.crpl" "ACamt" <-FrenzyTarget "FlipEmitter.crpl" "ACamt" GetScriptVar <-PowerMod mul SetScriptVar
-			<-FrenzyTarget "ArmoredEmitter.crpl" "Camt" <-FrenzyTarget "ArmoredEmitter.crpl" "Camt" GetScriptVar <-PowerMod mul SetScriptVar
-			<-FrenzyTarget "ArmoredEmitter.crpl" "ACamt" <-FrenzyTarget "ArmoredEmitter.crpl" "ACamt" GetScriptVar <-PowerMod mul SetScriptVar
-			<-FrenzyTarget "EmitterACDeath.crpl" "Interval" <-FrenzyTarget "EmitterACDeath.crpl" "Interval" GetScriptVar <-IntervalMod mul SetScriptVar
-			<-FrenzyTarget "EmitterACDread.crpl" "Interval" <-FrenzyTarget "EmitterACDread.crpl" "Interval" GetScriptVar <-IntervalMod mul SetScriptVar
-			<-FrenzyTarget "ACEmitter.crpl" "Interval" <-FrenzyTarget "ACEmitter.crpl" "Interval" GetScriptVar <-IntervalMod mul SetScriptVar
-			<-FrenzyTarget "FlipEmitter.crpl" "ACinterval" <-FrenzyTarget "FlipEmitter.crpl" "ACinterval" GetScriptVar <-IntervalMod mul SetScriptVar
-			<-FrenzyTarget "FlipEmitter.crpl" "Cinterval" <-FrenzyTarget "FlipEmitter.crpl" "Cinterval" GetScriptVar <-IntervalMod mul SetScriptVar
-			<-FrenzyTarget "ArmoredEmitter.crpl" "ACinterval" <-FrenzyTarget "ArmoredEmitter.crpl" "ACinterval" GetScriptVar <-IntervalMod mul SetScriptVar
-			<-FrenzyTarget "ArmoredEmitter.crpl" "Cinterval" <-FrenzyTarget "ArmoredEmitter.crpl" "Cinterval" GetScriptVar <-IntervalMod mul SetScriptVar
+			<-FrenzyTarget "EmitterInterface.crpl" "EmitterType" GetScriptVar ->EmitterType
+			<-FrenzyTarget <-EmitterType ".crpl" concat "Camt" <-FrenzyTarget <-EmitterType ".crpl" concat "Camt" GetScriptVar <-PowerMod mul SetScriptVar
+			<-FrenzyTarget <-EmitterType ".crpl" concat "ACamt" <-FrenzyTarget <-EmitterType ".crpl" concat "ACamt" GetScriptVar <-PowerMod mul SetScriptVar
+			<-FrenzyTarget <-EmitterType ".crpl" concat "ACinterval" <-FrenzyTarget <-EmitterType ".crpl" concat "ACinterval" GetScriptVar <-IntervalMod mul SetScriptVar
+			<-FrenzyTarget <-EmitterType ".crpl" concat "Cinterval" <-FrenzyTarget <-EmitterType ".crpl" concat "Cinterval" GetScriptVar <-IntervalMod mul SetScriptVar
+			
+
 :unfrenzy #alters emitter output, takes Power Interval Unit as parameters.
 			->UFrenzyTarget
 			->UIntervalMod
 			->UPowerMod
-			<-UFrenzyTarget "EmitterACDeath.crpl" "Amount" <-UFrenzyTarget "EmitterACDeath.crpl" "Amount" GetScriptVar <-UPowerMod div SetScriptVar
-			<-UFrenzyTarget "EmitterACDread.crpl" "Amount" <-UFrenzyTarget "EmitterACDread.crpl" "Amount" GetScriptVar <-UPowerMod div SetScriptVar
-			<-UFrenzyTarget "ACEmitter.crpl" "Amount" <-UFrenzyTarget "ACEmitter.crpl" "Amount" GetScriptVar <-UPowerMod div SetScriptVar
-			<-UFrenzyTarget "FlipEmitter.crpl" "Camt" <-UFrenzyTarget "FlipEmitter.crpl" "Camt" GetScriptVar <-UPowerMod div SetScriptVar
-			<-UFrenzyTarget "FlipEmitter.crpl" "ACamt" <-UFrenzyTarget "FlipEmitter.crpl" "ACamt" GetScriptVar <-UPowerMod div SetScriptVar
-			<-UFrenzyTarget "ArmoredEmitter.crpl" "Camt" <-UFrenzyTarget "ArmoredEmitter.crpl" "Camt" GetScriptVar <-UPowerMod div SetScriptVar
-			<-UFrenzyTarget "ArmoredEmitter.crpl" "ACamt" <-UFrenzyTarget "ArmoredEmitter.crpl" "ACamt" GetScriptVar <-UPowerMod div SetScriptVar
-			<-UFrenzyTarget "EmitterACDeath.crpl" "Interval" <-UFrenzyTarget "EmitterACDeath.crpl" "Interval" GetScriptVar <-UIntervalMod div SetScriptVar
-			<-UFrenzyTarget "EmitterACDread.crpl" "Interval" <-UFrenzyTarget "EmitterACDread.crpl" "Interval" GetScriptVar <-UIntervalMod div SetScriptVar
-			<-UFrenzyTarget "ACEmitter.crpl" "Interval" <-UFrenzyTarget "ACEmitter.crpl" "Interval" GetScriptVar <-UIntervalMod div SetScriptVar
-			<-UFrenzyTarget "FlipEmitter.crpl" "ACinterval" <-UFrenzyTarget "FlipEmitter.crpl" "ACinterval" GetScriptVar <-UIntervalMod div SetScriptVar
-			<-UFrenzyTarget "FlipEmitter.crpl" "Cinterval" <-UFrenzyTarget "FlipEmitter.crpl" "Cinterval" GetScriptVar <-UIntervalMod div SetScriptVar
-			<-UFrenzyTarget "ArmoredEmitter.crpl" "ACinterval" <-UFrenzyTarget "ArmoredEmitter.crpl" "ACinterval" GetScriptVar <-UIntervalMod div SetScriptVar
-			<-UFrenzyTarget "ArmoredEmitter.crpl" "Cinterval" <-UFrenzyTarget "ArmoredEmitter.crpl" "Cinterval" GetScriptVar <-UIntervalMod div SetScriptVar
+			<-UFrenzyTarget "EmitterInterface.crpl" "EmitterType"  GetScriptVar ->EmitterType
+			<-UFrenzyTarget <-EmitterType ".crpl" concat "Camt" <-UFrenzyTarget <-EmitterType ".crpl" concat "Camt" GetScriptVar <-UPowerMod div SetScriptVar
+			<-UFrenzyTarget <-EmitterType ".crpl" concat "ACamt" <-UFrenzyTarget <-EmitterType ".crpl" concat "ACamt" GetScriptVar <-UPowerMod div SetScriptVar
+			<-UFrenzyTarget <-EmitterType ".crpl" concat "ACinterval" <-UFrenzyTarget <-EmitterType ".crpl" concat "ACinterval" GetScriptVar <-UIntervalMod div SetScriptVar
+			<-UFrenzyTarget <-EmitterType ".crpl" concat "Cinterval" <-UFrenzyTarget <-EmitterType ".crpl" concat "Cinterval" GetScriptVar <-UIntervalMod div SetScriptVar
 :flip
 	->RadFlip
 	CurrentX <-RadFlip add 1 add CurrentX <-RadFlip sub do # J = X
