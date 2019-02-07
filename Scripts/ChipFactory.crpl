@@ -22,7 +22,7 @@ once
 	ClearTraceLog
 	@Awake
     CreateList ->ManufacturingParameters #This list is used to pass the parameters to the bomb. Does not contain parameters specific to the Alchemiter
-	"BombSpecial" "BombType" "Duration" "SecondConversion" "Power" "Radius" "MovementSpeed" <-ManufacturingParameters AppendStackToList 
+	"BombLifeTime" "BombSpecial" "BombType" "Duration" "SecondConversion" "Power" "Radius" "MovementSpeed" <-ManufacturingParameters AppendStackToList 
 	-1 ->InsertedChip #Assumes this is empty. If the factory starts with a chip on top, the 1 delay on the chip will set this after the initialization
 	1 ->occupied #Also prevents chips from docking for the time being
 endonce

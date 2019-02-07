@@ -10,9 +10,10 @@ $Radius:10 # defines the radius of the effect of the bomb. Does nothing for omeg
 $Power:5.0 # Defines the effect of certain bombs. Frenzy/weaken bombs multiply/divide production by power, Singularity bombs pull harder. Negative effect for Defusers, as it amplifies their death throes effect. Does not affect other bomb types.
 $Duration:10 # duration of bomp effect in seconds. Does nothing for conversion bomps, or omega bombs. For defusers longer durations are negative, as it essentially delays their effect. For flip bombs defines the interval between extra flips
 $BombType:"Conversion" # valid values are "Conversion", "Freeze", "Singularity", "Defuser","Frenzy", "Omega", "OmegaORA", "Flip", "Weaken". Omega bombs are not affected by any parameters other tham move speed
+$BombSpecial:"" #Freeform field for setting special traits for bombs. For flip bombs. 0 or empty - Flips once. 1 - flips once but can target towers, 2 and above: does that many flips, but cannot target towers. For conversion bombs : 0, normal, positive amount marks the range of second explosion.
+$BombLifeTime:0 #If not 0, the bomb will explode after this many seconds once it starts moving.
 $ManufacturingDelay:60 #How long it takes to manufacture the bomp
 $ManufacturingLimit:0 # 0 for unlimited, otherwise defines after how many bombs the chip blows up
-$BombSpecial:"" #Freeform field for setting special traits for bombs. For flip bombs. 0 or empty - Flips once. 1 - flips once but can target towers, 2 and above: does that many flips, but cannot target towers. For conversion bombs : 0, normal, positive amount marks the range of second explosion.
 $NameOverride:"" #Chip name override. If non-empty, this will show in mouseover text. If empty, mouseover text is generated from the effects of the chip.
 $Description:"" #This is appended after the name of the chip in mouseover. Primarily meant to be used for flavor.
 $Movable:1 #immovable chips need to be placed on top of Chip factories in map editor. Prevents the chip from being moved entirely, thus locking the factory production.
@@ -28,7 +29,7 @@ once
     HideTraceLog
     0 ->Liberated
 	CreateList ->ChipToFactoryParameters #This is later used to pass on the parameters of the chip to the factory. Does not pass parameters relevant to only the chip.
-	"ManufacturingDelay" "BombSpecial" "BombType" "Duration" "SecondConversion" "Power" "Radius" "MovementSpeed" <-ChipToFactoryParameters AppendStackToList 
+	"BombLifeTime" "ManufacturingDelay" "BombSpecial" "BombType" "Duration" "SecondConversion" "Power" "Radius" "MovementSpeed" <-ChipToFactoryParameters AppendStackToList 
 	0 ->Manufactured
 	@awake
 	##Initialize state variables##

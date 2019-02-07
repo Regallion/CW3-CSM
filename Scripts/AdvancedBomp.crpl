@@ -2,13 +2,13 @@
 #RangeIndicator for bombs by Kajacx
 $CreatedBy:-1
 #All below parameters are passed to this by ChipFactory. Left here for reference to their effects.
-#$MovementSpeed:0.5
-#$Radius:1 # defines the radius of the effect of the bomb. Does nothing for omega bombs or frenzy bomps, set to 0 for those.
-#$Power:1 # Defines the effect of certain bombs. Frenzy bombs multiply production by power, Singularity bombs pull harder. Negative effect for Defusers, as it amplifies their death throes effect. Does not affect other bomb types.
-#$SecondConversion:0 # - in frames, or 0 for disable. UNUSED
+#$MovementSpeed:1.0 #How fast the BOMP will move
+#$Radius:10 # defines the radius of the effect of the bomb. Does nothing for omega bombs or frenzy/weaken bomps
+#$Power:5.0 # Defines the effect of certain bombs. Frenzy/weaken bombs multiply/divide production by power, Singularity bombs pull harder. Negative effect for Defusers, as it amplifies their death throes effect. Does not affect other bomb types.
 #$Duration:10 # duration of bomp effect in seconds. Does nothing for conversion bomps, or omega bombs. For defusers longer durations are negative, as it essentially delays their effect. For flip bombs defines the interval between extra flips
-#$BombType:"Conversion" # valid values are "Conversion", "Freeze", "Singularity", "Defuser","Frenzy", "Omega", "OmegaORA", "Flip" . Omega bombs are not affected by any parameters other than move speed
-#$BombSpecial:"" #Freeform field for setting special traits for bombs. Currently only used to set a flag for flip bombs. 0 - Flips once. 1 - flips once but can target towers, 2 and above: does that many flips, but cannot target towers.
+#$BombType:"Conversion" # valid values are "Conversion", "Freeze", "Singularity", "Defuser","Frenzy", "Omega", "OmegaORA", "Flip", "Weaken". Omega bombs are not affected by any parameters other tham move speed
+#$BombSpecial:"" #Freeform field for setting special traits for bombs. For flip bombs. 0 or empty - Flips once. 1 - flips once but can target towers, 2 and above: does that many flips, but cannot target towers. For conversion bombs : 0, normal, positive amount marks the range of second explosion.
+#$BombLifeTime:0 #If not 0, the bomb will explode after this many seconds once it starts moving.
 $Image:"Custom40"
 $ImageCircle:"Custom4_256"
 
@@ -29,6 +29,7 @@ once
 	0 ->greenShadow
 	0.0 ->selectorRotation
 endonce
+
 
 <-Primed 1 eq if
 	<-BombType <-! 0 eq if #Conversion bomb. Activates immediately, converting in a radius. If fed with BombSpecial explodes twice.
@@ -82,17 +83,17 @@ endonce
 	endif
 	<-BombType <-! 3 eq if #Defuser. Removes Creeper emitters without triggering their payload. However, sharply increases their power when active. Power+1 is the multiplier.
 		<-Active eq0 if
-			<-Power 0.5 <-TargetUnit @frenzy #doubles the speed, and multiplies power of emitter
+			<-Power 0.5 <-MovingUnit @frenzy #doubles the speed, and multiplies power of emitter
 			1 ->Active
 		endif
 		GetTimer0 30.0 div 0 round SetText
 		GetTimer0 eq0 if
-			<-TargetUnit "BlockerDocker.crpl" "IsBlockerDocker" GetScriptVar 1 eq if #allows you to dispose of excess defusers by blowing them on blockers
-				<-TargetUnit "BlockerDocker.crpl" "Occupied" 0 SetScriptVar
+			<-MovingUnit "BlockerDocker.crpl" "IsBlockerDocker" GetScriptVar 1 eq if #allows you to dispose of excess defusers by blowing them on blockers
+				<-MovingUnit "BlockerDocker.crpl" "Occupied" 0 SetScriptVar
 				<-CreatedBy "ChipFactory.crpl" dup2 "STATE_RESET" GetScriptVar "state" swap SetScriptVar
 				Self 0 Destroy
 			else
-				<-TargetUnit 3 Destroy
+				<-MovingUnit 3 Destroy
 				<-CreatedBy "ChipFactory.crpl" dup2 "STATE_RESET" GetScriptVar "state" swap SetScriptVar
 				Self 0 Destroy
 			endif
@@ -100,12 +101,12 @@ endonce
 	endif
 	<-BombType <-! 4 eq if #Frenzy, causes emitters to provide excess output for the duration. Power is the multiplier.
 		<-Active eq0 if
-			<-Power 1 <-TargetUnit @frenzy 
+			<-Power 1 <-MovingUnit @frenzy 
 			1 ->Active
 		endif
 		GetTimer0 30.0 div 0 round SetText
 		GetTimer0 eq0 if
-			<-Power 1 <-TargetUnit @unfrenzy 
+			<-Power 1 <-MovingUnit @unfrenzy 
 			<-CreatedBy "ChipFactory.crpl" dup2 "STATE_RESET" GetScriptVar "state" swap SetScriptVar
 			@CancelReservation
 			Self 0 Destroy
@@ -114,7 +115,7 @@ endonce
 	<-BombType "Omega" eq if #OmegaBomp. Combines Freeze Singularity Frenzy and Conversion to create an ultimate creepsplosion. Is not affected by normal parameters, because well, why would it ever need to?
 		<-Active eq0 if #sets up the empowering
 			900	SetTimer1
-			10 1 <-TargetUnit @frenzy 
+			10 1 <-MovingUnit @frenzy 
 			1 ->Active
 		endif
 		GetTimer1 30.0 div 0 round SetText
@@ -133,14 +134,14 @@ endonce
 		GetTimer1 eq0 if #Massconverts
 			50 @convert
 			<-CreatedBy "ChipFactory.crpl" dup2 "STATE_RESET" GetScriptVar "state" swap SetScriptVar
-			10 1 <-TargetUnit @unfrenzy 
+			10 1 <-MovingUnit @unfrenzy 
 			Self 0 Destroy
 		endif
 	endif
 	<-BombType "OmegaORA" eq if #OmegaBomp. Exactly the same as Omega except with EXTRA SHOUTING and ROADROLLA
 		<-Active eq0 if #sets up the empowering
 			900	SetTimer1
-			10 1 <-TargetUnit @frenzy 
+			10 1 <-MovingUnit @frenzy 
 			1 ->Active
 			"MUDA DA" SetText
 			"MUDA" ->MUDA
@@ -182,7 +183,7 @@ endonce
 		GetTimer2 eq0 <-ROADROLLA 1 eq and if #Drops a mass artifact, just for that ROADROLLA feel
 			"MASS" CurrentCoords FireAoo
 			<-CreatedBy "ChipFactory.crpl" dup2 "STATE_RESET" GetScriptVar "state" swap SetScriptVar
-			10 1 <-TargetUnit @unfrenzy 
+			10 1 <-MovingUnit @unfrenzy 
 			@CancelReservation
 			Self 0 Destroy
 		endif
@@ -206,18 +207,28 @@ endonce
 	endif
 	<-BombType <-! 7 eq if #Frenzy, causes emitters to provide excess output for the duration. Power is the multiplier.
 		<-Active eq0 if
-			<-Power 1 <-TargetUnit @unfrenzy 
+			<-Power 1 <-MovingUnit @unfrenzy 
 			1 ->Active
 		endif
 		GetTimer0 30.0 div 0 round SetText
 		GetTimer0 eq0 if
-			<-Power 1 <-TargetUnit @frenzy 
+			<-Power 1 <-MovingUnit @frenzy 
 			<-CreatedBy "ChipFactory.crpl" dup2 "STATE_RESET" GetScriptVar "state" swap SetScriptVar
 			@CancelReservation
 			Self 0 Destroy
 		endif
 	endif
 	return
+endif
+GetTimer3 neq0 if 
+	GetTimer3 30.0 div 0 round SetText
+	220 10 10 255 SetTextColor 20 SetTextY 1.2 SetTextSize
+else
+	<-BombLifeTime neq0 <-Touched and if
+		<-CreatedBy "ChipFactory.crpl" dup2 "STATE_RESET" GetScriptVar "state" swap SetScriptVar
+		@CancelReservation
+		Self 3 Destroy
+	endif
 endif
 #Check for click event
 0 GetMouseButtonDown if
@@ -237,6 +248,12 @@ endif
 				<-TargetUnit ->MovingUnit
 				@ReserveSpot
 				<-targetX <-targetY <-MovementSpeed QueueMove
+				once
+					<-BombLifeTime neq0 if
+						<-BombLifeTime 30 mul SetTimer3 
+						1 ->Touched
+					endif
+				endonce
 				1 ->moving
                 <-CreatedBy "ChipFactory.crpl" dup2 "STATE_TRAVEL" GetScriptVar "state" swap SetScriptVar
 			endif
@@ -295,6 +312,7 @@ endif
 	GetQueuedMoveCount eq0 if
 		@ExplodeBomp
 		0 ->moving
+		0 SetTimer3
 	endif
 endif
 :awake
@@ -379,7 +397,10 @@ endif
 	<-Duration 30 mul SetTimer0
 	0 ->greenShadow
 	0 ->selected
-
+	Self "shadow" 255 0 0 0 SetImageColor
+	Self "selector" 0 0 0 0 SetImageColor
+	255 255 255 255 SetTextColor 0 SetTextY 1.0 SetTextSize
+	"" SetText
 
 :CheckMouseForPortal #() -> () Speficifes which bombs can target which units
     0 ->greenShadow
