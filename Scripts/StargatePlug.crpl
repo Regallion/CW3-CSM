@@ -72,13 +72,10 @@ endonce
 		else
 			#This else block will execute if the unit is already selected. Now we check whether the mouse location is valid.
 			<-greenShadow if
-				AbortMove
-				ClearQueuedMoves
                 @UnoccupySg
                 <-targetGate ->movingGate
                 @OccupySg
-				<-targetGate CONST_COORDX GetUnitAttribute <-targetGate CONST_COORDY GetUnitAttribute <-MovementSpeed QueueMove
-				1 ->moving
+				1 ->readymove
 				<-tetheredGate -1 neq if
 					@UnlockGate
 				endif
@@ -124,18 +121,38 @@ else
 	"Space" GetKeyDown "Escape" GetKeyDown or if 0 ->selected endif
 endif
 
-<-moving if
-	GetQueuedMoveCount eq0 if
-		@FindAndLockGate
-		0 ->moving
+<-readymove isPaused not and if
+	CurrentPixelCoords ->Y ->X
+	<-movingGate CONST_PIXELCOORDX GetUnitAttribute ->TX
+	<-movingGate CONST_PIXELCOORDY GetUnitAttribute ->TY
+	<-TX <-X sub ->Xdiff
+	<-TY <-Y sub ->Ydiff
+	<-Ydiff <-Xdiff atan2 ->Tangel
+	<-Tangel cos <-MovementSpeed mul <-X add ->NewX
+	<-Tangel sin <-MovementSpeed mul <-Y add ->NewY
+	CurrentPixelCoords <-TX <-TY Distance 1 lte if
+		<-TX ->NewX
+		<-TY ->NewY
 	endif
+	Self CONST_PIXELCOORDX <-NewX SetUnitAttribute
+	Self CONST_PIXELCOORDY <-NewY SetUnitAttribute
+	1 ->moving
+endif
+
+CurrentPixelCoords <-movingGate CONST_PIXELCOORDY GetUnitAttribute eq swap <-movingGate CONST_PIXELCOORDX GetUnitAttribute eq and <-moving and if
+	@FindAndLockGate
+	0 ->readymove
+	0 ->moving
 endif
 
 :awake
+ClearTraceLog
+HideTraceLog
 Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute 
 Self CONST_NULLIFIERDAMAGES 0 SetUnitAttribute 
 Self CONST_SUPPORTSDIGITALIS 0 SetUnitAttribute 
 Self CONST_CREATEPZ 0 SetUnitAttribute
+TRUE OperateWhilePaused
 
 Self "main" "Custom18" SetImage
 Self "main" -2 SetImagePositionZ
@@ -164,9 +181,6 @@ CurrentCoords 1 GetEnemyUnitsInRange 0 do
 		endif
 	endif
 loop
-<-targetGate -1 neq if
-	 <-targetGate CONST_COORDX GetUnitAttribute <-targetGate CONST_COORDY GetUnitAttribute <-MovementSpeed QueueMove
-endif
 
 :LockGate
 <-tetheredGate "CreepPortal.crpl" "colorID" -1 SetScriptVar
