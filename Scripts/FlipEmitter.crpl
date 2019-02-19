@@ -15,6 +15,7 @@ $Thresh:1.0
 #ImageSlot can be changed if you want to use a different slot.
 $ImageSlot:"Custom0"
 $Empowerment:1
+$Unstopped:1
 Once
 #Initialize the state as creeper or AC.
 <-startState ->state
@@ -86,25 +87,30 @@ endif
 		Self "EmitterInterface.crpl" AddScriptToUnit
 	endif
 	Self "EmitterInterface.crpl" "EmitterType" <-Name SetScriptVar
-	Self "EmitterInterface.crpl" "NetName" 0 SetScriptVar
+	Self "EmitterInterface.crpl" "EmitterNetName" 0 SetScriptVar
 
 #Creeper production function
 :CProd
 	#This should all be pretty self explanatory. The popup text may seem a bit complex, but just trust it ;) 
-	"Flood me with anti-creeper to save me!" <-lb concat "Producing " concat <-Camt <-Empowerment <-NegaPower add 0.1 max mul concat " creeper every " concat <-Cinterval 30.00 div 2 Round 1000 mul concat " milliseconds." concat <-lb <-lb concat concat SetPopupText
+	<-Camt <-Empowerment <-NegaPower add 0.1 max mul <-Unstopped mul ->tCAmount
+	"Flood me with anti-creeper to save me!" <-lb concat "Producing " concat <-tCAmount concat " creeper every " concat <-Cinterval 30.00 div 2 Round 1000 mul concat " milliseconds." concat <-lb <-lb concat concat SetPopupText
 	Self CONST_COUNTSFORVICTORY 1 SetUnitAttribute
 	Self "main" 150 150 150 255 SetImageColor
-	CurrentCoords <-Camt <-Empowerment <-NegaPower add 0.1 max mul SetCreeperNoLower
+	<-tCAmount neq0 if
+		CurrentCoords <-tCAmount SetCreeperNoLower
+	endif
 	<-Cinterval Delay
 		
 #AC production function.
 :ACProd
 	#Only update the tAmount value if multi has been flagged. Otherwise we stick with the base value.
 	<-multi if
-		<-TotalPower <-ACamt mul ->tAmount
+		<-TotalPower <-ACamt mul <-Unstopped mul ->tAmount
 	endif
-	"Producing " <-tAmount abs concat " anti-creeper every " concat <-ACinterval 30.00 div 2 Round 1000 mul concat " milliseconds." concat <-lb <-lb concat concat SetPopupText
+	"Producing " <-tAmount <-Unstopped mul abs concat " anti-creeper every " concat <-ACinterval 30.00 div 2 Round 1000 mul concat " milliseconds." concat <-lb <-lb concat concat SetPopupText
 	Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute
 	Self "main" 255 255 255 255 SetImageColor
-	CurrentCoords <-tAmount SetCreeperNoLower
+	<-tAmount neq0 if
+		CurrentCoords <-tAmount SetCreeperNoLower
+	endif
 	<-ACinterval Delay

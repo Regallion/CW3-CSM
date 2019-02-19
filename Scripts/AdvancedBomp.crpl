@@ -205,7 +205,7 @@ endonce
 			Self 0 Destroy
 		endif
 	endif
-	<-BombType <-! 7 eq if #Frenzy, causes emitters to provide excess output for the duration. Power is the multiplier.
+	<-BombType <-! 7 eq if #UnFrenzy, causes emitters to provide reduced output for the duration. Power is the multiplier.
 		<-Active eq0 if
 			<-Power 1 <-MovingUnit @unfrenzy 
 			1 ->Active
@@ -216,6 +216,63 @@ endonce
 			<-CreatedBy "ChipFactory.crpl" dup2 "STATE_RESET" GetScriptVar "state" swap SetScriptVar
 			@CancelReservation
 			Self 0 Destroy
+		endif
+	endif
+	<-BombType <-! 8 eq if #nullifies emitter output indefinitely. Double-click to kill.
+		<-BombSpecial 1 eq GetTimer2 eq0 and if 
+			<-MovingUnit @stop
+			60 SetTimer2
+			"Emitter neutralized" SetText
+			220 10 10 255 SetTextColor 20 SetTextY 1.2 SetTextSize
+		endif
+		GetTimer2 1 eq if
+			<-CreatedBy "ChipFactory.crpl" dup2 "STATE_RESET" GetScriptVar "state" swap SetScriptVar
+			@CancelReservation
+			Self 0 Destroy
+		endif
+		GetTimer2 neq0 if
+			return
+		endif
+		GetTimer0 eq0 <-Duration neq0 and if
+			<-MovingUnit @unstop
+			<-CreatedBy "ChipFactory.crpl" dup2 "STATE_RESET" GetScriptVar "state" swap SetScriptVar
+			@CancelReservation
+			Self 0 Destroy
+		endif
+		GetTimer0 neq0 if
+			<-MovingUnit @stop
+			"" SetPopupText
+			GetTimer0 30.0 div 0 round SetText SetText
+			return
+		endif
+		GetTimer1 eq0 if
+			<-MovingUnit @stop
+			0 ->Active
+			"Click me twice to remove" SetPopupText
+			"" SetText
+		else
+			GetTimer1 30.0 div 0 round SetText
+		endif
+		
+		0 GetMouseButtonDown if
+			#Check whether the click was in the UI area of the screen. We want to ignore those clicks.
+			GetMouseScreenPixelPosition 96 gt if
+				#Check whether the unit is selected yet.
+				<-Active not if
+					GetMouseCell CurrentCoords Distance 1.5 lt if
+						1 ->Active
+						90 SetTimer1
+						"Confirm removal by clicking again" SetPopupText
+					endif
+				else
+					GetMouseCell CurrentCoords Distance 1.5 lt if
+						<-MovingUnit @unstop
+						<-CreatedBy "ChipFactory.crpl" dup2 "STATE_RESET" GetScriptVar "state" swap SetScriptVar
+						@CancelReservation
+						Self 0 Destroy
+					endif
+				endif
+			endif
 		endif
 	endif
 	return
@@ -237,7 +294,7 @@ endif
 		#Check whether the unit is selected yet.
 		<-selected eq0 if
 			GetMouseCell CurrentCoords Distance 1.5 lt if
-				->selected
+				1 ->selected
 			endif
 		else
 			#This else block will execute if the unit is already selected. Now we check whether the mouse location is valid.
@@ -325,6 +382,7 @@ endif
 	5 ->OmegaORA
 	6 ->Flip
 	7 ->Weaken
+	8 ->Stopper
 	Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute 
     Self CONST_NULLIFIERDAMAGES 0 SetUnitAttribute 
     Self CONST_SUPPORTSDIGITALIS 0 SetUnitAttribute 
@@ -355,6 +413,9 @@ endif
 	endif
 	<-BombType <-! 7 eq if
 	Self "main" 10 250 10 255 SetImageColor
+	endif
+	<-BombType <-! 7 eq if
+	Self "main" 120 120 120 255 SetImageColor
 	endif
     Self "main" -2 SetImagePositionZ
     Self "shadow" "Custom19" SetImage
@@ -394,7 +455,9 @@ endif
 	<-MovingUnit "Cmultitower.crpl" "OccupiedBomp" 0 SetScriptVar
 :ExplodeBomp 
 	1 ->Primed
-	<-Duration 30 mul SetTimer0
+	<-Duration neq0 if
+		<-Duration 30 mul SetTimer0
+	endif
 	0 ->greenShadow
 	0 ->selected
 	Self "shadow" 255 0 0 0 SetImageColor
@@ -427,7 +490,7 @@ endif
 					return
 				endif
 			endif
-			<-BombType "OmegaORA" eq <-BombType "Omega" eq or if
+			<-BombType "OmegaORA" eq <-BombType "Omega" eq <-BombType "Stopper" eq or or if
 				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "ACEmitter" eq <-unit "ACEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
 				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "EmitterACDeath" eq <-unit "EmitterACDeath.crpl" "OccupiedBomp" GetScriptVar not and 
 				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "EmitterACDread" eq <-unit "EmitterACDread.crpl" "OccupiedBomp" GetScriptVar not and 
@@ -577,3 +640,11 @@ endif
 						endif
 					loop
 				loop	
+:stop #nullifies emitter output, takes unit as parameter
+			->StopTarget
+			<-StopTarget "EmitterInterface.crpl" "EmitterType" GetScriptVar ->EmitterType
+			<-StopTarget <-EmitterType ".crpl" concat "Unstopped" 0 SetScriptVar
+:unstop #unnullifies emitter output, takes unit as parameter
+			->StopTarget
+			<-StopTarget "EmitterInterface.crpl" "EmitterType" GetScriptVar ->EmitterType
+			<-StopTarget <-EmitterType ".crpl" concat "Unstopped" 1 SetScriptVar

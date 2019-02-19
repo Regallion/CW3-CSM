@@ -5,6 +5,7 @@ $ImageSlot:"Custom1"
 $ACamt:-30
 $ACinterval:15
 $StartDelay:0
+$Unstopped:1
 
 once 
 	@awake
@@ -20,11 +21,12 @@ GetGameTimeFrames <-StartDelay gt if
 	 
 	#If we've flagged a multi tower, we have to check on every invocation to update our ACamt in case the global multi has changed since our last check. Otherwise the total ACamt remains at the value we set back in the initial check.
 	<-multi if
-		<-TotalPower <-ACamt mul ->tAmount
+		<-TotalPower <-ACamt mul <-Unstopped mul ->tAmount
 	endif
-
-	CurrentCoords <-tAmount SetCreeperNoLower
-	"Producing " <-tAmount abs concat " anti-creeper every " concat <-ACinterval 30.00 div 2 Round 1000 mul concat " milliseconds." concat "
+	<-tAmount neq0 if
+		CurrentCoords <-tAmount SetCreeperNoLower
+	endif
+	"Producing " <-tAmount <-Unstopped mul abs concat " anti-creeper every " concat <-ACinterval 30.00 div 2 Round 1000 mul concat " milliseconds." concat "
 
 
 	" concat SetPopupText
@@ -51,4 +53,4 @@ endif
 		Self "EmitterInterface.crpl" AddScriptToUnit
 	endif
 	Self "EmitterInterface.crpl" "EmitterType" <-Name SetScriptVar
-	Self "EmitterInterface.crpl" "NetName" 0 SetScriptVar
+	Self "EmitterInterface.crpl" "EmitterNetName" 0 SetScriptVar

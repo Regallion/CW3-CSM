@@ -23,6 +23,7 @@ $Thresh:1.0
 $ImageSlot:"Custom0"
 $ImageCircle:"Custom4_256"
 $Empowerment:1
+$Unstopped:1
 Once
 
 #Initialize the state as creeper or AC.
@@ -172,11 +173,12 @@ endif
 		Self "EmitterInterface.crpl" AddScriptToUnit
 	endif
 	Self "EmitterInterface.crpl" "EmitterType" <-Name SetScriptVar
-	Self "EmitterInterface.crpl" "NetName" 0 SetScriptVar
+	Self "EmitterInterface.crpl" "EmitterNetName" 0 SetScriptVar
 #Creeper production function
 :CProd
 	#This should all be pretty self explanatory. The popup text may seem a bit complex, but just trust it ;) 
-	"Assault with anti-creeper to defeat this formidable foe" <-lb concat "Producing " concat <-Camt <-Empowerment <-NegaPower add 0.1 max mul concat " creeper every " concat <-Cinterval 30.00 div 2 Round 1000 mul concat " milliseconds." concat "
+	<-Camt <-Empowerment <-NegaPower add 0.1 max mul <-Unstopped mul ->tCAmount
+	"Assault with anti-creeper to defeat this formidable foe" <-lb concat "Producing " concat <-tCAmount concat " creeper every " concat <-Cinterval 30.00 div 2 Round 1000 mul concat " milliseconds." concat "
 	Remaining lives: " <-Lives concat concat ->PopupText
 	<-EmpowerRange 0 gt <-Lives 0 gt and if
 	<-PopupText "
@@ -184,7 +186,9 @@ endif
 	endif
 	<-PopupText SetPopupText
 	Self CONST_COUNTSFORVICTORY 1 SetUnitAttribute
-	CurrentCoords <-Camt <-Empowerment <-NegaPower add 0.1 max mul SetCreeperNoLower
+	<-tCAmount neq0 if
+		CurrentCoords <-tCAmount SetCreeperNoLower
+	endif
 	<-Cinterval Delay
 		
 #AC production function.
@@ -192,9 +196,9 @@ endif
 	#Only update the tAmount value if multi has been flagged. Otherwise we stick with the base value.
 
 	<-multi if
-		<-TotalPower <-ACamt mul ->tAmount
+		<-TotalPower <-ACamt mul <-Unstopped mul ->tAmount
 	endif
-	"Producing " <-tAmount abs concat " anti-creeper every " concat <-ACinterval 30.00 div 2 Round 1000 mul concat " milliseconds." concat ->PopupText SetPopupText
+	"Producing " <-tAmount <-Unstopped mul abs concat " anti-creeper every " concat <-ACinterval 30.00 div 2 Round 1000 mul concat " milliseconds." concat ->PopupText SetPopupText
 	<-Reincarnation 0 gt if
 		<-PopupText "
 		If retaken by creeper will regain " <-Reincarnation concat concat 
@@ -206,5 +210,7 @@ endif
 	endif
 	<-PopupText SetPopupText
 	Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute
-	CurrentCoords <-tAmount SetCreeperNoLower
+	<-tAmount neq0 if
+		CurrentCoords <-tAmount SetCreeperNoLower
+	endif
 	<-ACinterval Delay

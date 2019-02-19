@@ -2,7 +2,7 @@
 
 $HasEmitterInterface:1
 
-$NetName:""
+$EmitterNetName:""
 $EmitterType:""
 $Mouseover:0
 
