@@ -125,15 +125,20 @@ endif
 	CurrentPixelCoords ->Y ->X
 	<-movingGate CONST_PIXELCOORDX GetUnitAttribute ->TX
 	<-movingGate CONST_PIXELCOORDY GetUnitAttribute ->TY
+	CurrentPixelCoords <-TX <-TY Distance <-MovementSpeed lte if
+		<-TX ->NewX
+		<-TY ->NewY
+		Self CONST_PIXELCOORDX <-NewX SetUnitAttribute
+		Self CONST_PIXELCOORDY <-NewY SetUnitAttribute
+		0 ->readymove
+		return
+	endif
 	<-TX <-X sub ->Xdiff
 	<-TY <-Y sub ->Ydiff
 	<-Ydiff <-Xdiff atan2 ->Tangel
 	<-Tangel cos <-MovementSpeed mul <-X add ->NewX
 	<-Tangel sin <-MovementSpeed mul <-Y add ->NewY
-	CurrentPixelCoords <-TX <-TY Distance 1 lte if
-		<-TX ->NewX
-		<-TY ->NewY
-	endif
+
 	Self CONST_PIXELCOORDX <-NewX SetUnitAttribute
 	Self CONST_PIXELCOORDY <-NewY SetUnitAttribute
 	1 ->moving
