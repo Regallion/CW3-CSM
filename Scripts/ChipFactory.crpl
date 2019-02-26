@@ -1,10 +1,11 @@
-#Advanced variation of conversion bomb factory. Requires FactoryChip and AdvancedBomp scripts to function.
+#Advanced variation of conversion bomb factory. Requires FactoryChip and AdvancedBomp scripts to function. Original design by Kajacx, line rendering code by Kajacx.
 $ImageNormal:"Custom15_128"
 $ImageActive:"Custom16_128"
 $ImageCharged:"Custom17_128"
 $VerificationCooldown:20 #how many seconds of being free from creeper this takes to enable itself
 $ManufacturingSpeedMod:1.0 #A flat multiplier to all bomb production speeds. Do not set to 0 or negative numbers.
-
+$Recapturable:0 #if 1, can be recaptured by creeper.
+$ImageLine:"Custom3pp"
 once
 	1 ->Size
 	#Sets states for later use
@@ -26,8 +27,23 @@ once
 	-1 ->InsertedChip #Assumes this is empty. If the factory starts with a chip on top, the 1 delay on the chip will set this after the initialization
 	1 ->occupied #Also prevents chips from docking for the time being
 endonce
+@CreateLine
+GetMouseCell CurrentCoords Distance 2 lte <-state <-STATE_TRAVEL eq and if 
+    <-LINE_ALPHA 17 add 255 min ->LINE_ALPHA
+else
+    <-LINE_ALPHA 17 sub 0 max ->LINE_ALPHA
+endif
 
 <-state <-STATE_RESET eq if #Occurs after the bomb detonates
+	<-Recapturable if
+		CurrentCoords GetCreeper -4 gt if
+			1 ->occupied
+			<-uid "AdvancedBomp.crpl" "Unchipped" 1 SetScriptVar
+			<-InsertedChip "FactoryChip.crpl" "disabled" 1 SetScriptVar
+			<-STATE_INACTIVE ->state
+			return
+		endif
+	endif
 	<-InsertedChip 0 gte if #If a chip is present, use it's settings to produce
 		<-STATE_CHARGING ->state
 		<-ManufacturingDelay 30 mul <-ManufacturingSpeedMod div SetTimer0
@@ -43,7 +59,9 @@ GetTimer1 eq0 if #Timer for removing temporary texts
     "" SetText
 endif
 <-state <-STATE_INACTIVE eq if #Decontamination check. Until flloded by AC will not function
-    CurrentCoords GetCreeper -4 lte if
+   1 ->occupied
+   <-InsertedChip "FactoryChip.crpl" "disabled" 1 SetScriptVar
+   CurrentCoords GetCreeper -4 lte if
 		"Integrity verification initiated" SetText
         50 220 50 255 SetTextColor 20 SetTextY 1.1 SetTextSize
         150 SetTimer1
@@ -64,13 +82,19 @@ GetTimer3 neq0 if #Decontamination timer: if creep re-takes it before it complet
 		return
 	endif
 endif
-GetTimer3 eq0 <-state <-STATE_REBOOTING eq and if #If decontamination succes, initialize the factory
+GetTimer3 eq0 <-state <-STATE_REBOOTING eq and if #If decontamination succeeds, initialize the factory
 	"Integrity check complete, Alchemiter operational" SetText
     50 220 50 255 SetTextColor 20 SetTextY 1.1 SetTextSize
 	150 SetTimer1
+	<-uid CONST_ISDESTROYED GetUnitAttribute eq0 if
+		<-STATE_TRAVEL ->state
+		<-InsertedChip "FactoryChip.crpl" "disabled" 0 SetScriptVar
+		return
+	endif
 	<-InsertedChip 0 gte if #If a chip is present, use it's settings to produce
 		<-STATE_CHARGING ->state
 		<-ManufacturingDelay 30 mul <-ManufacturingSpeedMod div SetTimer0
+		<-InsertedChip "FactoryChip.crpl" "disabled" 0 SetScriptVar
 	endif
 	<-InsertedChip -1 eq if #If no chip is present, allow insertion of chips
 		<-STATE_EMPTY ->state
@@ -81,10 +105,24 @@ endif
 	<-InsertedChip 0 gte if
 		<-STATE_CHARGING ->state
 		<-ManufacturingDelay 30 mul <-ManufacturingSpeedMod div SetTimer0
-		else
+		<-InsertedChip "FactoryChip.crpl" "disabled" 0 SetScriptVar
+	endif
+endif
+<-state <-STATE_EMPTY eq <-state <-STATE_CHARGING eq <-state <-STATE_TRAVEL or or <-Recapturable and if #De-Resets if covered back in creeper.
+	50 220 50 255 SetTextColor 20 SetTextY 1.1 SetTextSize
+	CurrentCoords GetCreeper -4 gt if
+		"Production failure: excess creeper detected" SetText
+        220 50 50 255 SetTextColor 20 SetTextY 1.1 SetTextSize
+		150 SetTimer1
+		1 ->occupied
+		<-uid "AdvancedBomp.crpl" "Unchipped" 1 SetScriptVar
+		<-InsertedChip "FactoryChip.crpl" "disabled" 1 SetScriptVar
+		<-STATE_INACTIVE ->state
+		0 SetTimer3
 		return
 	endif
 endif
+
 
 <-state <-STATE_CHARGING eq if #If in progress, wait for timer and produce a bomb. However, if chip is removed, production is reset and the factory is deemed empty.
 	<-InsertedChip 0 gte if
@@ -108,7 +146,36 @@ endif
 	endif
 endif
 
+<-BombType "Stopper" eq if #disables stopper bombs if chip is removed. Prevents expoits. Might be altered to include other bomb types too.
+	<-InsertedChip 0 lt <-uid CONST_ISDESTROYED GetUnitAttribute eq0 and if
+		"Instruction set compromised, disabling active bomb" SetText
+        220 50 50 255 SetTextColor 20 SetTextY 1.1 SetTextSize
+		150 SetTimer1
+		0 SetTimer0
+		<-uid "AdvancedBomp.crpl" "Unchipped" 1 SetScriptVar
+		<-ManufacturingParameters GetListCount 0 do
+			 <-ManufacturingParameters I GetListElement 0 ->!
+		loop
+		return
+	endif
+endif
 
+:CreateLine
+<-uid  CONST_ISDESTROYED GetUnitAttribute eq0 if
+    CurrentPixelCoords
+        <-uid CONST_PIXELCOORDY GetUnitAttribute swap sub ->Bomb_Y_Diff
+        <-uid CONST_PIXELCOORDX GetUnitAttribute swap sub ->Bomb_X_Diff
+            
+        "line" <-LINES concat ->ILI_Name
+        Self <-ILI_Name <-ImageLine SetImage
+        Self <-ILI_Name <-Bomb_X_Diff <-Bomb_Y_Diff 0 0 Distance 24 sub 24.0 div 0.15 SetImageScale
+        Self <-ILI_Name <-Bomb_Y_Diff <-Bomb_X_Diff atan2 SetImageRotation
+        Self <-ILI_Name <-Bomb_X_Diff 2.0 div <-Bomb_Y_Diff 2.0 div -11 SetImagePosition
+        <-uid "main" GetImageColor pop ->B ->G ->R
+		Self <-ILI_Name <-R <-G <-B <-LINE_ALPHA SetImageColor
+else
+		Self <-ILI_Name 0 0 0 0 SetImageColor
+endif
 
 :CreateBomb # - uid
     "CRPLCORE" CurrentCoords CreateUnit ->uid
@@ -124,15 +191,15 @@ endif
 :SetImageAndText
      <-state <-STATE_EMPTY eq if #Set if no chip is present, but Alchemiter is activated
         Self "main" <-ImageNormal SetImage
-        "Production error: missing recipe chip" SetPopupText
+        "Production error: missing recipe chip" ->PopText
     endif
 	<-state <-STATE_INACTIVE eq if #base state
         Self "main" <-ImageNormal SetImage
-        "Creeper infestation in production area, removal required" SetPopupText
+        "Creeper infestation in production area, removal required" ->PopText
     endif
-	 <-state <-STATE_REBOOTING eq if #Timer display for decontamination process
+	<-state <-STATE_REBOOTING eq if #Timer display for decontamination process
         Self "main" <-ImageNormal SetImage
-        "Integrity verification will be complete in " GetTimer3 30.0 div 0 Round " seconds" concat concat SetPopupText
+        "Integrity verification will be complete in " GetTimer3 30.0 div 0 Round " seconds" concat concat ->PopText
     endif
     <-state <-STATE_CHARGING eq if # Displays remaining cooldown and special speed modifier for working factories
         Self "main" <-ImageActive SetImage
@@ -143,24 +210,31 @@ endif
 			"A new " <-BombType " bomb will be ready in " GetTimer0 30.0 div 0 Round " seconds" concat concat concat concat ->PopText
 		endif
 		<-ManufacturingSpeedMod 1 gt if
-		<-PopText "
-		This Alchemiter is enhanced and produces bombs " <-ManufacturingSpeedMod " times faster" concat concat concat ->PopText
+			<-PopText "
+			This Alchemiter is enhanced and produces bombs " <-ManufacturingSpeedMod " times faster" concat concat concat ->PopText
 		endif
 		<-ManufacturingSpeedMod 1 lt if
-		<-PopText "
-		This Alchemiter is defective and produces bombs " 1 <-ManufacturingSpeedMod div 2 round " times slower" concat concat concat ->PopText
+			<-PopText "
+			This Alchemiter is defective and produces bombs " 1 <-ManufacturingSpeedMod div 2 round " times slower" concat concat concat ->PopText
 		endif
-		<-PopText SetPopupText
     endif
+	
     <-state <-STATE_READY eq if
         Self "main" <-ImageCharged SetImage
-        "Bomb is ready to use" SetPopupText
+        "Bomb is ready to use" ->PopText 
     endif
     <-state <-STATE_TRAVEL eq if
         Self "main" <-ImageCharged SetImage
-        "Payload en route" SetPopupText
+        "Payload en route" ->PopText 
     endif
-
+	<-Recapturable not if 
+			<-PopText "
+			 Purification circuits online: immune to creeper " concat ->PopText
+	else
+			<-PopText "
+			 Purification circuits offline: vulnerable to creeper " concat ->PopText
+	endif
+	<-PopText SetPopupText
 :Awake
     Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute 
     Self CONST_NULLIFIERDAMAGES 0 SetUnitAttribute 

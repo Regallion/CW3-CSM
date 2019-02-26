@@ -50,15 +50,15 @@ endif
 @GeneratePopupText
 <-disabled <-Movable and if #Disabled state occurs when a factory the chip is connected to, has a bomb ready or en route. Prevents the chip from being removed from the factory. Does not fire for immovable chips.
 	0 ->selected
-		<-selected eq0 if
+	<-selected eq0 if
 		#These important part of these SetImageColor commands is the final 0. That's the alpha value. That means these calls will set the images to be invisible.
-		Self "shadow" 255 0 0 0 SetImageColor
+		 Self "shadow" 255 0 0 0 SetImageColor
 		self "selector" <-selectorRotation SetImageRotation
 		Self "selector" 1.35 dup SetImageScale
 		Self "selector" 10 10 255 225 SetImageColor
 		<-selectorRotation add(0.048 <-MovementSpeed mul) if(dup PI 2.0 mul gt) sub(PI 2.0 mul) endif 
 		->selectorRotation
-		endif
+	endif
 	return
 endif
  
@@ -335,10 +335,10 @@ endif
         endif
     loop
 0 ->greenShadow
-:GeneratePopupText #General method for dtermining popup chip text
+:GeneratePopupText #General method for determining popup chip text
 
 <-disabled if #If disabled, mentions how do un-disable
-	"Safety lock engaged. Destroy current bomb before removing the chip" SetPopupText
+	"Safety lock engaged. Re-activate current factory to release chip" SetPopupText
 	return
 endif
 GetTimer3 neq0 if #Timer display

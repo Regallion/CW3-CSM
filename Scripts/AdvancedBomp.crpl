@@ -219,6 +219,12 @@ endonce
 		endif
 	endif
 	<-BombType <-! 8 eq if #nullifies emitter output indefinitely. Double-click to kill.
+		<-Unchipped 1 eq if
+			<-MovingUnit @unstop
+			<-CreatedBy "ChipFactory.crpl" dup2 "STATE_RESET" GetScriptVar "state" swap SetScriptVar
+			@CancelReservation
+			Self 0 Destroy
+		endif
 		<-BombSpecial 1 eq GetTimer2 eq0 and if 
 			<-MovingUnit @stop
 			60 SetTimer2
@@ -276,6 +282,11 @@ endonce
 		endif
 	endif
 	return
+endif
+<-Unchipped 1 eq if #generic unchipping fallback
+	<-CreatedBy "ChipFactory.crpl" dup2 "STATE_RESET" GetScriptVar "state" swap SetScriptVar
+	@CancelReservation
+	Self 0 Destroy
 endif
 GetTimer3 neq0 if 
 	GetTimer3 30.0 div 0 round SetText
