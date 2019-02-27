@@ -30,7 +30,6 @@ once
 	0.0 ->selectorRotation
 endonce
 
-
 <-Primed 1 eq if
 	<-BombType <-! 0 eq if #Conversion bomb. Activates immediately, converting in a radius. If fed with BombSpecial explodes twice.
 		<-Active eq0 if
@@ -281,6 +280,28 @@ endonce
 			endif
 		endif
 	endif
+	<-BombType <-! 9 eq if #Firework bomb. Spawns fireworks for a while
+		<-Active not if
+			<-BombSpecial "," Split ->SpecialList
+			<-SpecialList 0 GetListElement ->FpS
+			<-SpecialList 1 GetListElement ->ExpRad
+			1 ->Active
+		endif
+		GetTimer0 30 <-FpS asfloat div floor mod eq0 if
+			"CRPLCORE" CurrentX CurrentY CreateUnit ->LaunchedFirework
+			<-LaunchedFirework "Firework.crpl" AddScriptToUnit
+			<-LaunchedFirework "Firework.crpl" "Radius" <-ExpRad SetScriptVar
+			<-LaunchedFirework "Firework.crpl" "Power" <-Power SetScriptVar
+			<-LaunchedFirework "Firework.crpl" "TargetX" CurrentX <-Radius neg <-Radius 1 add RandInt add SetScriptVar
+			<-LaunchedFirework "Firework.crpl" "TargetY" CurrentY <-Radius neg <-Radius 1 add RandInt add SetScriptVar
+		endif
+		GetTimer0 30.0 div 0 round SetText
+		GetTimer0 eq0 if
+			<-CreatedBy "ChipFactory.crpl" dup2 "STATE_RESET" GetScriptVar "state" swap SetScriptVar
+			@CancelReservation
+			Self 0 Destroy
+		endif
+	endif
 	return
 endif
 <-Unchipped 1 eq if #generic unchipping fallback
@@ -394,6 +415,7 @@ endif
 	6 ->Flip
 	7 ->Weaken
 	8 ->Stopper
+	9 ->Firework
 	Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute 
     Self CONST_NULLIFIERDAMAGES 0 SetUnitAttribute 
     Self CONST_SUPPORTSDIGITALIS 0 SetUnitAttribute 
@@ -425,8 +447,11 @@ endif
 	<-BombType <-! 7 eq if
 	Self "main" 10 250 10 255 SetImageColor
 	endif
-	<-BombType <-! 7 eq if
+	<-BombType <-! 8 eq if
 	Self "main" 120 120 120 255 SetImageColor
+	endif
+	<-BombType <-! 9 eq if
+	Self "main" 150 255 RandInt 150 255 RandInt 150 255 RandInt 255 SetImageColor
 	endif
     Self "main" -2 SetImagePositionZ
     Self "shadow" "Custom19" SetImage
@@ -489,7 +514,7 @@ endif
 	GetMouseCell 1.5 GetEnemyUnitsInRange 0 do
         ->unit
         <-unit GetUnitType "CRPLCORE" eq if
-			<-BombType "Conversion" eq if
+			<-BombType "Conversion" eq <-BombType "Firework" eq or if
 				<-unit "CreepPortal.crpl" "Name" GetScriptVar "" concat "Portal" eq <-unit "CreepPortal.crpl" "OccupiedBomp" GetScriptVar not and 
 				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "ACEmitter" eq <-unit "ACEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
 				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "EmitterACDeath" eq <-unit "EmitterACDeath.crpl" "OccupiedBomp" GetScriptVar not and 

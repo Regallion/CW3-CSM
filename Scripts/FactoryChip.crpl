@@ -6,11 +6,11 @@
 
 $ChipMovementSpeed:1.0 #How fast the CHIP will move
 $MovementSpeed:1.0 #How fast the BOMP will move
-$Radius:10 # defines the radius of the effect of the bomb. Does nothing for omega bombs or frenzy/weaken bomps
-$Power:5.0 # Defines the effect of certain bombs. Frenzy/weaken bombs multiply/divide production by power, Singularity bombs pull harder. Negative effect for Defusers, as it amplifies their death throes effect. Does not affect other bomb types.
-$Duration:10 # duration of bomp effect in seconds. Does nothing for conversion bomps, or omega bombs. For defusers longer durations are negative, as it essentially delays their effect. For flip bombs defines the interval between extra flips
-$BombType:"Conversion" # valid values are "Conversion", "Freeze", "Singularity", "Defuser","Frenzy", "Omega", "OmegaORA", "Flip", "Weaken", "Stopper" Omega and stopper bombs are not affected by any parameters other tham move speed
-$BombSpecial:"" #Freeform field for setting special traits for bombs. For flip bombs. 0 or empty - Flips once. 1 - flips once but can target towers, 2 and above: does that many flips, but cannot target towers. For conversion bombs : 0, normal, positive amount marks the range of second explosion. For stoppers: 0 does nothing, 1 causes the effect to be permanent.
+$Radius:10 # defines the radius of the effect of the bomb. For Firework bombs, determines how far the fireworks can spread. Does nothing for omega bombs or frenzy/weaken bomps
+$Power:5.0 # Defines the effect of certain bombs. Frenzy/weaken bombs multiply/divide production by power, Singularity bombs pull harder. Fireworks deal that much damage to creeper Negative effect for Defusers, as it amplifies their death throes effect. Does not affect other bomb types.
+$Duration:10 # duration of bomp effect in seconds. For fireworks, defines how long it takes to launch a firework. Does nothing for conversion bomps, or omega bombs. For defusers longer durations are negative, as it essentially delays their effect. For flip bombs defines the interval between extra flips
+$BombType:"Conversion" # valid values are "Conversion", "Freeze", "Singularity", "Defuser","Frenzy", "Omega", "OmegaORA", "Flip", "Weaken", "Stopper", "Firework" Omega and stopper bombs are not affected by any parameters other tham move speed
+$BombSpecial:"" #Freeform field for setting special traits for bombs. For Fireworks, takes 2 comma-separated numbers, the first is how many fireworks per second it launches, the second is how big the firework explosion is. For flip bombs. 0 or empty - Flips once. 1 - flips once but can target towers, 2 and above: does that many flips, but cannot target towers. For conversion bombs : 0, normal, positive amount marks the range of second explosion. For stoppers: 0 does nothing, 1 causes the effect to be permanent.
 $BombLifeTime:0 #If not 0, the bomb will explode after this many seconds once it starts moving.
 $ManufacturingDelay:60 #How long it takes to manufacture the bomp
 $ManufacturingLimit:0 # 0 for unlimited, otherwise defines after how many bombs the chip blows up
@@ -245,6 +245,7 @@ endif
 	6 ->Flip
 	7 ->Weaken
 	8 ->Stopper
+	9 ->Firework
 	Self "main" <-StartingImagePref <-StartingImage <-BombType <-! add <-StartingImagePost concat concat SetImage #Figures out which image to use based on bomb type.
     Self "main" -2 SetImagePositionZ
     Self "shadow" "Custom19" SetImage
@@ -272,8 +273,8 @@ CurrentCoords 3 GetEnemyUnitsInRange 0 do
 		endif
 	endif
 loop
-<-TargetAlchemiter -1 neq if
-	 <-TargetAlchemiter CONST_COORDX GetUnitAttribute <-TargetAlchemiter CONST_COORDY GetUnitAttribute <-ChipMovementSpeed QueueMove
+<-MovingAlchemiter -1 neq if
+	 <-MovingAlchemiter CONST_COORDX GetUnitAttribute <-MovingAlchemiter CONST_COORDY GetUnitAttribute <-ChipMovementSpeed QueueMove
 endif
 
 
@@ -390,6 +391,11 @@ endif
 	<-BombSpecial eq0 not if
 		"Neutralizer M" <-ManufacturingDelay "MV" <-MovementSpeed " Type-P" concat concat concat concat ->PopupText
 	endif
+endif
+<-BombType "Firework" eq if
+
+"Festive R" <-Radius "D" <-Duration "P" <-Power "S" <-BombSpecial "M" <-ManufacturingDelay "MV" <-MovementSpeed concat concat concat concat concat concat concat concat concat concat concat ->PopupText
+
 endif
 <-NameOverride "" eq not if
 	<-NameOverride ->PopupText

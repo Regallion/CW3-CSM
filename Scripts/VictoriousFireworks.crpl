@@ -1,0 +1,35 @@
+#Launches fireworks if you won the map
+
+$Enabled:0
+$Force:0
+once
+    @awake
+	
+endonce
+<-VictoryUnit CONST_ISDESTROYED GetUnitAttribute 1 eq <-VictoryUnit CONST_COUNTSFORVICTORY GetUnitAttribute 0 eq or <-Enabled neq0 and if
+	0 ->VictoryUnit
+	CurrentCoords 500 1  GetAllUnitsInRange
+	0 do
+		->ProcessedUnit
+		<-ProcessedUnit CONST_COUNTSFORVICTORY GetUnitAttribute 1 eq if
+			<-ProcessedUnit ->VictoryUnit
+			ClearStack
+			break
+		endif
+	loop
+endif
+<-VictoryUnit eq0 <-Enabled neq0 and <-Force or if
+	3 0 do
+		0 MapWidth RandInt ->X
+		0 MapHeight RandInt ->Y
+		"CRPLCORE" <-X <-Y CreateUnit ->LaunchedFirework
+		<-LaunchedFirework "Firework.crpl" AddScriptToUnit
+		<-LaunchedFirework "Firework.crpl" "Radius" 12 SetScriptVar
+		<-LaunchedFirework "Firework.crpl" "Power" 0 SetScriptVar
+		<-LaunchedFirework "Firework.crpl" "TargetX" <-X 0 add SetScriptVar
+		<-LaunchedFirework "Firework.crpl" "TargetY" <-Y -5 add SetScriptVar
+	loop
+endif
+
+:awake
+Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute 

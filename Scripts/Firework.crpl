@@ -1,0 +1,57 @@
+#Firework projectile
+$MovementSpeed:8
+
+once
+	@awake
+	<-TargetX <-TargetY CellToPixel ->PTargetY ->PTargetX
+endonce
+
+
+
+<-Done not if
+	CurrentPixelCoords ->Y ->X
+	CurrentPixelCoords <-PTargetX <-PTargetY Distance <-MovementSpeed lte if
+		<-PTargetX ->NewX
+		<-PTargetY ->NewY
+		Self CONST_PIXELCOORDX <-NewX SetUnitAttribute
+		Self CONST_PIXELCOORDY <-NewY SetUnitAttribute
+		1 ->Done
+		return
+	endif
+	<-PTargetX <-X sub ->Xdiff
+	<-PTargetY <-Y sub ->Ydiff
+	<-Ydiff <-Xdiff atan2 ->Tangel
+	<-Tangel cos <-MovementSpeed mul <-X add ->NewX
+	<-Tangel sin <-MovementSpeed mul <-Y add ->NewY
+	Self "Main" <-Tangel PI 2 div sub SetImageRotation
+	Self CONST_PIXELCOORDX <-NewX SetUnitAttribute
+	Self CONST_PIXELCOORDY <-NewY SetUnitAttribute
+endif
+
+CurrentPixelCoords <-PTargetY eq swap <-PTargetX eq and if
+	1 ->Done
+	CurrentX <-Radius add 1 add CurrentX <-Radius sub do # J = X
+		CurrentY <-Radius add 1 add CurrentY <-Radius sub do # I = Y
+			CurrentCoords J I Distance <-Radius lte if
+				J I GetCreeper ->Creeper
+				<-Creeper 0 gte if
+					J I <-Creeper <-Power sub 0 max SetCreeper
+				endif
+			endif
+		loop
+	loop	
+	0 8 RandInt CurrentCoords CellToPixel 1 0.15 <-Radius mul dup 0.02 1 30 mul CreateEffectClipped
+	Self 0 Destroy
+endif
+
+:awake
+ClearTraceLog
+HideTraceLog
+Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute 
+Self CONST_NULLIFIERDAMAGES 0 SetUnitAttribute 
+Self CONST_SUPPORTSDIGITALIS 0 SetUnitAttribute 
+Self CONST_CREATEPZ 0 SetUnitAttribute
+
+Self "main" "Custom62" SetImage
+
+
