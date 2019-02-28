@@ -1,0 +1,38 @@
+#Shows text
+$Name:"Textshower"
+$Text:"" #text
+$RGB:"255,255,255" #Text color
+$Size:1.2 #text size
+$Delayrange:"0,9"
+once
+@awake
+endonce
+<-Show if
+	once
+	<-Delayrange "," Split ->Delays
+	<-Delays 0 GetListElement ->Startdelay
+	<-Delays 1 GetListElement ->Enddelay
+	<-Startdelay <-Enddelay 1 add RandInt 30 mul floor SetTimer0
+	endonce
+else
+	"" SetText
+endif
+
+GetTimer0 1 eq if
+	once
+	<-RGB "," Split ->BGR
+	<-BGR 0 GetListElement ->R
+	<-BGR 1 GetListElement ->G
+	<-BGR 2 GetListElement ->B
+	<-Text SetText
+	<-R <-G <-B 255 SetTextColor <-Size SetTextSize
+	endonce
+endif
+
+
+:awake
+Self "main" "NONE" SetImage
+Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute 
+Self CONST_NULLIFIERDAMAGES 0 SetUnitAttribute 
+Self CONST_SUPPORTSDIGITALIS 0 SetUnitAttribute 
+Self CONST_CREATEPZ 0 SetUnitAttribute

@@ -29,6 +29,13 @@ endif
 		<-LaunchedFirework "Firework.crpl" "TargetX" <-X 0 add SetScriptVar
 		<-LaunchedFirework "Firework.crpl" "TargetY" <-Y -5 add SetScriptVar
 	loop
+	once
+	"Name" "Textshower" GetCoresWithVar
+	0 do
+		->Textbox
+		<-Textbox "Text.crpl" "Show" 1 SetScriptVar
+	loop
+	endonce
 endif
 
 :awake
