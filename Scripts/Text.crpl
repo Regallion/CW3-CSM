@@ -3,7 +3,7 @@ $Name:"Textshower"
 $Text:"" #text
 $RGB:"255,255,255" #Text color
 $Size:1.2 #text size
-$Delayrange:"0,9"
+$Delayrange:"1,9"
 once
 @awake
 endonce
@@ -34,5 +34,6 @@ endif
 Self "main" "NONE" SetImage
 Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute 
 Self CONST_NULLIFIERDAMAGES 0 SetUnitAttribute 
+Self CONST_TAKEMAPSPACE 0 SetUnitAttribute
 Self CONST_SUPPORTSDIGITALIS 0 SetUnitAttribute 
 Self CONST_CREATEPZ 0 SetUnitAttribute

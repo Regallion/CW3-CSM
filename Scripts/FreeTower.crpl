@@ -1,0 +1,186 @@
+#FreeTower. Insert Chips to have effects. Depends 100% on chips to have an effect.
+$ImageNormal:"Custom18_128"
+$ImageLine:"Custom3pp"
+once
+	@Shutdown
+	1 ->Size
+	#Sets states for later use
+
+	"Tower" ->Name
+    <-STATE_INACTIVE ->state #Starts inactive
+	HideTraceLog
+	ClearTraceLog
+	@Awake
+   
+	-1 ->InsertedChip #Assumes this is empty. If the Tower starts with a chip on top, the 1 delay on the chip will set this after the initialization
+endonce
+GetTimer0 eq0 if #Timer for removing temporary texts
+    "" SetText
+endif
+
+<-state <-STATE_INACTIVE eq if #base state
+    <-InsertedChip 0 lt if
+		@SetImageAndText
+	else
+		<-STATE_ACTIVE ->state
+		"Activating" SetText
+        50 220 50 255 SetTextColor 20 SetTextY 1.0 SetTextSize
+        150 SetTimer0
+	endif
+endif
+<-state <-STATE_ACTIVE eq if #base state
+    <-InsertedChip 0 gte if
+		@SetImageAndText
+	else
+		<-STATE_INACTIVE ->state
+		"SHUTTING DOWN" SetText
+        220 50 50 255 SetTextColor 20 SetTextY 1.0 SetTextSize
+        150 SetTimer0
+		@Shutdown
+		return
+	endif
+    <-ChipType <-! 0 eq if
+		CurrentCoords GetCreeper 0 lte if
+			<-Setup not if
+				@CreateReactors
+				1 ->Setup
+				180 SetTimer1
+				return
+			endif
+			0 ->Creeped
+			GetTimer1 eq0 if
+				1 ->Okay
+				CurrentCoords 0 0 GetAllUnitsInRange 0 do
+					->unit
+					<-unit GetUnitType "REACTOR" eq if
+						0 ->Okay
+						ClearStack
+						break
+					endif
+				loop
+				<-Okay if
+					@CreateReactors
+				endif
+			endif
+		else
+			1 ->Creeped
+			0 ->Setup
+		endif
+	endif
+    <-ChipType <-! 1 eq if
+		<-Setup not if
+			<-Duration SetTimer1
+			1 ->Setup
+		endif
+		GetTimer1 eq0 if
+			@Negate
+			<-Duration SetTimer1
+		endif
+	endif
+    <-ChipType <-! 2 eq if
+		<-Setup not if
+			<-Duration SetTimer1
+			1 ->Setup
+		endif
+		GetTimer1 eq0 if
+			@CreateFirework
+			<-Duration SetTimer1
+		endif
+    endif
+	<-InsertedChip "TowerChip.crpl" "TimeSpent" <-InsertedChip "TowerChip.crpl" "TimeSpent"  GetScriptVar 1 add SetScriptVar
+endif
+
+
+:Shutdown
+0 SetTimer1
+0 SetTimer2
+0 SetTimer3
+0 ->Setup
+CurrentCoords 0 0 GetAllUnitsInRange 0 do
+	->unit
+	<-unit GetUnitType "REACTOR" eq if
+		<-unit 0 destroy
+	endif
+loop
+
+:CreateReactors 
+<-Power floor 0 do
+	"REACTOR" CurrentCoords CreateUnit pop
+loop
+:CreateFirework 
+"CRPLCORE" CurrentX CurrentY CreateUnit ->LaunchedFirework
+<-LaunchedFirework "Firework.crpl" AddScriptToUnit
+<-LaunchedFirework "Firework.crpl" "Radius" <-ChipSpecial SetScriptVar
+<-LaunchedFirework "Firework.crpl" "Power" <-Power SetScriptVar
+<-LaunchedFirework "Firework.crpl" "TargetX" CurrentX <-Radius neg <-Radius 1 add RandInt add SetScriptVar
+<-LaunchedFirework "Firework.crpl" "TargetY" CurrentY <-Radius neg <-Radius 1 add RandInt add SetScriptVar
+:Negate
+	CurrentX <-Radius add 1 add CurrentX <-Radius sub do # J = X
+		CurrentY <-Radius add 1 add CurrentY <-Radius sub do # I = Y
+			CurrentCoords J I Distance <-Radius lte if
+				J I GetCreeper ->Creeper
+				<-Creeper 0 lt if
+					<-ChipSpecial 1 gte if
+						J I <-Creeper <-Power add 0 min SetCreeper
+					endif
+				else
+					<-ChipSpecial 0 eq <-ChipSpecial 2 eq or if
+							J I <-Creeper <-Power sub 0 max SetCreeper
+					endif
+				endif
+			endif
+		loop
+	loop
+	5 CurrentCoords CellToPixel 1 0.15 <-Radius mul dup 0.02 <-Duration  CreateEffectClipped #EXPLODES
+
+:SetImageAndText
+    
+	<-state <-STATE_INACTIVE eq if #base state
+        "Insert a tower chip to activate" ->PopText
+    endif
+    <-state <-STATE_ACTIVE eq if
+      "" ->PopText
+	  # <-ChipType <-! 0 eq if
+		#	<-Creeped not if
+		#		"Maintaining " <-Power floor " reactors" concat concat ->PopText 
+		#	else
+		#		"Remove creeper to resume operation" ->PopText 
+		#	endif
+		#endif
+       #<-ChipType <-! 1 eq if
+		#	"Eliminating " <-Power  
+		#	<-ChipSpecial 0 eq if
+		#		" creeper" concat concat 
+		#	endif
+		#	<-ChipSpecial 1 eq if
+		#		" anticreeper" concat concat 
+		#	endif
+		#	<-ChipSpecial 2 eq if
+		#		" creeper and anticreeper" concat concat 
+		#	endif
+		#	" every " <-Duration 30.0 div 0 round " seconds" concat concat concat ->PopText
+		#endif
+        #<-ChipType <-! 2 eq if
+		#	"Shooting a firework every  " <-Duration 30.0 div 0 round " seconds" concat concat ->PopText 
+		#endif
+    endif
+	
+	<-PopText SetPopupText
+:Awake
+    Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute 
+    Self CONST_NULLIFIERDAMAGES 0 SetUnitAttribute 
+    Self CONST_SUPPORTSDIGITALIS 0 SetUnitAttribute 
+    Self CONST_CREATEPZ 0 SetUnitAttribute
+    Self CONST_TAKEMAPSPACE 1 SetUnitAttribute
+	Self CONST_CELLWIDTH 3 SetUnitAttribute
+	Self CONST_CELLHEIGHT 3 SetUnitAttribute
+	Self "main" <-ImageNormal SetImage
+	
+    0 ->Generator #setting up types
+	1 ->Negator
+	2 ->Firework
+	0 ->STATE_INACTIVE
+    1 ->STATE_ACTIVE
+    @SetImageAndText
+    Self "main" Self CONST_CELLWIDTH GetUnitAttribute 3.0 div Self CONST_CELLHEIGHT GetUnitAttribute 3.0 div SetImageScale
+    

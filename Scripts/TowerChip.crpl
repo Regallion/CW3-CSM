@@ -1,0 +1,451 @@
+
+#Specialized unit that can be slotted onto FreeTowers to provide effects.
+# ------------------------------------------
+
+#other scripts required to accomodate this script: FreeTower, AdvancedBomp
+
+$ChipMovementSpeed:1.0 #How fast the CHIP will move
+$Radius:10.0 # defines the radius of the effect of the chip. Negator chips use it for destruction radius, fireworks determine how big the spread is.
+$Power:5.0 # Defines the effect of certain chips. For Energy chips it produces that many reactors(floored), for negator chips defines how many levels of creeper it can remove at once. same for fireworks.
+$Duration:90 # duration of chip effect in frames. For Negator chips, defines the interval between destroying pulses .For fireworks defines how often fireworks are fired.
+$ChipType:"Generator" # valid types: "Generator", "Negator","Firework"
+$ChipSpecial:"" #Freeform field for setting special traits for chips. For negator chips, 0 affects only creeper, 1 affects AC  2 affects AC and C. For fireworks, determines the explosion radius of a firework.
+$TimeLimit:0 # 0 for unlimited, otherwise defines after how many frames of being active the chip self-destructs.
+$NameOverride:"" #Chip name override. If non-empty, this will show in mouseover text. If empty, mouseover text is generated from the effects of the chip.
+$Description:"" #This is appended after the name of the chip in mouseover. Primarily meant to be used for flavor.
+$Movable:1 #immovable chips need to be placed on top of Free tpwers in map editor. Prevents the chip from being moved entirely, thus locking the effect.
+$DecontaminationCooldown:20 #how long does this need to be submerged in AC before becoming active.
+$StartingImagePref:"Custom" #which folder you stuck it in
+$StartingImagePost:""
+$StartingImage:"64" #Must start with Conversion and end with Flip. OmegaORA reuses Omega image. 
+
+
+once
+    ShowTraceLog
+    ClearTraceLog
+    HideTraceLog
+    0 ->Liberated
+	CreateList ->ChipToTowerParameters #This is later used to pass on the parameters of the chip to the factory. Does not pass parameters relevant to only the chip.
+	 "ChipSpecial" "ChipType" "Duration" "Power" "Radius" <-ChipToTowerParameters AppendStackToList 
+	0 ->TimeSpent
+	@awake
+	##Initialize state variables##
+	-1 ->AssignedTower
+	-1 ->TargetTower
+    -1 ->MovingTower
+	0 ->moving
+	0 ->selected
+	0 ->greenShadow
+	0.0 ->selectorRotation
+	2 Delay
+	@GeneratePopupText
+	@FindAndActivateTower #For immovable chips
+endonce
+GetTimer1 eq0 if #Timer to remove temporary messages
+    "" SetText
+endif
+@GeneratePopupText
+<-disabled <-Movable and if #Disabled state occurs when a tower locks the chip in. Prevents the chip from being removed. Does not fire for immovable chips.
+	0 ->selected
+	<-selected eq0 if
+		#These important part of these SetImageColor commands is the final 0. That's the alpha value. That means these calls will set the images to be invisible.
+		 Self "shadow" 255 0 0 0 SetImageColor
+		self "selector" <-selectorRotation SetImageRotation
+		Self "selector" 1.35 dup SetImageScale
+		Self "selector" 10 10 255 225 SetImageColor
+		<-selectorRotation add(0.048 <-ChipMovementSpeed mul) if(dup PI 2.0 mul gt) sub(PI 2.0 mul) endif 
+		->selectorRotation
+	endif
+	return
+endif
+ 
+<-Movable if #If movable, checks to start liberation process. If immovable, straight-up stops. Non-decontaminated chips cannot be interacted with.
+	<-Liberated not if
+	Self "main" 80 80 80 255 SetImageColor
+		CurrentCoords GetCreeper -4 lte if
+			Self "main" 200 200 200 255 SetImageColor
+		    
+		"Initializing decontamination procedure" SetText
+        50 220 50 255 SetTextColor 20 SetTextY 1.1 SetTextSize
+			150 SetTimer1
+			<-DecontaminationCooldown 30 mul SetTimer3
+			1 ->Liberated
+		Self "main" 130 130 130 255 SetImageColor
+		else
+			return
+		endif
+	endif
+else
+	Self "main" 50 50 50 255 SetImageColor
+	
+	return
+endif
+
+
+
+GetTimer3 neq0 if #Decontamination timer. Continuosly checks if the chip wasn't overtaken by creeper again. If it was, aborts the liberation.
+    CurrentCoords GetCreeper -4 lte if
+		
+		return
+	else
+		"Unacceptable contamination levels, aborting decontamination" SetText
+        220 50 50 255 SetTextColor 20 SetTextY 1.1 SetTextSize
+		150 SetTimer1
+		0 ->Liberated
+		0 SetTimer3
+		
+		return
+	endif
+else
+    
+endif
+GetTimer3 eq0 <-Liberated 1 eq <-Decontaminated 0 eq and and if #If decon successful, activates the chip.
+	"Decontamination succesful" SetText
+    50 220 50 255 SetTextColor 20 SetTextY 1.1 SetTextSize
+	150 SetTimer1
+	Self "main" 255 255 255 255 SetImageColor
+	1 ->Decontaminated
+	Self CONST_TAKEMAPSPACE 0 SetUnitAttribute
+endif
+
+<-TimeSpent <-TimeLimit gte <-TimeLimit neq0 and if
+Self 3 destroy
+endif
+
+#Check for click event
+0 GetMouseButtonDown if
+	#Check whether the click was in the UI area of the screen. We want to ignore those clicks.
+	GetMouseScreenPixelPosition 96 gt if
+		#Check whether the unit is selected yet.
+		<-selected eq0 if
+			#If the unit is not currently selected, we check to see if the click happened within a certain radius of the unit.
+			# 2 -> 0.75, 3 -> 1, 4 -> 2
+			GetMouseCell CurrentCoords Distance @CalculateClickRadius lt if
+				#Make sure we didn't already select another unit this click
+				"selected" 1 GetCoresWithVar dup eq0 if
+					pop
+					#Sets the selected state. We'll get to applying the effects in another block.
+					1 ->selected
+				else
+					0 do
+						pop
+					loop
+				endif
+				#Kill the selection process if shift is held. Multi unit selection should not be possible for this unit, including for vanilla units.
+				"RightShift" GetKey neq0 "LeftShift" GetKey neq0 or if
+					0 ->selected
+				endif
+				#The 1 delay is to prevent aberrant behavior with clicks being processed multiple times.
+				1 Delay
+			endif
+		else
+			#This else block will execute if the unit is already selected. Now we check whether the mouse location is valid.
+			<-greenShadow if
+				AbortMove
+				ClearQueuedMoves
+                @UnoccupyTower
+                <-TargetTower ->MovingTower
+                @OccupyTower
+				<-TargetTower "FreeTower.crpl" "Name" GetScriptVar "" concat "Tower" eq if
+				<-TargetTower CONST_COORDX GetUnitAttribute <-TargetTower CONST_COORDY GetUnitAttribute <-ChipMovementSpeed QueueMove
+				endif
+				<-TargetTower "BlockerDocker.crpl" "IsBlockerDocker" GetScriptVar 1 eq if
+				<-TargetTower CONST_COORDX GetUnitAttribute <-TargetTower CONST_COORDY GetUnitAttribute <-ChipMovementSpeed QueueMove
+				endif
+				1 ->moving
+				<-AssignedTower -1 neq if
+					@DeactivateTower
+				endif
+			endif
+			
+			0 ->greenShadow
+			0 ->selected
+		endif
+	endif
+endif
+
+#Apply effects depending on selected state. Most of these could be triggered on change of the state instead, but I don't trust all states to be stored properly on save and load so I've updated these properties every frame. As long as there aren't tons of these units on the map it shouldn't be a performance concern.
+<-selected eq0 if
+	#These important part of these SetImageColor commands is the final 0. That's the alpha value. That means these calls will set the images to be invisible.
+	Self "shadow" 255 0 0 0 SetImageColor
+	self "selector" <-selectorRotation SetImageRotation
+	Self "selector" 1.35 dup SetImageScale
+	<-selectorRotation add(0.048 <-ChipMovementSpeed mul) if(dup PI 2.0 mul gt) sub(PI 2.0 mul) endif ->selectorRotation
+	<-moving if
+		Self "selector" 0 0 0 0 SetImageColor
+	else
+		Self "selector" 10 10 255 225 SetImageColor
+	endif
+	#I don't really think this is necessary, but it's just to give the image a designated location after it stops following the mouse.
+	self "shadow" 0 0 -1.9 SetImagePosition
+else
+	#If the unit is selected first we display the selector image.
+	Self "selector" 255 255 255 255 SetImageColor
+	<-selectorRotation add(0.096 <-ChipMovementSpeed mul) if(dup PI 2.0 mul gt) sub(PI 2.0 mul) endif ->selectorRotation
+	self "selector" <-selectorRotation SetImageRotation
+	@CheckMouseForDockable
+	<-greenShadow if
+		Self "shadow" 0 240 0 240 SetImageColor
+	else
+		GetMousePosition ->my ->mx
+		CurrentPixelCoords ->uy ->ux
+		<-my <-uy sub ->idy
+		<-mx <-ux sub ->idx
+		Self "shadow" <-idx <-idy -1.9 SetImagePosition
+		Self "shadow" 255 0 0 240 SetImageColor
+	endif
+	#Finally, check to see if the user presses "Space" or "Escape" and deselect the unit if they do.
+	"Space" GetKeyDown "Escape" GetKeyDown or if 0 ->selected endif
+endif
+
+<-moving if
+	GetQueuedMoveCount eq0 if
+		@FindAndActivateTower
+		0 ->moving
+	endif
+endif
+
+:awake
+    Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute 
+    Self CONST_NULLIFIERDAMAGES 0 SetUnitAttribute 
+    Self CONST_SUPPORTSDIGITALIS 0 SetUnitAttribute 
+    Self CONST_CREATEPZ 0 SetUnitAttribute
+    Self CONST_TAKEMAPSPACE 0 SetUnitAttribute
+    0 ->Generator #setting up types to decide on an image
+	1 ->Negator
+	2 ->Firework
+	Self "main" <-StartingImagePref <-StartingImage <-ChipType <-! add <-StartingImagePost concat concat SetImage #Figures out which image to use based on bomb type.
+    Self "main" -2 SetImagePositionZ
+    Self "shadow" "Custom33" SetImage
+    Self "shadow" -1.9 SetImagePositionZ
+    Self "shadow" 255 255 255 0 SetImageColor
+    Self "selector" "Custom20" SetImage
+    Self "selector" -3 SetImagePositionZ
+    Self "selector" 255 255 255 0 SetImageColor
+	Self "main" 0.5 dup SetImageScale
+	Self "shadow" 0.15 dup SetImageScale
+	Self "selector" 0.3 0.3 SetImageScale
+
+:FindAndActivateTower
+CurrentCoords 3 GetEnemyUnitsInRange 0 do
+	->unit
+	<-unit GetUnitType "CRPLCORE" eq if
+		<-unit "FreeTower.crpl" "Size" GetScriptVar if
+			<-unit ->AssignedTower
+            <-unit ->MovingTower
+			-1 ->TargetTower
+            @OccupyTower
+			<-AssignedTower CONST_COORDX GetUnitAttribute ->falg_tx
+			<-AssignedTower CONST_COORDY GetUnitAttribute ->falg_ty
+			Self CONST_COORDX <-falg_tx SetUnitAttribute
+			Self CONST_COORDY <-falg_ty SetUnitAttribute
+			@ActivateTower
+			return
+		endif
+	endif
+loop
+<-MovingTower -1 neq if
+	 <-MovingTower CONST_COORDX GetUnitAttribute <-MovingTower CONST_COORDY GetUnitAttribute <-ChipMovementSpeed QueueMove
+endif
+
+
+:CalculateClickRadius #() -> (float radius)
+# 2 -> 0.75, 3 -> 1, 4 -> 2
+<-Size 2 eq if
+	0.75 return
+else
+	<-Size 3 eq if
+		1.0 return
+	else
+		2.0 return
+	endif
+endif
+
+:OccupyTower
+    <-MovingTower -1 neq if
+        <-MovingTower "FreeTower.crpl" "occupied" 1 SetScriptVar
+		<-MovingTower "BlockerDocker.crpl" "occupied" 1 SetScriptVar
+    endif
+
+:UnoccupyTower
+    <-MovingTower -1 neq if
+        <-MovingTower "FreeTower.crpl" "occupied" 0 SetScriptVar
+		<-MovingTower "BlockerDocker.crpl" "occupied" 0 SetScriptVar
+    endif
+
+:CheckMouseForDockable #() -> () Can be docked on factories and dockers.
+    0 ->greenShadow
+    GetMouseCell 2 GetEnemyUnitsInRange 0 do
+        ->unit
+        <-unit GetUnitType "CRPLCORE" eq if
+           <-unit "FreeTower.crpl" "Name" GetScriptVar "" concat "Tower" eq <-unit "FreeTower.crpl" "occupied" GetScriptVar not and if
+		        1 ->greenShadow
+				<-unit ->TargetTower
+                <-unit CONST_COORDX GetUnitAttribute ->targetX
+                <-unit CONST_COORDY GetUnitAttribute ->targetY
+                <-unit CONST_PIXELCOORDX GetUnitAttribute ->cmfp_ux
+                <-unit CONST_PIXELCOORDY GetUnitAttribute ->cmfp_uy
+                CurrentPixelCoords ->cmfp_y ->cmfp_x
+                <-cmfp_uy <-cmfp_y sub ->cmfp_idy
+                <-cmfp_ux <-cmfp_x sub ->cmfp_idx
+                Self "shadow" <-cmfp_idx <-cmfp_idy -1.9 SetImagePosition
+				return
+		   endif
+           <-unit "BlockerDocker.crpl" "IsBlockerDocker" GetScriptVar <-unit "BlockerDocker.crpl" "occupied" GetScriptVar not and if
+                1 ->greenShadow
+				<-unit ->TargetTower
+                <-unit CONST_COORDX GetUnitAttribute ->targetX
+                <-unit CONST_COORDY GetUnitAttribute ->targetY
+                <-unit CONST_PIXELCOORDX GetUnitAttribute ->cmfp_ux
+                <-unit CONST_PIXELCOORDY GetUnitAttribute ->cmfp_uy
+                CurrentPixelCoords ->cmfp_y ->cmfp_x
+                <-cmfp_uy <-cmfp_y sub ->cmfp_idy
+                <-cmfp_ux <-cmfp_x sub ->cmfp_idx
+                Self "shadow" <-cmfp_idx <-cmfp_idy -1.9 SetImagePosition
+				return
+            endif
+        endif
+    loop
+0 ->greenShadow
+:GeneratePopupText #General method for determining popup chip text
+
+<-disabled if #If disabled, mentions how do un-disable
+	"Locked by the tower." SetPopupText
+	return
+endif
+GetTimer3 neq0 if #Timer display
+	"Decontamination in progress, completion in " GetTimer3 30.0 div 0 Round " seconds" concat concat SetPopupText
+	return
+endif
+<-Liberated not <-Movable 1 eq and if #Explains how to start the liberation process if the chip is movable. Immovable chips do not require decontamination
+	"Creeper contamination exceeding operational parameters, decontamination required" SetPopupText
+	return 
+endif
+#The following sets very technical description for bombs. It is advised to use NameOverride for flavor, but if unused, user will be able to determine the properties of the chip at a glance.
+<-ChipType "Negator" eq if
+	"Annihilator R" <-Radius  "S" <-ChipSpecial "P" <-Power "D" <-Duration concat concat concat concat concat concat concat ->PopupText
+endif
+<-ChipType "Generator" eq if
+	"Generator P" <-Power concat ->PopupText
+endif
+<-ChipType "Firework" eq if
+	"Festive R" <-Radius "D" <-Duration "P" <-Power "S" <-BombSpecial concat concat concat concat concat concat concat ->PopupText
+endif
+<-NameOverride "" eq not if
+	<-NameOverride ->PopupText
+endif
+<-Movable eq0 <-AppendedImmovable 0 eq and if #If this chip is immovable, appends a disclaimer about it.
+<-Description "
+This chip is a part of the Tower and may not be removed" concat ->Description
+1 ->AppendedImmovable 
+endif
+<-Description "" eq not if #If description is not empty, appends it to PopupText
+	<-PopupText "
+	 " <-Description concat concat ->PopupText
+endif
+<-TimeLimit neq0 if
+	<-PopupText "
+	 This chip can generate it's effect for " <-TimeLimit <-TimeSpent sub 30.0 div 0 round
+	  <-TimeLimit <-TimeSpent sub 30.0 div 0 round 1 gt if
+		" more seconds" concat concat concat ->PopupText
+	 else
+		" more second" concat concat concat ->PopupText
+	 endif
+endif
+<-PopupText SetPopupText
+
+:ActivateTower
+<-ChipToTowerParameters GetListCount 0 do #Passes paramters to Tower
+	<-AssignedTower "FreeTower.crpl" <-ChipToTowerParameters I GetListElement dup <-! SetScriptVar
+loop
+<-AssignedTower "FreeTower.crpl" "InsertedChip" Self SetScriptVar
+
+<-AssignedTower "FreeTower.crpl" "Size" GetScriptVar @TrueSizeToSize @ChangeSize
+
+
+:DeactivateTower
+<-AssignedTower "FreeTower.crpl" "InsertedChip" -1 SetScriptVar
+-1 ->AssignedTower
+1 @ChangeSize
+
+:ChangeSize #(int newSize) -> ()
+->cs_size
+<-cs_size ->Size
+<-cs_size 1 eq if
+	Self "main" 0.5 dup SetImageScale
+	Self "shadow" 0.15 dup SetImageScale
+	Self "selector" 0.3 0.3 SetImageScale
+else
+	<-cs_size 2 eq if
+		Self "main" 1.0 dup SetImageScale
+		Self "shadow" 0.3 dup SetImageScale
+		Self "selector" 0.6 0.6 SetImageScale
+	else
+		<-cs_size 3 eq if
+			Self "main" 1.75 dup SetImageScale
+			Self "shadow" 0.5 dup SetImageScale
+			Self "selector" 1 1 SetImageScale
+		else
+			<-cs_size 4 eq if
+				Self "main" 2.5 dup SetImageScale
+				Self "shadow" 0.875 dup SetImageScale
+				Self "selector" 1.75 1.75 SetImageScale
+			endif
+		endif
+	endif
+endif
+
+:ChangeShadowSize #(int newSize) -> ()
+->css_size
+<-css_size 1 eq if
+	Self "shadow" 0.15 0.15 SetImageScale
+else
+	<-css_size 2 eq if
+		Self "shadow" 0.3 0.3 SetImageScale
+	else
+		<-css_size 3 eq if
+			Self "shadow" 0.55 0.55 SetImageScale
+		else
+			<-css_size 4 eq if
+				Self "shadow" 0.875 0.875 SetImageScale
+			endif
+		endif
+	endif
+endif
+
+:SizeToTrueSize # (int size) -> (int trueSize)
+->stts_size
+<-stts_size 1 eq if
+1 return
+else
+	<-stts_size 2 eq if
+	5 return
+	else
+		<-stts_size 3 eq if
+		9 return
+		else
+		25 return
+		endif
+	endif
+endif
+
+
+:TrueSizeToSize	# (int size) -> (int trueSize)
+->tsts_size
+<-tsts_size 1 eq if
+1 return
+else
+	<-tsts_size 5 eq if
+	2 return
+	else
+		<-tsts_size 9 eq if
+		3 return
+		else
+		4 return
+		endif
+	endif
+endif
+
+:destroyed
+@UnoccupyTower
+@DeactivateTower 
