@@ -1,4 +1,4 @@
-#Firework projectile
+#Firework projectile. Explodes, destroys creeper. Meant to be created elsewhere and as such has no real parameters.
 $MovementSpeed:8
 
 once

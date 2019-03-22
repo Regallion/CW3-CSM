@@ -12,7 +12,7 @@ ClearTraceLog
 @awake
 5 delay
 0 ->Active
-<-Power 0 lte if
+<-Power 0 lte if #Decides whether we are red or green and also whether we are active or not.
 		CurrentCoords GetCreeper <-Thresh lt if
 				Self "main" "Custom1pp" SetImage
 				Self "main" 225 225 225 255 SetImageColor
@@ -44,12 +44,12 @@ ClearTraceLog
 
 		" concat SetPopupText
 	endif
-"Name" "acmultiglobal" GetCoresWithVar
+"Name" "acmultiglobal" GetCoresWithVar #Finds the main global script.
 	0 do
 		->MultTower
 		break
 	loop
-<-MultTower "ACmultiglobal.crpl" "NegaPowers" GetScriptVar ->NegaPowers
+<-MultTower "ACmultiglobal.crpl" "NegaPowers" GetScriptVar ->NegaPowers #Until end of once: gets the NegaPowers list from the main script, inserts itself into it then passes it back. Marks the a change occured.
 <-NegaPowers GetListCount ->Place
 <-Active if
 	<-NegaPowers <-Place <-Power SetListElement
@@ -60,7 +60,7 @@ endif
 <-MultTower "ACmultiglobal.crpl" "CChanged" 1 SetScriptVar
 endonce
 GetTimer0 eq0 if #this now only occurs every 10 or so frames to reduce lag
-	<-Power 0 lte if
+	<-Power 0 lte if #Decides whether we are red or green and also whether we are active or not. If our state changed we mention that.
 		CurrentCoords GetCreeper <-Thresh lt if
 			<-Active not if
 				Self "main" "Custom1pp" SetImage
@@ -105,7 +105,7 @@ GetTimer0 eq0 if #this now only occurs every 10 or so frames to reduce lag
 	endif
 	5 11 RandInt SetTimer0
 endif
-<-Change if
+<-Change if #If we changed, communicate the change to main script. Notice that we alter the saved spot in the list of towers.
 	<-MultTower "ACmultiglobal.crpl" "NegaPowers" GetScriptVar ->NegaPowers
 	<-Active if
 		<-NegaPowers <-Place <-Power SetListElement

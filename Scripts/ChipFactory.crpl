@@ -47,10 +47,27 @@ endif
 	<-InsertedChip 0 gte if #If a chip is present, use it's settings to produce
 		<-STATE_CHARGING ->state
 		<-ManufacturingDelay 30 mul <-ManufacturingSpeedMod div SetTimer0
+		<-ManufacturingEnergy neq0 if
+			Self CONST_CANREQUESTAMMO 1 SetUnitAttribute
+			Self CONST_PACKETREQUESTDELAY <-ManufacturingDelay SetUnitAttribute
+			Self CONST_MAXAMMO <-ManufacturingEnergy <-ManufacturingSpeedMod div floor SetUnitAttribute
+			Self CONST_AMMO 0 SetUnitAttribute
+			Self CONST_SHOWAMMOBAR 1 SetUnitAttribute
+			Self CONST_REQUESTPACKETS 1 SetUnitAttribute
+			Self CONST_CONNECTABLE 1 SetUnitAttribute
+		endif
 	endif
 	<-InsertedChip -1 eq if #If no chip is present, allow insertion of chips
 		<-STATE_EMPTY ->state
 		0 ->occupied
+		<-ManufacturingParameters GetListCount 0 do
+			 <-ManufacturingParameters I GetListElement 0 ->!
+			 Self CONST_AMMO 0 SetUnitAttribute
+			 Self CONST_SHOWAMMOBAR 0 SetUnitAttribute
+			 Self CONST_CANREQUESTAMMO 0 SetUnitAttribute
+			 Self CONST_REQUESTPACKETS 0 SetUnitAttribute
+			 Self CONST_CONNECTABLE 0 SetUnitAttribute
+		loop
 	endif
 endif
 
@@ -95,10 +112,27 @@ GetTimer3 eq0 <-state <-STATE_REBOOTING eq and if #If decontamination succeeds, 
 		<-STATE_CHARGING ->state
 		<-ManufacturingDelay 30 mul <-ManufacturingSpeedMod div SetTimer0
 		<-InsertedChip "FactoryChip.crpl" "disabled" 0 SetScriptVar
+		<-ManufacturingEnergy neq0 if
+			Self CONST_CANREQUESTAMMO 1 SetUnitAttribute
+			Self CONST_MAXAMMO <-ManufacturingEnergy <-ManufacturingSpeedMod div floor SetUnitAttribute
+			Self CONST_PACKETREQUESTDELAY <-ManufacturingDelay SetUnitAttribute
+			Self CONST_AMMO 0 SetUnitAttribute
+			Self CONST_SHOWAMMOBAR 1 SetUnitAttribute
+			Self CONST_REQUESTPACKETS 1 SetUnitAttribute
+			Self CONST_CONNECTABLE 1 SetUnitAttribute
+		endif
 	endif
 	<-InsertedChip -1 eq if #If no chip is present, allow insertion of chips
 		<-STATE_EMPTY ->state
 		0 ->occupied
+		<-ManufacturingParameters GetListCount 0 do
+			 <-ManufacturingParameters I GetListElement 0 ->!
+			 Self CONST_AMMO 0 SetUnitAttribute
+			 Self CONST_SHOWAMMOBAR 0 SetUnitAttribute
+			 Self CONST_CANREQUESTAMMO 0 SetUnitAttribute
+			 Self CONST_REQUESTPACKETS 0 SetUnitAttribute
+			 Self CONST_CONNECTABLE 0 SetUnitAttribute
+		loop
 	endif
 endif
 <-state <-STATE_EMPTY eq if #If no chip is present, wait for chip. When chip arrives, enable
@@ -106,6 +140,15 @@ endif
 		<-STATE_CHARGING ->state
 		<-ManufacturingDelay 30 mul <-ManufacturingSpeedMod div SetTimer0
 		<-InsertedChip "FactoryChip.crpl" "disabled" 0 SetScriptVar
+		<-ManufacturingEnergy neq0 if
+			Self CONST_CANREQUESTAMMO 1 SetUnitAttribute
+			Self CONST_MAXAMMO <-ManufacturingEnergy <-ManufacturingSpeedMod div floor SetUnitAttribute
+			Self CONST_PACKETREQUESTDELAY <-ManufacturingDelay SetUnitAttribute
+			Self CONST_AMMO 0 SetUnitAttribute
+			Self CONST_SHOWAMMOBAR 1 SetUnitAttribute
+			Self CONST_REQUESTPACKETS 1 SetUnitAttribute
+			Self CONST_CONNECTABLE 1 SetUnitAttribute
+		endif
 	endif
 endif
 <-state <-STATE_EMPTY eq <-state <-STATE_CHARGING eq <-state <-STATE_TRAVEL or or <-Recapturable and if #De-Resets if covered back in creeper.
@@ -118,6 +161,14 @@ endif
 		<-uid "AdvancedBomp.crpl" "Unchipped" 1 SetScriptVar
 		<-InsertedChip "FactoryChip.crpl" "disabled" 1 SetScriptVar
 		<-STATE_INACTIVE ->state
+		<-ManufacturingParameters GetListCount 0 do
+			 <-ManufacturingParameters I GetListElement 0 ->!
+			 Self CONST_AMMO 0 SetUnitAttribute
+			 Self CONST_SHOWAMMOBAR 0 SetUnitAttribute
+			 Self CONST_CANREQUESTAMMO 0 SetUnitAttribute
+			 Self CONST_REQUESTPACKETS 0 SetUnitAttribute
+			 Self CONST_CONNECTABLE 0 SetUnitAttribute
+		loop
 		0 SetTimer3
 		return
 	endif
@@ -126,12 +177,27 @@ endif
 
 <-state <-STATE_CHARGING eq if #If in progress, wait for timer and produce a bomb. However, if chip is removed, production is reset and the factory is deemed empty.
 	<-InsertedChip 0 gte if
-		GetTimer0 neq0 if
-			return
+		<-ManufacturingEnergy eq0 if
+			GetTimer0 neq0 if
+				return
+			else
+				<-STATE_READY ->state
+				"Bomb is ready to use" SetPopupText
+				@CreateBomb
+			endif
 		else
-			<-STATE_READY ->state
-			"Bomb is ready to use" SetPopupText
-			@CreateBomb
+			Self CONST_AMMO GetUnitAttribute Self CONST_MAXAMMO GetUnitAttribute eq if
+				<-STATE_READY ->state
+				Self CONST_AMMO 0 SetUnitAttribute
+				Self CONST_SHOWAMMOBAR 0 SetUnitAttribute
+				Self CONST_CANREQUESTAMMO 0 SetUnitAttribute
+				Self CONST_REQUESTPACKETS 0 SetUnitAttribute
+				Self CONST_CONNECTABLE 0 SetUnitAttribute
+				"Bomb is ready to use" SetPopupText
+				@CreateBomb
+			else
+				return
+			endif
 		endif
 	else
 		"Production error: recipe chip removed" SetText
@@ -141,12 +207,17 @@ endif
 		<-STATE_EMPTY ->state
 		<-ManufacturingParameters GetListCount 0 do
 			 <-ManufacturingParameters I GetListElement 0 ->!
+			 Self CONST_AMMO 0 SetUnitAttribute
+			 Self CONST_SHOWAMMOBAR 0 SetUnitAttribute
+			 Self CONST_CANREQUESTAMMO 0 SetUnitAttribute
+			 Self CONST_REQUESTPACKETS 0 SetUnitAttribute
+			 Self CONST_CONNECTABLE 0 SetUnitAttribute
 		loop
 		return
 	endif
 endif
 
-<-BombType "Stopper" eq if #disables stopper bombs if chip is removed. Prevents expoits. Might be altered to include other bomb types too.
+<-Unchippable 1 eq if #disables bombs if chip is removed. Prevents expoits. Might be altered to include other bomb types too.
 	<-InsertedChip 0 lt <-uid CONST_ISDESTROYED GetUnitAttribute eq0 and if
 		"Instruction set compromised, disabling active bomb" SetText
         220 50 50 255 SetTextColor 20 SetTextY 1.1 SetTextSize
@@ -203,11 +274,15 @@ endif
     endif
     <-state <-STATE_CHARGING eq if # Displays remaining cooldown and special speed modifier for working factories
         Self "main" <-ImageActive SetImage
-        <-BombType "OmegaORA" eq if
-			"Za warudo will be prepared in " GetTimer0 30.0 div 0 Round " seconds" concat concat ->PopText
-		
+        <-ManufacturingEnergy eq0 if
+			<-BombType "OmegaORA" eq if
+				"Za warudo will be prepared in " GetTimer0 30.0 div 0 Round " seconds" concat concat ->PopText
+			
+			else
+				"A new " <-BombType " bomb will be ready in " GetTimer0 30.0 div 0 Round " seconds" concat concat concat concat ->PopText
+			endif
 		else
-			"A new " <-BombType " bomb will be ready in " GetTimer0 30.0 div 0 Round " seconds" concat concat concat concat ->PopText
+				"A new " <-BombType " bomb needs " 	Self CONST_MAXAMMO GetUnitAttribute Self CONST_AMMO GetUnitAttribute sub " more energy" concat concat concat concat ->PopText
 		endif
 		<-ManufacturingSpeedMod 1 gt if
 			<-PopText "
@@ -236,6 +311,7 @@ endif
 	endif
 	<-PopText SetPopupText
 :Awake
+	1 ->Size
     Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute 
     Self CONST_NULLIFIERDAMAGES 0 SetUnitAttribute 
     Self CONST_SUPPORTSDIGITALIS 0 SetUnitAttribute 
@@ -243,6 +319,11 @@ endif
     Self CONST_TAKEMAPSPACE 1 SetUnitAttribute
 	Self CONST_CELLWIDTH 6 SetUnitAttribute
 	Self CONST_CELLHEIGHT 6 SetUnitAttribute
+	<-ManufacturingEnergy neq0 if
+		Self CONST_SHOWAMMOBAR 1 SetUnitAttribute
+	else
+		Self CONST_SHOWAMMOBAR 0 SetUnitAttribute
+	endif
 
     @SetImageAndText
     Self "main" Self CONST_CELLWIDTH GetUnitAttribute 3.0 div Self CONST_CELLHEIGHT GetUnitAttribute 3.0 div SetImageScale

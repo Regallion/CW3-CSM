@@ -1,4 +1,4 @@
-#This is my custom flip emitter script. It will produce either creeper or anti-creeper depending on which it is submerged under. It has custom popup text to match my other custom emitters and also temporary visible text when "flipping".
+#DISCO
 
 #Creeper amount and anticreeper amount are stored in separate variables so you can have it produce different amounts of each.
 $Camt:50

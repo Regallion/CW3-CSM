@@ -1,4 +1,4 @@
-#BridgeCore: manipulates terrain
+#FlipBridgeCore: same as normal BridgeCore, but for flip bridge controllers.
 #Credit to GoodMorning for original PF scripts.
 
 $Size:3
@@ -89,6 +89,8 @@ endif
 
 
 :awake #On woke activates the bridge to ensure coherent terrain and field status.
+ClearTraceLog
+HideTraceLog
 Self "main" "Custom10_128" SetImage
 Self "main" <-Size 1.7 mul dup SetImageScale
 <-Mode "-type" concat SetPopupText
@@ -112,20 +114,25 @@ Self "ControlInterface.crpl" "IsController" 0 SetScriptVar
 	
 	<-NetworkName SetText
 	
-	CreateList ->Minions
+	CreateList ->Companions
 	CreateList ->Controllers
-	
+
+	"OffControllerID" <-BridgeID GetCoresWithVar 0 do
+		->UID
+		<-UID "ControlInterface.crpl" "IsController" GetScriptVar 1 eq <-UID "FlipBridgeController.crpl" "Image" GetScriptVar StringLength neq0 and if
+				<-Controllers <-UID AppendToList
+		endif
+	loop
+	"OnControllerID" <-BridgeID GetCoresWithVar 0 do
+		->UID
+		<-UID "ControlInterface.crpl" "IsController" GetScriptVar 1 eq <-UID "FlipBridgeController.crpl" "Image" GetScriptVar StringLength neq0 and if
+				<-Controllers <-UID AppendToList
+		endif
+	loop
 	"NetName" <-NetworkName GetCoresWithVar 0 do
 		->UID
-		
-		<-UID "ControlInterface.crpl" "IsController" GetScriptVar 1 eq if
-			<-UID "BridgeController.crpl" "Image" GetScriptVar StringLength neq0 if
-				<-Controllers <-UID AppendToList
-			endif
-		else
-			<-UID "BridgeCore.crpl" "Mode" GetScriptVar StringLength neq0 <-UID "MemoryBridgeCore.crpl" "Mode" GetScriptVar StringLength neq0 or if
-				<-Minions <-UID AppendToList
-			endif
+		<-UID "ControlInterface.crpl" "IsController" GetScriptVar 0 eq <-UID "FlipBridgeCore.crpl" "Mode" GetScriptVar StringLength neq0 and if
+			<-Companions <-UID AppendToList
 		endif
 	loop
 
@@ -134,8 +141,8 @@ Self "ControlInterface.crpl" "IsController" 0 SetScriptVar
 		Self <-Controllers I GetListElement "_pointer" concat "NONE" SetImage
 	loop
 	
-	<-Minions GetListCount 0 do
-		Self <-Minions I GetListElement "_pointer" concat "NONE" SetImage
+	<-Companions GetListCount 0 do
+		Self <-Companions I GetListElement "_pointer" concat "NONE" SetImage
 	loop
 
 :AddNetworkPointers
@@ -144,8 +151,8 @@ Self "ControlInterface.crpl" "IsController" 0 SetScriptVar
 		<-Controllers I GetListElement 191 191 0 255 @AddPointerToUnit
 	loop
 	
-	<-Minions GetListCount 0 do
-		<-Minions I GetListElement 191 0 191 255 @AddPointerToUnit
+	<-Companions GetListCount 0 do
+		<-Companions I GetListElement 191 0 191 255 @AddPointerToUnit
 	loop
 	
 :AddPointerToUnit # [ UID R G B A - ]
@@ -174,8 +181,8 @@ Self "ControlInterface.crpl" "IsController" 0 SetScriptVar
 		<-Controllers I GetListElement "ControlInterface.crpl" "Mouseover" GetScriptVar if <-CoCommanders I GetListElement return endif
 	loop
 	
-	<-Minions GetListCount 0 do
-		<-Minions I GetListElement "ControlInterface.crpl" "Mouseover" GetScriptVar if <-Minions I GetListElement return endif
+	<-Companions GetListCount 0 do
+		<-Companions I GetListElement "ControlInterface.crpl" "Mouseover" GetScriptVar if <-Companions I GetListElement return endif
 	loop
 	
 	-1

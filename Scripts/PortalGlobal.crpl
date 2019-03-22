@@ -1,3 +1,4 @@
+#Controls flow of creep between stargates. Only 1 should exist at a time.
 $Name:"PortalGlobal"
 $DarkTimer:100
 $CreepProductionMulti:70

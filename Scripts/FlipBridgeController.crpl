@@ -1,9 +1,10 @@
-# Allows you to manipulate bridges when cleansed
+# Flip bridge controller. Opens one bridge when active, opens another when inactive. Cannot be networked with other controllers.
 #Credit to GoodMorning for original PF scripts.
 
 $Image:"Custom42"
 $DecontaminationCooldown:10
-$ControllerID:"01"
+$OnControllerID:"02"
+$OffControllerID:"01"
 $StartState:0 #0 - off, 1 - on MUST be consistent across the same ContollerID
 once
 	ClearTraceLog
@@ -24,7 +25,6 @@ endif
 	1 ->Done
 endif
 <-ArtificialChecks <-Random gt if #Checks itself for capturing and sets text every once in a while. Saves performance.
-	@CheckCaptured
 	@SetBridgeText
 	0 ->ArtificialChecks
 	3 8 RandInt ->Random
@@ -116,7 +116,7 @@ endif
 	#Check whether the click was in the UI area of the screen. We want to ignore those clicks.
 	GetMouseScreenPixelPosition 96 gt if
 		#If clicked, check if changing the state is valid. If no uncaptured bridges exist, allows state change.
-		@CheckCaptured
+
 		GetMouseCell CurrentCoords Distance 1.5 lt <-Unfinished 0 eq and if
 			<-State 1 add ->State
 			<-State 1 gt if
@@ -142,11 +142,10 @@ Self CONST_CREATEPZ 0 SetUnitAttribute
 -9999 ->LastClick
 Self "ControlInterface.crpl" "HasControlInterface" GetScriptVar eq0 if
 	Self "ControlInterface.crpl" AddScriptToUnit
-
 endif
-Self "ControlInterface.crpl" "NetName" <-ControllerID SetScriptVar
+Self "ControlInterface.crpl" "NetName" <-OnControllerID "/" <-OffControllerID concat concat SetScriptVar
 Self "ControlInterface.crpl" "IsController" 1 SetScriptVar
-@CheckCaptured
+
 @SetBridgeText
 @SetBridgeState
 
@@ -163,57 +162,45 @@ endif
 	"Current setting: On" ->PopText
 endif
 <-PopText "
-	 Controls bridges numbered " <-ControllerID concat concat ->PopText
+	 Opens bridge " <-OnControllerID " when active" concat concat concat ->PopText
+<-PopText "
+	 Opens bridge " <-OffControllerID " when inactive" concat concat concat ->PopText
 
 <-Decontaminated 0 eq  if
 	 <-PopText "
 	 Settings lockdown due to creeper contamination" concat ->PopText
 endif
-<-Unfinished 1 gte <-Decontaminated 1 eq and if
-	<-PopText "
-	You need to unlock " <-Unfinished " more controllers before you can operate this" concat concat concat ->PopText
-endif
+
 <-PopText SetPopupText
 
 
 :SetBridgeState #sets the state of all connected bridges and tells them to act on it.
 -1 ->BridgeState
 <-State 0 eq if
-	0 ->BridgeState
+	0 ->OnBridgeState
+	1 ->OffBridgeState
 endif
-<-State 1 eq <-Unactivated 0 eq <-Unfinished 0 eq or and if
-	1 ->BridgeState
+<-State 1 eq if
+	1 ->OnBridgeState
+	0 ->OffBridgeState
 endif
 
-"ControllerID" <-ControllerID GetCoresWithVar
-	0 do
-		->PControllerID
-		<-PControllerID "BridgeController.crpl" "State" <-State SetScriptVar
-	loop
-<-BridgeState 0 gte if
-	"BridgeID" <-ControllerID GetCoresWithVar
+<-OnBridgeState 0 gte if
+	"BridgeID" <-OnControllerID GetCoresWithVar
 		0 do
 			->BridgeID
-			<-BridgeID "BridgeCore.crpl" "State" <-BridgeState SetScriptVar
-			<-BridgeID "BridgeCore.crpl" "Activated" 1 SetScriptVar
-			<-BridgeID "MemoryBridgeCore.crpl" "State" <-BridgeState SetScriptVar
-			<-BridgeID "MemoryBridgeCore.crpl" "Activated" 1 SetScriptVar
+			<-BridgeID "FlipBridgeCore.crpl" "State" <-OnBridgeState SetScriptVar
+			<-BridgeID "FlipBridgeCore.crpl" "Activated" 1 SetScriptVar
+		loop
+	"BridgeID" <-OffControllerID GetCoresWithVar
+		0 do
+			->BridgeID
+			<-BridgeID "FlipBridgeCore.crpl" "State" <-OffBridgeState SetScriptVar
+			<-BridgeID "FlipBridgeCore.crpl" "Activated" 1 SetScriptVar
 		loop
 endif
 
-:CheckCaptured #checks if there are any uncaptured controllers on the same network. Needed as a check for state change. 
-0 ->Unfinished
-0 ->Unactivated
-"ControllerID" <-ControllerID GetCoresWithVar
-	0 do
-		->PControllerID
-		<-PControllerID "BridgeController.crpl" "Decontaminated" GetScriptVar 0 eq <-PControllerID Self neq and if
-			<-Unfinished 1 add ->Unfinished
-		endif
-		<-PControllerID "BridgeController.crpl" "State" GetScriptVar 0 eq if
-			<-Unactivated 1 add ->Unactivated
-		endif
-	loop
+
 
 
 
@@ -223,39 +210,38 @@ endif
 	
 	<-NetworkName SetText
 
-	CreateList ->Minions
-	CreateList ->CoCommanders
+	CreateList ->OnBridges
+	CreateList ->OffBridges
 	
-	"NetName" <-NetworkName GetCoresWithVar 0 do
+	"BridgeID" <-OffControllerID GetCoresWithVar 0 do
 		->UID
-		
-		<-UID "ControlInterface.crpl" "IsController" GetScriptVar 1 eq if
-			<-UID Self neq <-UID "BridgeController.crpl" "Image" GetScriptVar StringLength neq0 and if
-				<-CoCommanders <-UID AppendToList
-			endif
-		else
-			<-UID "BridgeCore.crpl" "Mode" GetScriptVar StringLength neq0 <-UID "MemoryBridgeCore.crpl" "Mode" GetScriptVar StringLength neq0 or if
-				<-Minions <-UID AppendToList
-			endif
+		<-UID "ControlInterface.crpl" "IsController" GetScriptVar 0 eq <-UID "FlipBridgeCore.crpl" "Mode" GetScriptVar StringLength neq0 and if
+				<-OffBridges <-UID AppendToList
+		endif
+	loop
+	"BridgeID" <-OnControllerID GetCoresWithVar 0 do
+		->UID
+		<-UID "ControlInterface.crpl" "IsController" GetScriptVar 0 eq <-UID "FlipBridgeCore.crpl" "Mode" GetScriptVar StringLength neq0 and if
+				<-OnBridges <-UID AppendToList
 		endif
 	loop
 
 :RemoveNetworkPointers #technical function to remove pointer graphics on mouseover loss.
-	<-CoCommanders GetListCount 0 do
-		Self <-CoCommanders I GetListElement "_pointer" concat "NONE" SetImage
+	<-OffBridges GetListCount 0 do
+		Self <-OffBridges I GetListElement "_pointer" concat "NONE" SetImage
 	loop
 	
-	<-Minions GetListCount 0 do
-		Self <-Minions I GetListElement "_pointer" concat "NONE" SetImage
+	<-OnBridges GetListCount 0 do
+		Self <-OnBridges I GetListElement "_pointer" concat "NONE" SetImage
 	loop
 
 :AddNetworkPointers #technical function to add pointer graphics on mouseover.
-	<-CoCommanders GetListCount 0 do
-		<-CoCommanders I GetListElement 191 191 0 255 @AddPointerToUnit
+	<-OffBridges GetListCount 0 do
+		<-OffBridges I GetListElement 191 191 0 255 @AddPointerToUnit
 	loop
 	
-	<-Minions GetListCount 0 do
-		<-Minions I GetListElement 191 0 191 255 @AddPointerToUnit
+	<-OnBridges GetListCount 0 do
+		<-OnBridges I GetListElement 191 0 191 255 @AddPointerToUnit
 	loop
 	
 :AddPointerToUnit # [ UID R G B A - ]
@@ -280,16 +266,16 @@ endif
 :NetworkMouseover # [ - UID ] Return the unit in the network with the mouse over it, or none.
 	<-Mouseover if Self return endif
 	
-	<-CoCommanders GetListCount 0 do
-		<-CoCommanders I GetListElement "ControlInterface.crpl" "Mouseover" GetScriptVar if
-			<-CoCommanders I GetListElement 
+	<-OffBridges GetListCount 0 do
+		<-OffBridges I GetListElement "ControlInterface.crpl" "Mouseover" GetScriptVar if
+			<-OffBridges I GetListElement 
 			return 
 		endif
 	loop
 	
-	<-Minions GetListCount 0 do
-		<-Minions I GetListElement "ControlInterface.crpl" "Mouseover" GetScriptVar if 
-			<-Minions I GetListElement 
+	<-OnBridges GetListCount 0 do
+		<-OnBridges I GetListElement "ControlInterface.crpl" "Mouseover" GetScriptVar if 
+			<-OnBridges I GetListElement 
 			return 
 		endif
 	loop

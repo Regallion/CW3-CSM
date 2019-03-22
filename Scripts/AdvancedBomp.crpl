@@ -30,7 +30,7 @@ once
 	0.0 ->selectorRotation
 endonce
 
-<-Primed 1 eq if
+<-Primed 1 eq if #If a bomb is primed, it means it is getting ready to explode. Primed bombs cannot be moved. This state is normally entered by moving to a target.
 	<-BombType <-! 0 eq if #Conversion bomb. Activates immediately, converting in a radius. If fed with BombSpecial explodes twice.
 		<-Active eq0 if
 			<-Radius @convert
@@ -88,7 +88,7 @@ endonce
 		GetTimer0 30.0 div 0 round SetText
 		GetTimer0 eq0 if
 			<-MovingUnit "BlockerDocker.crpl" "IsBlockerDocker" GetScriptVar 1 eq if #allows you to dispose of excess defusers by blowing them on blockers
-				<-MovingUnit "BlockerDocker.crpl" "Occupied" 0 SetScriptVar
+				<-MovingUnit "BlockerDocker.crpl" "occupied" 0 SetScriptVar
 				<-CreatedBy "ChipFactory.crpl" dup2 "STATE_RESET" GetScriptVar "state" swap SetScriptVar
 				Self 0 Destroy
 			else
@@ -218,13 +218,13 @@ endonce
 		endif
 	endif
 	<-BombType <-! 8 eq if #nullifies emitter output indefinitely. Double-click to kill.
-		<-Unchipped 1 eq if
+		<-Unchipped 1 eq if #occurs when chips is removed from factory. Prevents exploits.
 			<-MovingUnit @unstop
 			<-CreatedBy "ChipFactory.crpl" dup2 "STATE_RESET" GetScriptVar "state" swap SetScriptVar
 			@CancelReservation
 			Self 0 Destroy
 		endif
-		<-BombSpecial 1 eq GetTimer2 eq0 and if 
+		<-BombSpecial 1 eq GetTimer2 eq0 and if  #causes the effect to be permanent if bomb is special
 			<-MovingUnit @stop
 			60 SetTimer2
 			"Emitter neutralized" SetText
@@ -238,7 +238,7 @@ endonce
 		GetTimer2 neq0 if
 			return
 		endif
-		GetTimer0 eq0 <-Duration neq0 and if
+		GetTimer0 eq0 <-Duration neq0 and if #If Duration is set, lasts a set amount of time.
 			<-MovingUnit @unstop
 			<-CreatedBy "ChipFactory.crpl" dup2 "STATE_RESET" GetScriptVar "state" swap SetScriptVar
 			@CancelReservation
@@ -250,7 +250,7 @@ endonce
 			GetTimer0 30.0 div 0 round SetText SetText
 			return
 		endif
-		GetTimer1 eq0 if
+		GetTimer1 eq0 if #If Duration is not set, lasts indefinitely. Timer 1 in this case keeps track of the last click -  you need to click twice within 3 seconds to remove.
 			<-MovingUnit @stop
 			0 ->Active
 			"Click me twice to remove" SetPopupText
@@ -259,7 +259,7 @@ endonce
 			GetTimer1 30.0 div 0 round SetText
 		endif
 		
-		0 GetMouseButtonDown if
+		0 GetMouseButtonDown if #Code for finding out if we clicked.
 			#Check whether the click was in the UI area of the screen. We want to ignore those clicks.
 			GetMouseScreenPixelPosition 96 gt if
 				#Check whether the unit is selected yet.
@@ -270,7 +270,7 @@ endonce
 						"Confirm removal by clicking again" SetPopupText
 					endif
 				else
-					GetMouseCell CurrentCoords Distance 1.5 lt if
+					GetMouseCell CurrentCoords Distance 1.5 lt if #on double-click, removes bomb.
 						<-MovingUnit @unstop
 						<-CreatedBy "ChipFactory.crpl" dup2 "STATE_RESET" GetScriptVar "state" swap SetScriptVar
 						@CancelReservation
@@ -309,17 +309,17 @@ endif
 	@CancelReservation
 	Self 0 Destroy
 endif
-GetTimer3 neq0 if 
+GetTimer3 neq0 if #If we have an ongoing timer, set the text. This supports the Death timer for bombs that have a time limit to arrive.
 	GetTimer3 30.0 div 0 round SetText
 	220 10 10 255 SetTextColor 20 SetTextY 1.2 SetTextSize
 else
-	<-BombLifeTime neq0 <-Touched and if
+	<-BombLifeTime neq0 <-Touched and if #If we deployed the bomb and it has a time limit, kill it once we ran out of time.
 		<-CreatedBy "ChipFactory.crpl" dup2 "STATE_RESET" GetScriptVar "state" swap SetScriptVar
 		@CancelReservation
 		Self 3 Destroy
 	endif
 endif
-#Check for click event
+#Check for click event. this code block is used to determine where to move.
 0 GetMouseButtonDown if
 	#Check whether the click was in the UI area of the screen. We want to ignore those clicks.
 	GetMouseScreenPixelPosition 96 gt if
@@ -338,9 +338,9 @@ endif
 				@ReserveSpot
 				<-targetX <-targetY <-MovementSpeed QueueMove
 				once
-					<-BombLifeTime neq0 if
+					<-BombLifeTime neq0 if #The first time we move a bomb, if it has a life time limit, set the timer for it. The actual timer handling is above.
 						<-BombLifeTime 30 mul SetTimer3 
-						1 ->Touched
+						1 ->Touched 
 					endif
 				endonce
 				1 ->moving
@@ -397,7 +397,7 @@ else
 	"Space" GetKeyDown "Escape" GetKeyDown or if 0 ->selected endif
 endif
 
-<-moving if
+<-moving if #If we arrived at the target, engage the explosion and remove the Timer3.
 	GetQueuedMoveCount eq0 if
 		@ExplodeBomp
 		0 ->moving
@@ -423,7 +423,7 @@ endif
     Self CONST_TAKEMAPSPACE 0 SetUnitAttribute
 
     Self "main" <-Image SetImage
-	<-BombType <-! 0 eq if
+	<-BombType <-! 0 eq if #Every bomb has it's own color.
 	Self "main" 10 150 150 255 SetImageColor
 	endif
 	<-BombType <-! 1 eq if 
@@ -469,7 +469,7 @@ endif
     GetCreeperColors 255 mul ->AC_B 255 mul ->AC_G 255 mul ->AC_R 255 mul ->C_B 255 mul ->C_G 255 mul ->C_R
 
 
-:ReserveSpot
+:ReserveSpot #If we targeted something, set is a occupied by a bomb so it can't be targeted by anything else.
 	<-MovingUnit "CreepPortal.crpl" "OccupiedBomp" 1 SetScriptVar
 	<-MovingUnit "ACEmitter.crpl" "OccupiedBomp" 1 SetScriptVar
 	<-MovingUnit "EmitterACDeath.crpl" "OccupiedBomp" 1 SetScriptVar
@@ -479,7 +479,7 @@ endif
 	<-MovingUnit "BlockerDocker.crpl" "occupied" 1 SetScriptVar
 	<-MovingUnit "ACmultitower.crpl" "OccupiedBomp" 1 SetScriptVar
 	<-MovingUnit "Cmultitower.crpl" "OccupiedBomp" 1 SetScriptVar
-:CancelReservation
+:CancelReservation #Reverse to ReserveStop
 	<-MovingUnit "CreepPortal.crpl" "OccupiedBomp" 0 SetScriptVar
 	<-MovingUnit "ACEmitter.crpl" "OccupiedBomp" 0 SetScriptVar
 	<-MovingUnit "EmitterACDeath.crpl" "OccupiedBomp" 0 SetScriptVar
@@ -489,7 +489,7 @@ endif
 	<-MovingUnit "BlockerDocker.crpl" "occupied" 0 SetScriptVar
 	<-MovingUnit "ACmultitower.crpl" "OccupiedBomp" 0 SetScriptVar
 	<-MovingUnit "Cmultitower.crpl" "OccupiedBomp" 0 SetScriptVar
-:ExplodeBomp 
+:ExplodeBomp #Triggered by reaching the target. Triggers the Primed state, gets the timer going for bombs that use it, and resets some visual variables.
 	1 ->Primed
 	<-Duration neq0 if
 		<-Duration 30 mul SetTimer0
@@ -503,7 +503,7 @@ endif
 
 :CheckMouseForPortal #() -> () Speficifes which bombs can target which units
     0 ->greenShadow
-    GetMouseCell 1.5 GetEnemyUnitsInRange 0 do
+    GetMouseCell 1.5 GetEnemyUnitsInRange 0 do #If we are targetting a repulsor, targeting is invalid automatically.
         ->unit
         <-unit GetUnitType "CRPLCORE" eq if
 			<-unit "BombRepulsor.crpl" "Name" GetScriptVar "" concat "Repulsor" eq if
@@ -513,8 +513,8 @@ endif
 	loop
 	GetMouseCell 1.5 GetEnemyUnitsInRange 0 do
         ->unit
-        <-unit GetUnitType "CRPLCORE" eq if
-			<-BombType "Conversion" eq <-BombType "Firework" eq or if
+        <-unit GetUnitType "CRPLCORE" eq if #Each type of bomb uses it's own set of valid targets. Target must be unoccupied to be valid.
+			<-BombType "Conversion" eq <-BombType "Firework" eq or if #Conversion and firework bombs can target any type of emitter plus stargates.
 				<-unit "CreepPortal.crpl" "Name" GetScriptVar "" concat "Portal" eq <-unit "CreepPortal.crpl" "OccupiedBomp" GetScriptVar not and 
 				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "ACEmitter" eq <-unit "ACEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
 				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "EmitterACDeath" eq <-unit "EmitterACDeath.crpl" "OccupiedBomp" GetScriptVar not and 
@@ -526,7 +526,7 @@ endif
 					return
 				endif
 			endif
-			<-BombType "OmegaORA" eq <-BombType "Omega" eq <-BombType "Stopper" eq or or if
+			<-BombType "OmegaORA" eq <-BombType "Omega" eq <-BombType "Stopper" eq or or if #Both omegas and stoppers can only target emitters.
 				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "ACEmitter" eq <-unit "ACEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
 				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "EmitterACDeath" eq <-unit "EmitterACDeath.crpl" "OccupiedBomp" GetScriptVar not and 
 				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "EmitterACDread" eq <-unit "EmitterACDread.crpl" "OccupiedBomp" GetScriptVar not and 
@@ -537,7 +537,7 @@ endif
 					return
 				endif
 			endif
-			<-BombType "Singularity" eq <-BombType "Freeze" eq or if
+			<-BombType "Singularity" eq <-BombType "Freeze" eq or if #Singularities and freezer bombs can target any type of emitter plus stargates.
 				<-unit "CreepPortal.crpl" "Name" GetScriptVar "" concat "Portal" eq <-unit "CreepPortal.crpl" "OccupiedBomp" GetScriptVar not and 
 				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "ACEmitter" eq <-unit "ACEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
 				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "EmitterACDeath" eq <-unit "EmitterACDeath.crpl" "OccupiedBomp" GetScriptVar not and 
@@ -549,7 +549,7 @@ endif
 					return
 				endif
 			endif
-			<-BombType "Frenzy" eq <-BombType "Weaken" eq or if
+			<-BombType "Frenzy" eq <-BombType "Weaken" eq or if #Frenzy and weaken bombs can only target emitters.
 				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "ACEmitter" eq <-unit "ACEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
 				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "EmitterACDeath" eq <-unit "EmitterACDeath.crpl" "OccupiedBomp" GetScriptVar not and 
 				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "EmitterACDread" eq <-unit "EmitterACDread.crpl" "OccupiedBomp" GetScriptVar not and 
@@ -560,7 +560,7 @@ endif
 					return
 				endif
             endif
-			<-BombType "Defuser" eq if
+			<-BombType "Defuser" eq if #Defusers can only target blue emitters + blockerDockers as fallback.
 				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "EmitterACDeath" eq <-unit "EmitterACDeath.crpl" "OccupiedBomp" GetScriptVar not and 
 				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "EmitterACDread" eq <-unit "EmitterACDread.crpl" "OccupiedBomp" GetScriptVar not and 
 				<-unit "BlockerDocker.crpl" "IsBlockerDocker" GetScriptVar <-unit "BlockerDocker.crpl" "occupied" GetScriptVar not and
@@ -569,14 +569,14 @@ endif
 					return
 				endif
             endif
-			<-BombType "Flip" eq if
+			<-BombType "Flip" eq if #Flip bombs have the same targeting as conversions, but have a special case for targeting towers.
 				<-unit "CreepPortal.crpl" "Name" GetScriptVar "" concat "Portal" eq <-unit "CreepPortal.crpl" "OccupiedBomp" GetScriptVar not and 
 				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "ACEmitter" eq <-unit "ACEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
 				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "EmitterACDeath" eq <-unit "EmitterACDeath.crpl" "OccupiedBomp" GetScriptVar not and 
 				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "EmitterACDread" eq <-unit "EmitterACDread.crpl" "OccupiedBomp" GetScriptVar not and 
 				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "FlipEmitter" eq <-unit "FlipEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
 				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "ArmoredEmitter" eq <-unit "ArmoredEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
-				<-BombSpecial 1 eq if
+				<-BombSpecial 1 eq if #Flip bombs can conditionally target the towers.
 					<-unit "ACmultitower.crpl" "Name" GetScriptVar "" concat "acmulti" eq <-unit "ACmultitower.crpl" "OccupiedBomp" GetScriptVar not and 
 					<-unit "Cmultitower.crpl" "Name" GetScriptVar "" concat "cmulti" eq <-unit "Cmultitower.crpl" "OccupiedBomp" GetScriptVar not and or or
 				endif
@@ -587,7 +587,7 @@ endif
 			endif
         endif
     loop
-:SetTargetUnit
+:SetTargetUnit #Sets the unit as a target.
 1 ->greenShadow
 <-unit ->TargetUnit
 <-TargetUnit CONST_COORDX GetUnitAttribute ->targetX
@@ -667,7 +667,7 @@ endif
 			<-UFrenzyTarget <-EmitterType ".crpl" concat "ACamt" <-UFrenzyTarget <-EmitterType ".crpl" concat "ACamt" GetScriptVar <-UPowerMod div SetScriptVar
 			<-UFrenzyTarget <-EmitterType ".crpl" concat "ACinterval" <-UFrenzyTarget <-EmitterType ".crpl" concat "ACinterval" GetScriptVar <-UIntervalMod div SetScriptVar
 			<-UFrenzyTarget <-EmitterType ".crpl" concat "Cinterval" <-UFrenzyTarget <-EmitterType ".crpl" concat "Cinterval" GetScriptVar <-UIntervalMod div SetScriptVar
-:flip
+:flip #Flips C <-> AC. Takes Radius as the parameter.
 	->RadFlip
 	CurrentX <-RadFlip add 1 add CurrentX <-RadFlip sub do # J = X
 					CurrentY <-RadFlip add 1 add CurrentY <-RadFlip sub do # I = Y

@@ -12,8 +12,10 @@ $Duration:10 # duration of bomp effect in seconds. For fireworks, defines how lo
 $BombType:"Conversion" # valid values are "Conversion", "Freeze", "Singularity", "Defuser","Frenzy", "Omega", "OmegaORA", "Flip", "Weaken", "Stopper", "Firework" Omega and stopper bombs are not affected by any parameters other tham move speed
 $BombSpecial:"" #Freeform field for setting special traits for bombs. For Fireworks, takes 2 comma-separated numbers, the first is how many fireworks per second it launches, the second is how big the firework explosion is. For flip bombs. 0 or empty - Flips once. 1 - flips once but can target towers, 2 and above: does that many flips, but cannot target towers. For conversion bombs : 0, normal, positive amount marks the range of second explosion. For stoppers: 0 does nothing, 1 causes the effect to be permanent.
 $BombLifeTime:0 #If not 0, the bomb will explode after this many seconds once it starts moving.
-$ManufacturingDelay:60 #How long it takes to manufacture the bomp
+$ManufacturingEnergy:0 #if not 0, the bomb also requires an active energy supply to be made. The number is how much energy it requires. IF THIS IS NOT 0 MANUFACTURING DELAY ACTS AS A PACKET REQUEST RATE INSTEAD.
+$ManufacturingDelay:60 #How long it takes to manufacture the bomp. IF ManufacturingEnergy IS NOT 0 MANUFACTURING DELAY ACTS AS A PACKET REQUEST RATE INSTEAD.
 $ManufacturingLimit:0 # 0 for unlimited, otherwise defines after how many bombs the chip blows up
+$Unchippable:0 # 0 removing the chip does not blow up the bomb. 1 - removing the chip blows up the bomb. 
 $NameOverride:"" #Chip name override. If non-empty, this will show in mouseover text. If empty, mouseover text is generated from the effects of the chip.
 $Description:"" #This is appended after the name of the chip in mouseover. Primarily meant to be used for flavor.
 $Movable:1 #immovable chips need to be placed on top of Chip factories in map editor. Prevents the chip from being moved entirely, thus locking the factory production.
@@ -29,7 +31,7 @@ once
     HideTraceLog
     0 ->Liberated
 	CreateList ->ChipToFactoryParameters #This is later used to pass on the parameters of the chip to the factory. Does not pass parameters relevant to only the chip.
-	"BombLifeTime" "ManufacturingDelay" "BombSpecial" "BombType" "Duration" "SecondConversion" "Power" "Radius" "MovementSpeed" <-ChipToFactoryParameters AppendStackToList 
+	"Unchippable" "ManufacturingEnergy" "BombLifeTime" "ManufacturingDelay" "BombSpecial" "BombType" "Duration" "SecondConversion" "Power" "Radius" "MovementSpeed" <-ChipToFactoryParameters AppendStackToList 
 	0 ->Manufactured
 	@awake
 	##Initialize state variables##
@@ -40,7 +42,7 @@ once
 	0 ->selected
 	0 ->greenShadow
 	0.0 ->selectorRotation
-
+	1 Delay
 	@GeneratePopupText
 	@FindAndActivateAlchemiter #For immovable chips
 endonce
@@ -132,7 +134,7 @@ GetTimer3 eq0 <-Liberated 1 eq <-Decontaminated 0 eq and and if #If decon succes
 	Self CONST_TAKEMAPSPACE 0 SetUnitAttribute
 endif
 
-<-Manufactured <-ManufacturingLimit gte <-ManufacturingLimit neq0 and if
+<-Manufactured <-ManufacturingLimit gte <-ManufacturingLimit neq0 and if #if out of manufacturing uses, blows itself up.
 Self 3 destroy
 endif
 
@@ -417,6 +419,10 @@ endif
 	 else
 		" more bomb" concat concat concat ->PopupText
 	 endif
+endif
+<-ManufacturingEnergy neq0 if
+	<-PopupText "
+	 This chip requires " <-ManufacturingEnergy " energy to produce a bomb" concat concat concat ->PopupText
 endif
 <-PopupText SetPopupText
 

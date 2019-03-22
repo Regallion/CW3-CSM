@@ -41,26 +41,24 @@ endonce
 
 
 
-GetGameTimeFrames <-StartDelay gt if
-	<-Changed if
-		<-Lives 0 gt if
+GetGameTimeFrames <-StartDelay gt if #if the delay it sover, it acts.
+	<-Changed if #first, we need to empower all surrounding  emitters. From then on, this only occurs if the empowerment state changes.
+		<-Lives 0 gt if #if we have lives, activate empowerment
 			CurrentCoords <-EmpowerRange GetEnemyUnitsInRange
 			0 do
 				->Unit
+				<-Unit "EmitterInterface.crpl" "EmitterType" GetScriptVar ->EmitterType
 				<-Unit GetUnitType "CRPLCORE" eq <-Unit Self neq and if
-					<-Unit "FlipEmitter.crpl" "Empowerment" <-Unit "FlipEmitter.crpl" "Empowerment" GetScriptVar <-EmpowerPow add SetScriptVar
-					<-Unit "EmitterACDeath.crpl" "Empowerment" <-Unit "EmitterACDeath.crpl" "Empowerment" GetScriptVar <-EmpowerPow add SetScriptVar
-					<-Unit "ArmoredEmitter.crpl" "Empowerment" <-Unit "ArmoredEmitter.crpl" "Empowerment" GetScriptVar  <-EmpowerPow add SetScriptVar
+					<-Unit <-EmitterType ".crpl" concat "Empowerment" <-Unit <-EmitterType ".crpl" concat "Empowerment" GetScriptVar  <-EmpowerPow add SetScriptVar
 				endif
 			loop
-		else
+		else #otherwise, deactivate it.
 			CurrentCoords <-EmpowerRange GetEnemyUnitsInRange
 			0 do
 				->Unit
+				<-Unit "EmitterInterface.crpl" "EmitterType" GetScriptVar ->EmitterType
 				<-Unit GetUnitType "CRPLCORE" eq <-Unit Self neq and if
-					<-Unit "FlipEmitter.crpl" "Empowerment" <-Unit "FlipEmitter.crpl" "Empowerment" GetScriptVar <-EmpowerPow sub SetScriptVar
-					<-Unit "EmitterACDeath.crpl" "Empowerment" <-Unit "EmitterACDeath.crpl" "Empowerment" GetScriptVar <-EmpowerPow sub SetScriptVar
-					<-Unit "ArmoredEmitter.crpl" "Empowerment" <-Unit "ArmoredEmitter.crpl" "Empowerment" GetScriptVar  <-EmpowerPow sub SetScriptVar
+					<-Unit <-EmitterType ".crpl" concat "Empowerment" <-Unit <-EmitterType ".crpl" concat "Empowerment" GetScriptVar  <-EmpowerPow sub SetScriptVar
 				endif
 			loop
 		endif
@@ -70,8 +68,8 @@ GetGameTimeFrames <-StartDelay gt if
 	GetTimer0 eq0 GetTimer1 eq0 and if "" SetText endif
 
 	#Now we act based on the current state of the emitter.
-	<-state if
-		<-Lives 0 gt if
+	<-state if #if active
+		<-Lives 0 gt if #and we have lives: checks if it's submerged in AC. Damages itself every Cinterval by Cinvterval points. If reduced to 0, loses a life and emits creep. Also acts as a normal flip emitter
 			CurrentCoords GetCreeper 0 lt if
 				Self CONST_HEALTH Self CONST_HEALTH GetUnitAttribute <-Cinterval sub 0 max SetUnitAttribute
 				Self CONST_HEALTH GetUnitAttribute eq0 if
@@ -95,13 +93,13 @@ GetGameTimeFrames <-StartDelay gt if
 						loop
 					loop
 				endif
-			else
+			else #if not covered in AC, regens
 				Self CONST_HEALTH Self CONST_HEALTH GetUnitAttribute <-Cinterval add Self CONST_MAXHEALTH GetUnitAttribute min SetUnitAttribute
 			endif
 			Self "main" 0.8 0.3 <-Lives mul add dup SetImageScale
 			Self "main" 150 25 <-Lives mul add 255 min 150 150 255 SetImageColor
 			@Cprod
-		else
+		else #acts like a normal flip emitter.
 			#If we're producting creeper, we first check if we've been flooded with sufficient AC to trigger the flip.
 			CurrentCoords GetCreeper <-Thresh neg lt if
 				#Flavor text with a timer to remove it after 5 seconds
@@ -124,7 +122,7 @@ GetGameTimeFrames <-StartDelay gt if
 			50 220 50 255 SetTextColor 20 SetTextY 1.1 SetTextSize
 			150 SetTimer0
 			Self "main" 150 150 150 255 SetImageColor
-			<-Reincarnation if
+			<-Reincarnation if #if flips back AND reinc exists, starts acting like an armored emitter again.
 				<-Reincarnation ->Lives
 				Self "range" <-ImageCircle SetImage
 				Self "range" <-EmpowerRange 2 mul 0.9 add 3.0 div dup SetImageScale

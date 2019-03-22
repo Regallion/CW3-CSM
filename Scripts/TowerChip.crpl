@@ -2,14 +2,14 @@
 #Specialized unit that can be slotted onto FreeTowers to provide effects.
 # ------------------------------------------
 
-#other scripts required to accomodate this script: FreeTower, AdvancedBomp
+#other scripts required to accomodate this script: FreeTower
 
 $ChipMovementSpeed:1.0 #How fast the CHIP will move
-$Radius:10.0 # defines the radius of the effect of the chip. Negator chips use it for destruction radius, fireworks determine how big the spread is.
-$Power:5.0 # Defines the effect of certain chips. For Energy chips it produces that many reactors(floored), for negator chips defines how many levels of creeper it can remove at once. same for fireworks.
-$Duration:90 # duration of chip effect in frames. For Negator chips, defines the interval between destroying pulses .For fireworks defines how often fireworks are fired.
-$ChipType:"Generator" # valid types: "Generator", "Negator","Firework"
-$ChipSpecial:"" #Freeform field for setting special traits for chips. For negator chips, 0 affects only creeper, 1 affects AC  2 affects AC and C. For fireworks, determines the explosion radius of a firework.
+$Radius:10.0 # defines the radius of the effect of the chip. Negator chips use it for destruction radius, fireworks determine how big the spread is, VacuumBombs use it for explosion range and vacuum range
+$Power:5.0 # Defines the effect of certain chips. For Energy chips it produces that many reactors(floored), for negator chips defines how many levels of creeper it can remove at once. same for fireworks. For VacuumBombs defines the suction effect
+$Duration:90 # duration of chip effect in frames. For Negator chips, defines the interval between destroying pulses .For fireworks defines how often fireworks are fired. For VaccumBombs it's a delay before exploding.
+$ChipType:"Generator" # valid types: "Generator", "Negator","Firework" "Connector" "VoidBomb". Connector bombs do not take any effect-related parameters.
+$ChipSpecial:"" #Freeform field for setting special traits for chips. For negator chips, 0 affects only creeper, 1 affects AC  2 affects AC and C. For fireworks, determines the explosion radius of a firework. For VaccumBomb 0 does nothing, 1 causes it to destroy terrain in range.
 $TimeLimit:0 # 0 for unlimited, otherwise defines after how many frames of being active the chip self-destructs.
 $NameOverride:"" #Chip name override. If non-empty, this will show in mouseover text. If empty, mouseover text is generated from the effects of the chip.
 $Description:"" #This is appended after the name of the chip in mouseover. Primarily meant to be used for flavor.
@@ -177,7 +177,7 @@ endif
 		Self "selector" 10 10 255 225 SetImageColor
 	endif
 	#I don't really think this is necessary, but it's just to give the image a designated location after it stops following the mouse.
-	self "shadow" 0 0 -1.9 SetImagePosition
+	self "shadow" 0 0 -5.9 SetImagePosition
 else
 	#If the unit is selected first we display the selector image.
 	Self "selector" 255 255 255 255 SetImageColor
@@ -191,7 +191,7 @@ else
 		CurrentPixelCoords ->uy ->ux
 		<-my <-uy sub ->idy
 		<-mx <-ux sub ->idx
-		Self "shadow" <-idx <-idy -1.9 SetImagePosition
+		Self "shadow" <-idx <-idy -5.9 SetImagePosition
 		Self "shadow" 255 0 0 240 SetImageColor
 	endif
 	#Finally, check to see if the user presses "Space" or "Escape" and deselect the unit if they do.
@@ -214,16 +214,18 @@ endif
     0 ->Generator #setting up types to decide on an image
 	1 ->Negator
 	2 ->Firework
+	3 ->Connector
+	4 ->VoidBomb
 	Self "main" <-StartingImagePref <-StartingImage <-ChipType <-! add <-StartingImagePost concat concat SetImage #Figures out which image to use based on bomb type.
-    Self "main" -2 SetImagePositionZ
+    Self "main" -6 SetImagePositionZ
     Self "shadow" "Custom33" SetImage
-    Self "shadow" -1.9 SetImagePositionZ
+    Self "shadow" -5.9 SetImagePositionZ
     Self "shadow" 255 255 255 0 SetImageColor
     Self "selector" "Custom20" SetImage
-    Self "selector" -3 SetImagePositionZ
+    Self "selector" -7 SetImagePositionZ
     Self "selector" 255 255 255 0 SetImageColor
 	Self "main" 0.5 dup SetImageScale
-	Self "shadow" 0.15 dup SetImageScale
+	Self "shadow" 0.3 dup SetImageScale
 	Self "selector" 0.3 0.3 SetImageScale
 
 :FindAndActivateTower
@@ -288,7 +290,7 @@ endif
                 CurrentPixelCoords ->cmfp_y ->cmfp_x
                 <-cmfp_uy <-cmfp_y sub ->cmfp_idy
                 <-cmfp_ux <-cmfp_x sub ->cmfp_idx
-                Self "shadow" <-cmfp_idx <-cmfp_idy -1.9 SetImagePosition
+                Self "shadow" <-cmfp_idx <-cmfp_idy -5.9 SetImagePosition
 				return
 		   endif
            <-unit "BlockerDocker.crpl" "IsBlockerDocker" GetScriptVar <-unit "BlockerDocker.crpl" "occupied" GetScriptVar not and if
@@ -301,7 +303,7 @@ endif
                 CurrentPixelCoords ->cmfp_y ->cmfp_x
                 <-cmfp_uy <-cmfp_y sub ->cmfp_idy
                 <-cmfp_ux <-cmfp_x sub ->cmfp_idx
-                Self "shadow" <-cmfp_idx <-cmfp_idy -1.9 SetImagePosition
+                Self "shadow" <-cmfp_idx <-cmfp_idy -5.9 SetImagePosition
 				return
             endif
         endif
@@ -330,6 +332,12 @@ endif
 endif
 <-ChipType "Firework" eq if
 	"Festive R" <-Radius "D" <-Duration "P" <-Power "S" <-BombSpecial concat concat concat concat concat concat concat ->PopupText
+endif
+<-ChipType "Connector" eq if
+	"Connector" ->PopupText
+endif
+<-ChipType "VoidBomb" eq if
+	"DO NOT USE" ->PopupText
 endif
 <-NameOverride "" eq not if
 	<-NameOverride ->PopupText
@@ -373,7 +381,7 @@ loop
 <-cs_size ->Size
 <-cs_size 1 eq if
 	Self "main" 0.5 dup SetImageScale
-	Self "shadow" 0.15 dup SetImageScale
+	Self "shadow" 0.3 dup SetImageScale
 	Self "selector" 0.3 0.3 SetImageScale
 else
 	<-cs_size 2 eq if
@@ -398,7 +406,7 @@ endif
 :ChangeShadowSize #(int newSize) -> ()
 ->css_size
 <-css_size 1 eq if
-	Self "shadow" 0.15 0.15 SetImageScale
+	Self "shadow" 0.33 0.3 SetImageScale
 else
 	<-css_size 2 eq if
 		Self "shadow" 0.3 0.3 SetImageScale

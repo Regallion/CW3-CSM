@@ -14,7 +14,7 @@ $Size:2
 $Movable:0
 #JoinerID cannot be less than 1, and sequential. Putting 50 in here MIGHT break your everything, so don't
 $JoinerID:1
-$MovementSpeed:3
+$MovementSpeed:3.0
 $InitCooldownSeconds:0
 $UseCooldownSeconds:0
 $HighlighterSize:2.0

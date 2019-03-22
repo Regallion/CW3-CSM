@@ -4,13 +4,13 @@ $DefaultPower:1
 $Name:"acmultiglobal"
 
 
-once
+once #setup: creates lists and sets a default.
 <-DefaultPower ->TotalPower 
 CreateList ->Powers
 CreateList ->NegaPowers
 @awake
 endonce
-<-Changed if
+<-Changed if #If this recieved a signal that an AC tower changed, it will execute this block
 	#First reset the Power total to our default
 	<-DefaultPower ->TotalPower
 	#Go over our power list and add up TotalPower
@@ -18,8 +18,8 @@ endonce
 		<-TotalPower <-Powers I GetListElement add ->TotalPower
 	loop
 	
-	<-TotalPower 1 max ->TotalPower
-	"HasEmitterInterface" 1 GetCoresWithVar
+	<-TotalPower 1 max ->TotalPower #Make sure it is never a reduction
+	"HasEmitterInterface" 1 GetCoresWithVar #alters every emitter which utilizes a TotalPower variable: that's all emitters that can emit AC.
 	0 do
 		->Target
 		<-Target "EmitterInterface.crpl" "EmitterType" GetScriptVar ->EmitterType
@@ -29,14 +29,14 @@ endonce
 	
 	0 ->Changed
 	endif
-<-CChanged if
+<-CChanged if #Same as changed but for C towers.
 	#First reset the Power total to our default
 	0 ->TotalNegaPower
 	#Go over our power list and add up TotalPower
 	<-NegaPowers GetListCount 0 do
 		<-TotalNegaPower <-NegaPowers I GetListElement add ->TotalNegaPower
 	loop
-	"HasEmitterInterface" 1 GetCoresWithVar
+	"HasEmitterInterface" 1 GetCoresWithVar #Affects all emitters using NegaPower. That's all emitterts that can emit C.
 	0 do
 		->Target
 		<-Target "EmitterInterface.crpl" "EmitterType" GetScriptVar ->EmitterType

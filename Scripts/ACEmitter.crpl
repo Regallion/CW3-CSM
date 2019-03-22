@@ -2,10 +2,10 @@
 $Name:"ACEmitter"
 #ImageSlot can be changed if you want to use a different slot.
 $ImageSlot:"Custom1"
-$ACamt:-30
-$ACinterval:15
-$StartDelay:0
-$Unstopped:1
+$ACamt:-10 #Amount of AC emitted baseline
+$ACinterval:15 #Frames between emissions
+$StartDelay:0 #Delays that many frames before startingg production.
+$Unstopped:1 #Do not alter. If set to 0 prevents emitter from working.
 
 once 
 	@awake
@@ -21,7 +21,7 @@ GetGameTimeFrames <-StartDelay gt if
 	 
 	#If we've flagged a multi tower, we have to check on every invocation to update our ACamt in case the global multi has changed since our last check. Otherwise the total ACamt remains at the value we set back in the initial check.
 	<-multi if
-		<-TotalPower <-ACamt mul <-Unstopped mul ->tAmount
+		<-TotalPower <-ACamt mul <-Unstopped mul ->tAmount 
 	endif
 	<-tAmount neq0 if
 		CurrentCoords <-tAmount SetCreeperNoLower

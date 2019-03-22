@@ -1,4 +1,4 @@
-#BridgeCore: manipulates terrain
+#BridgeCore: manipulates terrain. Specific shape can be etched into it beforehand.
 #Credit to GoodMorning for original PF scripts.
 
 $SizeX:3
@@ -10,7 +10,7 @@ $Mode:"Frill" #Possible values: "Kill" "Freeze" , "Frill". Frill is a combinatio
 $Reset:0 #if 1, wipes all memories
 once
 
-	"Name" "walldigger" GetCoresWithVar if
+	"Name" "walldigger" GetCoresWithVar if #Gathers walldigger variables to ensure coherent terrain.
 		->Walldigger
 		ClearStack
 	endif
@@ -21,9 +21,9 @@ once
     @awake
 	<-StartState ->State 
 	<-BridgeID SetText
-	Self CONST_CELLHEIGHT <-SizeY 1.7 mul floor SetUnitAttribute
+	Self CONST_CELLHEIGHT <-SizeY 1.7 mul floor SetUnitAttribute #unlike normal bridges does not have to be a square.
 	Self CONST_CELLWIDTH <-SizeX 1.7 mul floor SetUnitAttribute
-	<-Reset if
+	<-Reset if #If reset bit is flipped, resets all terrain overrides. this wips the bridge's "memory".
 		CurrentX <-SizeX add CurrentX <-SizeX sub 1 add do # J = X
 			CurrentY <-SizeY add CurrentY <-SizeY sub 1 add do # I = Y
 				J I dup2 GetTerrain <-terrmod mul -1 max SetTerrainOverride
@@ -31,7 +31,7 @@ once
 		loop
 	endif
 endonce
-<-Activated 1 eq <-State 1 eq and if
+<-Activated 1 eq <-State 1 eq and if #if activated, and state is active, sets coherent terrain and ensures that there are no pins. Only sets terrain on cells with an override of 1999 or 499. This is explained later.
 	Self "main" "Custom11_128" SetImage
 	CurrentX <-SizeX add CurrentX <-SizeX sub 1 add do # J = X
 		CurrentY <-SizeY add CurrentY <-SizeY sub 1 add do # I = Y
@@ -51,7 +51,7 @@ endonce
 	0 ->Activated
 endif
 
-<-Activated 1 eq <-State 0 eq and if
+<-Activated 1 eq <-State 0 eq and if #if activated and state is inactive, destroys all terrain under it. For any actually destroyed bit, sets the override to 1999/499 to mark where it was, for later re-activation. This persists on recompile this allowing saving of shape.
 	Self "main" "Custom10_128" SetImage
 	CurrentX <-SizeX add CurrentX <-SizeX sub 1 add do # J = X
 		CurrentY <-SizeY add CurrentY <-SizeY sub 1 add do # I = Y
@@ -65,7 +65,7 @@ endif
 					J I GetTerrainOverride 499 1500 <-voidmod mul add neq if
 						J I -1 2001 <-voidmod mul add SetTerrainOverride
 					else
-						<-Mode "Frill" eq if
+						<-Mode "Frill" eq if #If mode is "frill" sets creeper on all actual terrain to make the shape visible.
 							J I 1 SetCreeper
 						endif
 					endif
@@ -87,7 +87,7 @@ endif
 
 
 
-<-ArtificialChecks <-Random gt <-Done eq0 and if
+<-ArtificialChecks <-Random gt <-Done eq0 and if #seeks network once
 	@SeekNetwork
 	1 ->Done
 endif
@@ -96,7 +96,7 @@ endif
 Self "ControlInterface.crpl" "Mouseover" GetScriptVar ->Mouseover
 
 
-@NetworkMouseover -1 neq if
+@NetworkMouseover -1 neq if #displays network on mouseover.
 	Self "highlight" "Custom0pp" SetImage
 	Self "highlight" <-SizeX 1.7 div <-SizeY 1.7 div SetImageScale
 	Self "highlight" 255 255 255 127 SetImageColor
@@ -145,9 +145,13 @@ Self "ControlInterface.crpl" "IsController" 0 SetScriptVar
 		->UID
 		
 		<-UID "ControlInterface.crpl" "IsController" GetScriptVar 1 eq if
-			<-Controllers <-UID AppendToList
+			<-UID "BridgeController.crpl" "Image" GetScriptVar StringLength neq0 if
+				<-Controllers <-UID AppendToList
+			endif
 		else
-			<-Minions <-UID AppendToList
+			<-UID "BridgeCore.crpl" "Mode" GetScriptVar StringLength neq0 <-UID "MemoryBridgeCore.crpl" "Mode" GetScriptVar StringLength neq0 or if
+				<-Minions <-UID AppendToList
+			endif
 		endif
 	loop
 

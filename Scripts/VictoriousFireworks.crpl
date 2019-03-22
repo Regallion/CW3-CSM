@@ -6,19 +6,19 @@ once
     @awake
 	
 endonce
-<-VictoryUnit CONST_ISDESTROYED GetUnitAttribute 1 eq <-VictoryUnit CONST_COUNTSFORVICTORY GetUnitAttribute 0 eq or <-Enabled neq0 and if
-	0 ->VictoryUnit
+<-VictoryUnit CONST_ISDESTROYED GetUnitAttribute 1 eq <-VictoryUnit CONST_COUNTSFORVICTORY GetUnitAttribute 0 eq or <-Enabled neq0 and if #Is current unit required for victory?
+	0 ->VictoryUnit #If not, seeks a suitable unit.
 	CurrentCoords 500 1  GetAllUnitsInRange
 	0 do
 		->ProcessedUnit
 		<-ProcessedUnit CONST_COUNTSFORVICTORY GetUnitAttribute 1 eq if
-			<-ProcessedUnit ->VictoryUnit
+			<-ProcessedUnit ->VictoryUnit #if a unit is found, save it.
 			ClearStack
 			break
 		endif
 	loop
 endif
-<-VictoryUnit eq0 <-Enabled neq0 and <-Force or if
+<-VictoryUnit eq0 <-Enabled neq0 and <-Force or if #If we have NO required units and this is enabled OR if it's forced,  we assume we won and just start launching harmless fireworks.
 	3 0 do
 		0 MapWidth RandInt ->X
 		0 MapHeight RandInt ->Y

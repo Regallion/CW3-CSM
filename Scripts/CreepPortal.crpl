@@ -1,8 +1,9 @@
-$colorID:0
-$Name:"Portal"
-$Size:2
-$StartDelay:0
-$Conduction:0
+#Stargate script
+$colorID:0 #States color, 5 for black.
+$Name:"Portal" #For identification
+$Size:2 #Size in cells. Always square.
+$StartDelay:0 
+$Conduction:0 #Defines whether it conducts both AC and C, or just AC. 1 for just C conduction, 0 for both, -1 for AC conduction.
 $Thresh:1
 
 $ImageLine:"Custom3pp"
@@ -57,7 +58,7 @@ once
 	1 ->conductable
 	<-Conduction <-Thresh mul ->Thresh
 	0 ->parentCore
-    0 ->occupied
+    0 ->Occupied
     
     <-isDark if
         0 ->darkRotation
@@ -65,7 +66,7 @@ once
 endonce
 
 IsPaused not if
-    <-active if
+    <-active if #only conducts if submerged in correct kind of C/AC. 
         <-Conduction neq0 if
             <-conductable if
                 <-Conduction 1 eq if
@@ -113,7 +114,7 @@ IsPaused not if
         30 ->Timer3
     endif
 
-    <-isDark <-Timer0 0 lte and if
+    <-isDark <-Timer0 0 lte and if #if it's color 5 does a thing.
         Self "dots" <-darkRotation -0.78539816339 mul SetImageRotation
         <-darkRotation 1 add ->darkRotation
         30 ->Timer0
@@ -238,7 +239,7 @@ Self CONST_CREATEPZ 0 SetUnitAttribute
 
 1 OperateWhilePaused
 
-<-colorID -1 eq <-joined 1 eq or if
+<-colorID -1 eq <-joined 1 eq or if #Ensures that the correct color and image are set for joined stargates.
 	Self "main" "Custom" <-trueColor 2 add concat SetImage
 else
 	Self "main" "Custom" <-colorID 2 add concat SetImage

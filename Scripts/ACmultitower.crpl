@@ -6,13 +6,13 @@ $Power:1.0
 #The Thresh value determines how much AC much flood the unit for it to become "active".
 $Thresh:-4.0
 
-once
+once #Establishes the tower.
 HideTraceLog
 ClearTraceLog
 @awake
 5 delay
 0 ->Active
-<-Power 0 gte if
+<-Power 0 gte if #Decides whether we are red or green and also whether we are active or not.
 		CurrentCoords GetCreeper <-Thresh lt if
 				Self "main" 50 255 50 255 SetImageColor
 				1 ->Active
@@ -39,12 +39,12 @@ ClearTraceLog
 
 		" concat SetPopupText
 	endif
-"Name" "acmultiglobal" GetCoresWithVar
+"Name" "acmultiglobal" GetCoresWithVar #Finds the main global script.
 	0 do
 		->MultTower
 		break
 	loop
-<-MultTower "ACmultiglobal.crpl" "Powers" GetScriptVar ->Powers
+<-MultTower "ACmultiglobal.crpl" "Powers" GetScriptVar ->Powers #Until end of once: gets the Powers list from the main script, inserts itself into it then passes it back. Marks the a change occured.
 <-Powers GetListCount ->Place
 <-Active if
 	<-Powers <-Place <-Power SetListElement
@@ -55,7 +55,7 @@ endif
 <-MultTower "ACmultiglobal.crpl" "Changed" 1 SetScriptVar
 endonce
 GetTimer0 eq0 if #this now only occurs every 10 or so frames to reduce lag
-	<-Power 0 gte if
+	<-Power 0 gte if #Decides whether we are red or green and also whether we are active or not. If our state changed we mention that.
 		CurrentCoords GetCreeper <-Thresh lt if
 			<-Active not if
 				Self "main" 50 255 50 255 SetImageColor
@@ -96,7 +96,7 @@ GetTimer0 eq0 if #this now only occurs every 10 or so frames to reduce lag
 	endif
 	5 11 RandInt SetTimer0
 endif
-<-Change if
+<-Change if #If we changed, communicate the change to main script. Notice that we alter the saved spot in the list of towers.
 	<-MultTower "ACmultiglobal.crpl" "Powers" GetScriptVar ->Powers
 	<-Active if
 		<-Powers <-Place <-Power SetListElement
