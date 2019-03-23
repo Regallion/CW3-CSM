@@ -70,7 +70,7 @@ GetGameTimeFrames <-StartDelay gt if #if the delay it sover, it acts.
 	#Now we act based on the current state of the emitter.
 	<-state if #if active
 		<-Lives 0 gt if #and we have lives: checks if it's submerged in AC. Damages itself every Cinterval by Cinvterval points. If reduced to 0, loses a life and emits creep. Also acts as a normal flip emitter
-			CurrentCoords GetCreeper 0 lt if
+			CurrentCoords GetCreeper <-Thresh neg lt if
 				Self CONST_HEALTH Self CONST_HEALTH GetUnitAttribute <-Cinterval sub 0 max SetUnitAttribute
 				Self CONST_HEALTH GetUnitAttribute eq0 if
 					<-Lives 1 sub ->Lives

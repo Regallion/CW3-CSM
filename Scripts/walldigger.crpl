@@ -56,6 +56,9 @@ else
 				endif
 			endif
 		loop
+		I 80 mod eq0 if
+			1 delay
+		endif
 	loop
 	#Now that we've processed the terrain refresh, reset the state of the variable so it doesn't execute again until the mapmaker re-enables it.
 	0 ->RefreshTerrain
