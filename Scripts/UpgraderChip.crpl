@@ -1,0 +1,99 @@
+#Upgrader chip. Will not set any values negative or nonsencial.
+$Name:"UpgraderChip"
+$BaseValueMod:-20 #Increases BaseValue by that much when triggered. Can be negative.
+$AddValueMod:-1 #IncreasesAddValue by that much when triggered. Can be negative.
+$EnergyToFuel:20 #how much energy needs to be delievered for this to make an orbital drop.
+$EmissionEffectMod:5 #Increases EmissionEffect by that much
+$UpgradeLimitMod:1 #Increases UpgradeLimit by that much. Can be negative, but reducing UpgradeLimit to 0 will uncap upgrades, be aware.
+$RequestRateMod:-1 #Increases RequestRate by that much. Can and should be negative.
+
+once
+@awake
+	Self CONST_AMMO 0 SetUnitAttribute
+	"Supply with energy to deploy this upgrader upgrade chip." ->PopupText
+	<-BaseValueMod neq0 if
+		<-PopupText "
+		Alters base cost of upgrades by " <-BaseValueMod concat concat ->PopupText
+	endif
+	<-AddValueMod neq0 if
+		<-PopupText "
+		Alters additional cost per upgrade by " <-AddValueMod concat concat ->PopupText
+	endif
+	<-EmissionEffectMod neq0 if
+		<-PopupText "
+		Alters effect on AC emission by " <-EmissionEffectMod concat concat ->PopupText
+	endif
+	<-RequestRateMod neq0 if
+		<-PopupText "
+		Alters packet request rate by " <-RequestRateMod concat concat ->PopupText
+	endif
+	<-UpgradeLimitMod neq0 if
+		<-PopupText "
+		Alters upgrade limit by " <-UpgradeLimitMod concat concat ->PopupText
+	endif
+	<-PopupText SetPopupText
+
+endonce
+
+GetTimer1 eq0 if #Timer for removing temporary texts
+	"" SetText
+endif
+<-Liberated not if
+	Self CONST_AMMO GetUnitAttribute Self CONST_MAXAMMO GetUnitAttribute eq if
+		Self "main" 255 255 255 255 SetImageColor
+		
+		"Lifting off" SetText
+		50 220 50 255 SetTextColor 20 SetTextY 1.1 SetTextSize
+		45 SetTimer1
+		60 SetTimer2
+		1 ->Liberated
+	else
+		Self "main" 50 50 50 255 SetImageColor
+		return
+	endif
+endif
+GetTimer2 eq0 if
+	once
+	"Name" "Upgrader" GetCoresWithVar
+	0 do
+		->Unit
+		ClearStack
+		Break
+	loop
+	Self CONST_CONNECTABLE 0 SetUnitAttribute
+    <-Unit CONST_COORDX GetUnitAttribute <-Unit CONST_COORDY GetUnitAttribute DropFromOrbit
+    91 SetTimer3 #wait the three seconds that DropFromOrbit takes
+	endonce
+endif
+GetTimer3 1 eq if
+    11 CurrentCoords 0.01 1 1 1 CreateEffect #make the landing effect that a CN does	
+	@Upgrade
+endif
+
+
+
+:awake
+Self "main" "Custom80" SetImage
+Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute 
+Self CONST_NULLIFIERDAMAGES 0 SetUnitAttribute 
+Self CONST_TAKEMAPSPACE 1 SetUnitAttribute
+Self CONST_SUPPORTSDIGITALIS 0 SetUnitAttribute 
+Self CONST_CREATEPZ 0 SetUnitAttribute
+Self CONST_CELLWIDTH 2 SetUnitAttribute
+Self CONST_CELLHEIGHT 2 SetUnitAttribute
+Self "main" Self CONST_CELLWIDTH GetUnitAttribute 3.0 div Self CONST_CELLHEIGHT GetUnitAttribute 3.0 div SetImageScale
+Self CONST_CANREQUESTAMMO 1 SetUnitAttribute
+Self CONST_PACKETREQUESTDELAY 5 SetUnitAttribute
+Self CONST_MAXAMMO <-EnergyToFuel SetUnitAttribute
+Self CONST_SHOWAMMOBAR 1 SetUnitAttribute
+Self CONST_REQUESTPACKETS 1 SetUnitAttribute
+Self CONST_CONNECTABLE 1 SetUnitAttribute
+
+:Upgrade
+	<-Unit "Upgrader.crpl" "EmissionEffect" <-Unit "Upgrader.crpl" "EmissionEffect" GetScriptVar <-EmissionEffectMod add 1 max SetScriptVar
+	<-Unit "Upgrader.crpl" "RequestRate" <-Unit "Upgrader.crpl" "RequestRate" GetScriptVar <-RequestRateMod add 1 max  SetScriptVar
+	<-Unit "Upgrader.crpl" "BaseValue" <-Unit "Upgrader.crpl" "BaseValue" GetScriptVar <-BaseValueMod add 10 max  SetScriptVar
+	<-Unit "Upgrader.crpl" "AddValue" <-Unit "Upgrader.crpl" "AddValue" GetScriptVar <-AddValueMod add 1 max  SetScriptVar
+	<-Unit "Upgrader.crpl" "UpgradeLimit" <-Unit "Upgrader.crpl" "UpgradeLimit" GetScriptVar <-UpgradeLimitMod add 0 max SetScriptVar
+	<-Unit "Upgrader.crpl" "Changed" 1 SetScriptVar
+	Self 0 Destroy

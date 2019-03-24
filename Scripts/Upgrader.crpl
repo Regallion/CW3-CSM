@@ -11,7 +11,7 @@ once
 @awake
 endonce
 <-Liberated not if
-	"Unlock emitter uprading by flooding this with creeper" SetPopupText
+	"Unlock emitter upgrading by flooding this with creeper" SetPopupText
 	CurrentCoords GetCreeper -4 lte if
 		Self "main" 255 255 255 255 SetImageColor
 		"" SetPopupText
@@ -29,7 +29,7 @@ GetTimer3 neq0 if
 endif
 
 <-Changed if
-	"HasEmitterInterface" 1  GetCoresWithVar
+	
 	"Upgrade any friendly emitter by pressing U while on it.
 	Cost of upgrade is " <-BaseValue " plus " <-AddValue " per upgrade level of an emitter.
 	Every upgrade adds flat " <-EmissionEffect " to AC emissions
@@ -39,6 +39,7 @@ endif
 	You can upgrade up to " <-UpgradeLimit " times" concat concat concat ->PopupText
 	endif
 	<-PopupText SetPopupText
+	"HasEmitterInterface" 1  GetCoresWithVar
 	0 do
 		->Unit
 		<-Unit "EmitterInterface.crpl" "UpgradeEnabled" 1 SetScriptVar
