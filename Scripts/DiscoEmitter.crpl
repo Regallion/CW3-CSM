@@ -31,7 +31,9 @@ GetTimer0 eq0 <-Creepin and if
 endif
 GetTimer1 eq0 <-Acreepin and if
 	<-multi if
-		<-TotalPower <-ACamt mul <-Unstopped mul ->tAmount
+		<-TotalPower <-ACamt mul <-EmissionBonus sub  <-Unstopped mul ->tAmount
+	else
+		<-ACamt <-EmissionBonus sub <-Unstopped mul ->tAmount
 	endif
 	@ACProd
 	Self "main" 0 256 RandInt 0 256 RandInt 0 256 RandInt 125 256 RandInt SetImageColor

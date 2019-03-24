@@ -1,0 +1,64 @@
+#Upgrader building
+$Name:"Upgrader"
+$BaseValue:100 #base upgrade cost
+$AddValue:20 #additional cost per upgrade level
+$VerificationCooldown:20 #how long it takes to come online
+$EmissionEffect:10 #flat increase to emissions per upgrade level
+$UpgradeLimit:5 #0 for unlimited, otherwise this is how much you can upgrade any given emitter.
+$RequestRate:7 #How many frames between packet requests by upgrading emitters
+
+once
+@awake
+endonce
+<-Liberated not if
+	"Unlock emitter uprading by flooding this with creeper" SetPopupText
+	CurrentCoords GetCreeper -4 lte if
+		Self "main" 255 255 255 255 SetImageColor
+		"" SetPopupText
+		<-VerificationCooldown 30 mul SetTimer3
+		1 ->Liberated
+		1 ->Changed
+	else
+		Self "main" 50 50 50 255 SetImageColor
+		return
+	endif
+endif
+GetTimer3 neq0 if
+    "This upgrader will become active in " GetTimer3 30.0 div 0 Round " seconds" concat concat SetPopupText
+    return
+endif
+
+<-Changed if
+	"HasEmitterInterface" 1  GetCoresWithVar
+	"Upgrade any friendly emitter by pressing U while on it.
+	Cost of upgrade is " <-BaseValue " plus " <-AddValue " per upgrade level of an emitter.
+	Every upgrade adds flat " <-EmissionEffect " to AC emissions
+	Upgrades at a speed of " 30 <-RequestRate div floor " packets per second" concat  concat concat concat concat concat concat concat ->PopupText
+	<-UpgradeLimit neq0 if
+	<-PopupText "
+	You can upgrade up to " <-UpgradeLimit " times" concat concat concat ->PopupText
+	endif
+	<-PopupText SetPopupText
+	0 do
+		->Unit
+		<-Unit "EmitterInterface.crpl" "UpgradeEnabled" 1 SetScriptVar
+		<-Unit "EmitterInterface.crpl" "EmissionEffect" <-EmissionEffect SetScriptVar
+		<-Unit "EmitterInterface.crpl" "RequestRate" <-RequestRate SetScriptVar
+		<-Unit "EmitterInterface.crpl" "BaseValue" <-BaseValue SetScriptVar
+		<-Unit "EmitterInterface.crpl" "AddValue" <-AddValue SetScriptVar
+		<-Unit "EmitterInterface.crpl" "UpgradeLimit" <-UpgradeLimit SetScriptVar
+	loop
+	0 ->Changed
+endif
+
+
+:awake
+Self "main" "Custom19_128" SetImage
+Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute 
+Self CONST_NULLIFIERDAMAGES 0 SetUnitAttribute 
+Self CONST_TAKEMAPSPACE 1 SetUnitAttribute
+Self CONST_SUPPORTSDIGITALIS 0 SetUnitAttribute 
+Self CONST_CREATEPZ 0 SetUnitAttribute
+Self CONST_CELLWIDTH 4 SetUnitAttribute
+Self CONST_CELLHEIGHT 4 SetUnitAttribute
+ Self "main" Self CONST_CELLWIDTH GetUnitAttribute 3.0 div Self CONST_CELLHEIGHT GetUnitAttribute 3.0 div SetImageScale

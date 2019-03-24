@@ -16,12 +16,12 @@ endonce
 GetGameTimeFrames <-StartDelay gt if
 	#Since the AC multi tower check only happens once, you will have to recompile if you add the AC multi global tower in after adding the AC emitter in. If you plan to include the AC multi tower functionality in a map it's recommended to add the global multi tower before adding any AC emitters to sidestep this pitfall.
 	once
-		<-ACamt ->tAmount
+		<-ACamt <-EmissionBonus sub  <-Unstopped mul ->tAmount
 	endonce
 	 
 	#If we've flagged a multi tower, we have to check on every invocation to update our ACamt in case the global multi has changed since our last check. Otherwise the total ACamt remains at the value we set back in the initial check.
 	<-multi if
-		<-TotalPower <-ACamt mul <-Unstopped mul ->tAmount 
+		<-TotalPower <-ACamt mul <-EmissionBonus sub  <-Unstopped mul ->tAmount 
 	endif
 	<-tAmount neq0 if
 		CurrentCoords <-tAmount SetCreeperNoLower

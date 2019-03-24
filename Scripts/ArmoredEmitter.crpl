@@ -194,7 +194,9 @@ endif
 	#Only update the tAmount value if multi has been flagged. Otherwise we stick with the base value.
 
 	<-multi if
-		<-TotalPower <-ACamt mul <-Unstopped mul ->tAmount
+		<-TotalPower <-ACamt mul <-EmissionBonus sub  <-Unstopped mul ->tAmount
+	else
+		<-ACamt <-EmissionBonus sub <-Unstopped mul ->tAmount
 	endif
 	"Producing " <-tAmount <-Unstopped mul abs concat " anti-creeper every " concat <-ACinterval 30.00 div 2 Round 1000 mul concat " milliseconds." concat ->PopupText SetPopupText
 	<-Reincarnation 0 gt if

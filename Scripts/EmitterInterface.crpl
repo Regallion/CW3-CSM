@@ -10,9 +10,79 @@ once
 	@awake
 endonce
 
+<-EmitterType "EmitterACDeath" eq if
+	0 ->UpgradeEnabled
+endif
+<-EmitterType "FlipEmitter" eq <-EmitterType "ArmoredEmitter" eq or if
+	Self <-EmitterType ".crpl" concat "state" GetScriptVar if
+		return
+	endif
+endif
+<-UpgradeEnabled if
+	GetTimer1 eq0 if #Timer for removing temporary texts
+		"" SetText
+	endif
+	Self <-EmitterType ".crpl" concat "EmissionBonus" <-UpgradeLevel <-EmissionEffect mul SetScriptVar
+	"U" GetKeyUp GetMouseCell CurrentCoords Distance 2 lte and if
+		<-UpgradeLevel <-UpgradeLimit lt <-UpgradeLimit eq0 or if
+			<-State 1 add ->State
+			<-State 1 gt if
+				0 ->State
+			endif
+			1 ->Changed
+		else
+			"Upgrade limit reached" SetText
+			220 50 50 255 SetTextColor 20 SetTextY 1.1 SetTextSize
+			90 SetTimer1		
+		endif
+	endif
+	<-State 1 eq <-Changed and if
+			Self CONST_CANREQUESTAMMO 1 SetUnitAttribute
+			Self CONST_PACKETREQUESTDELAY <-RequestRate SetUnitAttribute
+			Self CONST_MAXAMMO <-BaseValue <-AddValue <-UpgradeLevel mul add SetUnitAttribute
+			Self CONST_AMMO 0 SetUnitAttribute
+			Self CONST_SHOWAMMOBAR 1 SetUnitAttribute
+			Self CONST_REQUESTPACKETS 1 SetUnitAttribute
+			Self CONST_CONNECTABLE 1 SetUnitAttribute
+			"Initiating upgrade" SetText
+			50 220 50 255 SetTextColor 20 SetTextY 1.1 SetTextSize
+			90 SetTimer1
+			0 ->Changed
+	endif
+	<-State 0 eq <-Changed and if
+			Self CONST_CANREQUESTAMMO 0 SetUnitAttribute
+			Self CONST_PACKETREQUESTDELAY 0 SetUnitAttribute
+			Self CONST_MAXAMMO 0 SetUnitAttribute
+			Self CONST_AMMO 0 SetUnitAttribute
+			Self CONST_SHOWAMMOBAR 0 SetUnitAttribute
+			Self CONST_REQUESTPACKETS 0 SetUnitAttribute
+			Self CONST_CONNECTABLE 0 SetUnitAttribute
+			0 ->Changed
+			"Upgrade cancelled" SetText
+			220 50 50 255 SetTextColor 20 SetTextY 1.1 SetTextSize
+			90 SetTimer1
+	endif
+	<-State 1 eq Self CONST_AMMO GetUnitAttribute Self CONST_MAXAMMO GetUnitAttribute eq and if
+		<-UpgradeLevel 1 add ->UpgradeLevel
+		"Upgrade complete!" SetText
+		50 220 50 255 SetTextColor 20 SetTextY 1.1 SetTextSize
+		90 SetTimer1
+		0 ->State
+		Self CONST_CANREQUESTAMMO 0 SetUnitAttribute
+		Self CONST_PACKETREQUESTDELAY 0 SetUnitAttribute
+		Self CONST_MAXAMMO 0 SetUnitAttribute
+		Self CONST_AMMO 0 SetUnitAttribute
+		Self CONST_SHOWAMMOBAR 0 SetUnitAttribute
+		Self CONST_REQUESTPACKETS 0 SetUnitAttribute
+		Self CONST_CONNECTABLE 0 SetUnitAttribute
+	endif
+endif
+
 
 :awake
 	0 OperateWhilePaused
-	
+	<-State 1 eq if
+		Self CONST_SHOWAMMOBAR 1 SetUnitAttribute
+	endif
 :destroyed
 	0 OperateWhilePaused
