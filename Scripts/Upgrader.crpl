@@ -31,9 +31,10 @@ endif
 <-Changed if
 	
 	"Upgrade any friendly emitter by pressing U while on it.
+	Press Shift+U on an emitter to enable continuous upgrading.
 	Cost of upgrade is " <-BaseValue " plus " <-AddValue " per upgrade level of an emitter.
 	Every upgrade adds flat " <-EmissionEffect " to AC emissions
-	Upgrades at a speed of " 30 <-RequestRate div floor " packets per second" concat  concat concat concat concat concat concat concat ->PopupText
+	Upgrades at a speed of " 30 <-RequestRate 1 add div floor " packets per second" concat  concat concat concat concat concat concat concat ->PopupText
 	<-UpgradeLimit neq0 if
 	<-PopupText "
 	You can upgrade up to " <-UpgradeLimit " times" concat concat concat ->PopupText

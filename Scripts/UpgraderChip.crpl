@@ -91,7 +91,7 @@ Self CONST_CONNECTABLE 1 SetUnitAttribute
 
 :Upgrade
 	<-Unit "Upgrader.crpl" "EmissionEffect" <-Unit "Upgrader.crpl" "EmissionEffect" GetScriptVar <-EmissionEffectMod add 1 max SetScriptVar
-	<-Unit "Upgrader.crpl" "RequestRate" <-Unit "Upgrader.crpl" "RequestRate" GetScriptVar <-RequestRateMod add 1 max  SetScriptVar
+	<-Unit "Upgrader.crpl" "RequestRate" <-Unit "Upgrader.crpl" "RequestRate" GetScriptVar <-RequestRateMod add 0 max  SetScriptVar
 	<-Unit "Upgrader.crpl" "BaseValue" <-Unit "Upgrader.crpl" "BaseValue" GetScriptVar <-BaseValueMod add 10 max  SetScriptVar
 	<-Unit "Upgrader.crpl" "AddValue" <-Unit "Upgrader.crpl" "AddValue" GetScriptVar <-AddValueMod add 1 max  SetScriptVar
 	<-Unit "Upgrader.crpl" "UpgradeLimit" <-Unit "Upgrader.crpl" "UpgradeLimit" GetScriptVar <-UpgradeLimitMod add 0 max SetScriptVar
