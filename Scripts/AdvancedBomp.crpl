@@ -3,11 +3,11 @@
 $CreatedBy:-1
 #All below parameters are passed to this by ChipFactory. Left here for reference to their effects.
 #$MovementSpeed:1.0 #How fast the BOMP will move
-#$Radius:10 # defines the radius of the effect of the bomb. Does nothing for omega bombs or frenzy/weaken bomps
-#$Power:5.0 # Defines the effect of certain bombs. Frenzy/weaken bombs multiply/divide production by power, Singularity bombs pull harder. Negative effect for Defusers, as it amplifies their death throes effect. Does not affect other bomb types.
-#$Duration:10 # duration of bomp effect in seconds. Does nothing for conversion bomps, or omega bombs. For defusers longer durations are negative, as it essentially delays their effect. For flip bombs defines the interval between extra flips
-#$BombType:"Conversion" # valid values are "Conversion", "Freeze", "Singularity", "Defuser","Frenzy", "Omega", "OmegaORA", "Flip", "Weaken". Omega bombs are not affected by any parameters other tham move speed
-#$BombSpecial:"" #Freeform field for setting special traits for bombs. For flip bombs. 0 or empty - Flips once. 1 - flips once but can target towers, 2 and above: does that many flips, but cannot target towers. For conversion bombs : 0, normal, positive amount marks the range of second explosion.
+#$Radius:10 # defines the radius of the effect of the bomb. For Firework bombs, determines how far the fireworks can spread. Does nothing for omega bombs or frenzy/weaken/Tuneup bomps
+#$Power:5.0 # Defines the effect of certain bombs. Frenzy/weaken bombs multiply/divide production by power, Singularity bombs pull harder. Fireworks deal that much damage to creeper, Tuneup adds that many levels Negative effect for Defusers, as it amplifies their death throes effect. Does not affect other bomb types.
+#$Duration:10 # duration of bomp effect in seconds. For fireworks, defines how long it takes to launch a firework. Does nothing for conversion bomps, or omega bombs. For defusers and Tuneups longer durations are negative, as it essentially delays their effect. For flip bombs defines the interval between extra flips
+#$BombType:"Conversion" # valid values are "Conversion", "Freeze", "Singularity", "Defuser","Frenzy", "Omega", "OmegaORA", "Flip", "Weaken", "Stopper", "Firework", "Tuneup" Omega and stopper bombs are not affected by any parameters other tham move speed
+#$BombSpecial:"" #Freeform field for setting special traits for bombs. For Fireworks, takes 2 comma-separated numbers, the first is how many fireworks per second it launches, the second is how big the firework explosion is. For flip bombs. 0 or empty - Flips once. 1 - flips once but can target towers, 2 and above: does that many flips, but cannot target towers. For conversion bombs : 0, normal, positive amount marks the range of second explosion. For stoppers: 0 does nothing, 1 causes the effect to be permanent.
 #$BombLifeTime:0 #If not 0, the bomb will explode after this many seconds once it starts moving.
 $Image:"Custom40"
 $ImageCircle:"Custom4_256"
@@ -288,15 +288,37 @@ endonce
 			1 ->Active
 		endif
 		GetTimer0 30 <-FpS asfloat div floor mod eq0 if
-			"CRPLCORE" CurrentX CurrentY CreateUnit ->LaunchedFirework
-			<-LaunchedFirework "Firework.crpl" AddScriptToUnit
-			<-LaunchedFirework "Firework.crpl" "Radius" <-ExpRad SetScriptVar
-			<-LaunchedFirework "Firework.crpl" "Power" <-Power SetScriptVar
-			<-LaunchedFirework "Firework.crpl" "TargetX" CurrentX <-Radius neg <-Radius 1 add RandInt add SetScriptVar
-			<-LaunchedFirework "Firework.crpl" "TargetY" CurrentY <-Radius neg <-Radius 1 add RandInt add SetScriptVar
+		@firework
 		endif
 		GetTimer0 30.0 div 0 round SetText
 		GetTimer0 eq0 if
+			<-CreatedBy "ChipFactory.crpl" dup2 "STATE_RESET" GetScriptVar "state" swap SetScriptVar
+			@CancelReservation
+			Self 0 Destroy
+		endif
+	endif
+	<-BombType <-! 10 eq if #Tuneup bomb. Upgrades target emitter. Respects UpgradeLimit
+		<-Active not if
+			<-MovingUnit "EmitterInterface.crpl" "UpgradeLimit" GetScriptVar ->Limit
+			<-MovingUnit "EmitterInterface.crpl" "UpgradeLevel" GetScriptVar ->Current
+			<-Current <-Power add ->Target
+			<-Limit neq0 if
+				<-Target <-Limit min ->Target
+			endif
+			<-MovingUnit "EmitterInterface.crpl" "State" 0 SetScriptVar
+			<-MovingUnit "EmitterInterface.crpl" "BombPresent" 1 SetScriptVar
+			1 ->Active
+		endif
+		<-Unchipped 1 eq if #occurs when chips is removed from factory. Prevents exploits.
+			<-MovingUnit "EmitterInterface.crpl" "BombPresent" 0 SetScriptVar
+			<-CreatedBy "ChipFactory.crpl" dup2 "STATE_RESET" GetScriptVar "state" swap SetScriptVar
+			@CancelReservation
+			Self 0 Destroy
+		endif
+		GetTimer0 30.0 div 0 round SetText
+		GetTimer0 eq0 if
+			<-MovingUnit "EmitterInterface.crpl" "UpgradeLevel" <-Target SetScriptVar
+			<-MovingUnit "EmitterInterface.crpl" "BombPresent" 0 SetScriptVar
 			<-CreatedBy "ChipFactory.crpl" dup2 "STATE_RESET" GetScriptVar "state" swap SetScriptVar
 			@CancelReservation
 			Self 0 Destroy
@@ -416,6 +438,7 @@ endif
 	7 ->Weaken
 	8 ->Stopper
 	9 ->Firework
+	10 ->Tuneup
 	Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute 
     Self CONST_NULLIFIERDAMAGES 0 SetUnitAttribute 
     Self CONST_SUPPORTSDIGITALIS 0 SetUnitAttribute 
@@ -452,6 +475,9 @@ endif
 	endif
 	<-BombType <-! 9 eq if
 	Self "main" 150 255 RandInt 150 255 RandInt 150 255 RandInt 255 SetImageColor
+	endif
+	<-BombType <-! 10 eq if
+	Self "main" 30 30 30 255 SetImageColor
 	endif
     Self "main" -2 SetImagePositionZ
     Self "shadow" "Custom19" SetImage
@@ -522,6 +548,16 @@ endif
 				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "FlipEmitter" eq <-unit "FlipEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
 				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "ArmoredEmitter" eq <-unit "ArmoredEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
 				or or or or or if
+					@SetTargetUnit
+					return
+				endif
+			endif
+			<-BombType "Tuneup" eq if #Tuneup had unique targeting. Only targets upgradeables IF they can be upgraded.
+				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "ACEmitter" eq <-unit "ACEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "FlipEmitter" eq <-unit "FlipEmitter.crpl" "OccupiedBomp" GetScriptVar not <-unit "FlipEmitter.crpl" "state" GetScriptVar not and and 
+				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "ArmoredEmitter" eq <-unit "ArmoredEmitter.crpl" "OccupiedBomp" GetScriptVar not <-unit "ArmoredEmitter.crpl" "state" GetScriptVar not and and
+				or or
+				<-unit "EmitterInterface.crpl" "UpgradeEnabled" GetScriptVar 1 eq and  if
 					@SetTargetUnit
 					return
 				endif
@@ -684,3 +720,10 @@ endif
 			->StopTarget
 			<-StopTarget "EmitterInterface.crpl" "EmitterType" GetScriptVar ->EmitterType
 			<-StopTarget <-EmitterType ".crpl" concat "Unstopped" 1 SetScriptVar
+:firework
+			"CRPLCORE" CurrentX CurrentY CreateUnit ->LaunchedFirework
+			<-LaunchedFirework "Firework.crpl" AddScriptToUnit
+			<-LaunchedFirework "Firework.crpl" "Radius" <-ExpRad SetScriptVar
+			<-LaunchedFirework "Firework.crpl" "Power" <-Power SetScriptVar
+			<-LaunchedFirework "Firework.crpl" "TargetX" CurrentX <-Radius neg <-Radius 1 add RandInt add SetScriptVar
+			<-LaunchedFirework "Firework.crpl" "TargetY" CurrentY <-Radius neg <-Radius 1 add RandInt add SetScriptVar

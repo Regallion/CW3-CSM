@@ -1,9 +1,9 @@
-#Upgrader chip. Will not set any values negative or nonsencial.
+#Upgrader chip. Will not set any values negative or nonsensical.
 $Name:"UpgraderChip"
 $BaseValueMod:-20 #Increases BaseValue by that much when triggered. Can be negative.
-$AddValueMod:-1 #IncreasesAddValue by that much when triggered. Can be negative.
+$AddValueMod:-1 #Increases AddValue by that much when triggered. Can be negative.
 $EnergyToFuel:20 #how much energy needs to be delievered for this to make an orbital drop.
-$EmissionEffectMod:5 #Increases EmissionEffect by that much
+$EmissionEffectMod:5 #Increases EmissionEffect by that much. Can be negative.
 $UpgradeLimitMod:1 #Increases UpgradeLimit by that much. Can be negative, but reducing UpgradeLimit to 0 will uncap upgrades, be aware.
 $RequestRateMod:-1 #Increases RequestRate by that much. Can and should be negative.
 
@@ -42,11 +42,18 @@ endif
 	Self CONST_AMMO GetUnitAttribute Self CONST_MAXAMMO GetUnitAttribute eq if
 		Self "main" 255 255 255 255 SetImageColor
 		
-		"Lifting off" SetText
+		"Preparing for redeployment" SetText
 		50 220 50 255 SetTextColor 20 SetTextY 1.1 SetTextSize
 		45 SetTimer1
 		60 SetTimer2
 		1 ->Liberated
+		Self CONST_CANREQUESTAMMO 0 SetUnitAttribute
+		Self CONST_PACKETREQUESTDELAY 0 SetUnitAttribute
+		Self CONST_MAXAMMO 0 SetUnitAttribute
+		Self CONST_AMMO 0 SetUnitAttribute
+		Self CONST_SHOWAMMOBAR 0 SetUnitAttribute
+		Self CONST_REQUESTPACKETS 0 SetUnitAttribute
+		Self CONST_CONNECTABLE 0 SetUnitAttribute
 	else
 		Self "main" 50 50 50 255 SetImageColor
 		return
@@ -82,13 +89,22 @@ Self CONST_CREATEPZ 0 SetUnitAttribute
 Self CONST_CELLWIDTH 2 SetUnitAttribute
 Self CONST_CELLHEIGHT 2 SetUnitAttribute
 Self "main" Self CONST_CELLWIDTH GetUnitAttribute 3.0 div Self CONST_CELLHEIGHT GetUnitAttribute 3.0 div SetImageScale
-Self CONST_CANREQUESTAMMO 1 SetUnitAttribute
-Self CONST_PACKETREQUESTDELAY 5 SetUnitAttribute
-Self CONST_MAXAMMO <-EnergyToFuel SetUnitAttribute
-Self CONST_SHOWAMMOBAR 1 SetUnitAttribute
-Self CONST_REQUESTPACKETS 1 SetUnitAttribute
-Self CONST_CONNECTABLE 1 SetUnitAttribute
-
+<-Liberated not if
+	Self CONST_CANREQUESTAMMO 1 SetUnitAttribute
+	Self CONST_PACKETREQUESTDELAY 5 SetUnitAttribute
+	Self CONST_MAXAMMO <-EnergyToFuel SetUnitAttribute
+	Self CONST_SHOWAMMOBAR 1 SetUnitAttribute
+	Self CONST_REQUESTPACKETS 1 SetUnitAttribute
+	Self CONST_CONNECTABLE 1 SetUnitAttribute
+else
+	Self CONST_CANREQUESTAMMO 0 SetUnitAttribute
+	Self CONST_PACKETREQUESTDELAY 0 SetUnitAttribute
+	Self CONST_MAXAMMO 0 SetUnitAttribute
+	Self CONST_AMMO 0 SetUnitAttribute
+	Self CONST_SHOWAMMOBAR 0 SetUnitAttribute
+	Self CONST_REQUESTPACKETS 0 SetUnitAttribute
+	Self CONST_CONNECTABLE 0 SetUnitAttribute
+endif
 :Upgrade
 	<-Unit "Upgrader.crpl" "EmissionEffect" <-Unit "Upgrader.crpl" "EmissionEffect" GetScriptVar <-EmissionEffectMod add 1 max SetScriptVar
 	<-Unit "Upgrader.crpl" "RequestRate" <-Unit "Upgrader.crpl" "RequestRate" GetScriptVar <-RequestRateMod add 0 max  SetScriptVar

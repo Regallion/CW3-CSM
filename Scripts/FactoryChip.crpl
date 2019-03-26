@@ -6,10 +6,10 @@
 
 $ChipMovementSpeed:1.0 #How fast the CHIP will move
 $MovementSpeed:1.0 #How fast the BOMP will move
-$Radius:10 # defines the radius of the effect of the bomb. For Firework bombs, determines how far the fireworks can spread. Does nothing for omega bombs or frenzy/weaken bomps
-$Power:5.0 # Defines the effect of certain bombs. Frenzy/weaken bombs multiply/divide production by power, Singularity bombs pull harder. Fireworks deal that much damage to creeper Negative effect for Defusers, as it amplifies their death throes effect. Does not affect other bomb types.
-$Duration:10 # duration of bomp effect in seconds. For fireworks, defines how long it takes to launch a firework. Does nothing for conversion bomps, or omega bombs. For defusers longer durations are negative, as it essentially delays their effect. For flip bombs defines the interval between extra flips
-$BombType:"Conversion" # valid values are "Conversion", "Freeze", "Singularity", "Defuser","Frenzy", "Omega", "OmegaORA", "Flip", "Weaken", "Stopper", "Firework" Omega and stopper bombs are not affected by any parameters other tham move speed
+$Radius:10 # defines the radius of the effect of the bomb. For Firework bombs, determines how far the fireworks can spread. Does nothing for omega bombs or frenzy/weaken/Tuneup bomps
+$Power:5.0 # Defines the effect of certain bombs. Frenzy/weaken bombs multiply/divide production by power, Singularity bombs pull harder. Fireworks deal that much damage to creeper, Tuneup adds that many levels Negative effect for Defusers, as it amplifies their death throes effect. Does not affect other bomb types.
+$Duration:10 # duration of bomp effect in seconds. For fireworks, defines how long it takes to launch a firework. Does nothing for conversion bomps, or omega bombs. For defusers and Tuneups longer durations are negative, as it essentially delays their effect. For flip bombs defines the interval between extra flips
+$BombType:"Conversion" # valid values are "Conversion", "Freeze", "Singularity", "Defuser","Frenzy", "Omega", "OmegaORA", "Flip", "Weaken", "Stopper", "Firework", "Tuneup" Omega and stopper bombs are not affected by any parameters other tham move speed
 $BombSpecial:"" #Freeform field for setting special traits for bombs. For Fireworks, takes 2 comma-separated numbers, the first is how many fireworks per second it launches, the second is how big the firework explosion is. For flip bombs. 0 or empty - Flips once. 1 - flips once but can target towers, 2 and above: does that many flips, but cannot target towers. For conversion bombs : 0, normal, positive amount marks the range of second explosion. For stoppers: 0 does nothing, 1 causes the effect to be permanent.
 $BombLifeTime:0 #If not 0, the bomb will explode after this many seconds once it starts moving.
 $ManufacturingEnergy:0 #if not 0, the bomb also requires an active energy supply to be made. The number is how much energy it requires. IF THIS IS NOT 0 MANUFACTURING DELAY ACTS AS A PACKET REQUEST RATE INSTEAD.
@@ -248,6 +248,7 @@ endif
 	7 ->Weaken
 	8 ->Stopper
 	9 ->Firework
+	10 ->Tuneup
 	Self "main" <-StartingImagePref <-StartingImage <-BombType <-! add <-StartingImagePost concat concat SetImage #Figures out which image to use based on bomb type.
     Self "main" -2 SetImagePositionZ
     Self "shadow" "Custom19" SetImage
@@ -397,6 +398,11 @@ endif
 <-BombType "Firework" eq if
 
 "Festive R" <-Radius "D" <-Duration "P" <-Power "S" <-BombSpecial "M" <-ManufacturingDelay "MV" <-MovementSpeed concat concat concat concat concat concat concat concat concat concat concat ->PopupText
+
+endif
+<-BombType "Tuneup" eq if
+
+"Tune-up D" <-Duration "P" <-Power "M" <-ManufacturingDelay "MV" <-MovementSpeed concat concat concat concat concat concat concat ->PopupText
 
 endif
 <-NameOverride "" eq not if

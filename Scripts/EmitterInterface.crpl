@@ -15,16 +15,77 @@ endonce
 	<-EmitterType "EmitterACDeath" eq if #Blue emitters never emit AC and as such are never actually upgradeable
 		0 ->UpgradeEnabled
 	endif
+	<-BombPresent if
+			"Tune-up in progress" SetText
+			220 220 50 255 SetTextColor 20 SetTextY 0.8 SetTextSize
+			Self CONST_CANREQUESTAMMO 0 SetUnitAttribute
+			Self CONST_PACKETREQUESTDELAY 0 SetUnitAttribute
+			Self CONST_MAXAMMO 0 SetUnitAttribute
+			Self CONST_AMMO 0 SetUnitAttribute
+			Self CONST_SHOWAMMOBAR 0 SetUnitAttribute
+			Self CONST_REQUESTPACKETS 0 SetUnitAttribute
+			Self CONST_CONNECTABLE 0 SetUnitAttribute
+			return
+	endif
 	<-EmitterType "FlipEmitter" eq <-EmitterType "ArmoredEmitter" eq or if #If an emitter is not friendly it does not get to upgrade.
 		Self <-EmitterType ".crpl" concat "state" GetScriptVar if
+			Self CONST_CANREQUESTAMMO 0 SetUnitAttribute
+			Self CONST_PACKETREQUESTDELAY 0 SetUnitAttribute
+			Self CONST_MAXAMMO 0 SetUnitAttribute
+			Self CONST_AMMO 0 SetUnitAttribute
+			Self CONST_SHOWAMMOBAR 0 SetUnitAttribute
+			Self CONST_REQUESTPACKETS 0 SetUnitAttribute
+			Self CONST_CONNECTABLE 0 SetUnitAttribute
+			0 ->State
+			0  SetTimer2
+			0  SetTimer3
+			0  SetTimer0
+			90 SetTimer1
 			return
 		endif
+	endif
+	<-State 2 gte "U" GetKeyDown and GetMouseCell CurrentCoords Distance 2 lte and <-UpgradeLevel <-UpgradeLimit eq and <-UpgradeLimit neq0 and if
+		0 ->State
+		1 ->Changed
+		return
 	endif
 	GetTimer1 eq0 if #Timer for removing temporary texts
 		"" SetText
 	endif
+	GetTimer2 neq0 if #Timer for showing a temporary text
+		<-State 2 gte if
+			"Commencing repeated upgrading" SetText
+			50 220 50 255 SetTextColor 20 SetTextY 1.1 SetTextSize
+		endif
+		<-State 0 eq if
+			"Upgrade cancelled" SetText
+			220 50 50 255 SetTextColor 20 SetTextY 1.1 SetTextSize
+		endif
+		<-State 1 eq if
+			"Initiating upgrade" SetText
+			50 220 50 255 SetTextColor 20 SetTextY 1.1 SetTextSize
+		endif
+	endif
+	GetTimer3 neq0 if #Timer for showing a temporary text -2 
+		<-State 2 gte if
+			"Upgrade complete, re-activating." SetText
+			50 220 50 255 SetTextColor 20 SetTextY 1.1 SetTextSize
+		endif
+		<-State 0 eq if
+			"Upgrade complete!" SetText
+			50 220 50 255 SetTextColor 20 SetTextY 1.1 SetTextSize
+		endif
+
+	endif
+	GetTimer0 neq0 if #Timer for showing a temporary text -3 
+		<-UpgradeLevel <-UpgradeLimit eq <-UpgradeLimit neq0 and if
+			"Upgrade limit reached" SetText
+			220 50 50 255 SetTextColor 20 SetTextY 1.1 SetTextSize
+		endif
+	endif
 	Self <-EmitterType ".crpl" concat "EmissionBonus" <-UpgradeLevel <-EmissionEffect mul SetScriptVar #Sets emission bonus every frame.
-	"U" GetKeyDown "LeftShift" GetKey and GetMouseCell CurrentCoords Distance 2 lte and if #If we do shift+U set up continuous upgrage mode which is states 2 and 3. That is, you can enter that stante from both "off" and "on" states.
+
+	"U" GetKeyDown "LeftShift" GetKey "RightShift" GetKey or and GetMouseCell CurrentCoords Distance 2 lte and if #If we do shift+U set up continuous upgrage mode which is states 2 and 3. That is, you can enter that stante from both "off" and "on" states.
 		<-UpgradeLevel <-UpgradeLimit lt <-UpgradeLimit eq0 or if
 			<-State 2 add ->State
 			<-State 3 gt if
@@ -32,20 +93,19 @@ endonce
 				1 ->Changed
 			endif
 			<-State 3 eq if
-				"Commencing repeated upgrading" SetText
-				50 220 50 255 SetTextColor 20 SetTextY 1.1 SetTextSize
-				90 SetTimer1
+				90 SetTimer2
+				0  SetTimer3
 			endif
 			<-State 2 eq if
 				1 ->Changed
 			endif
 		else
-			"Upgrade limit reached" SetText
-			220 50 50 255 SetTextColor 20 SetTextY 1.1 SetTextSize
-			90 SetTimer1		
+			0  SetTimer2
+			0  SetTimer3
+			90 SetTimer0	
 		endif
 	endif
-	"U" GetKeyDown "LeftShift" GetKey not and GetMouseCell CurrentCoords Distance 2 lte and if #If we do just U, set up an upgrade-once state.
+	"U" GetKeyDown "LeftShift" GetKey "RightShift" GetKey or not and GetMouseCell CurrentCoords Distance 2 lte and if #If we do just U, set up an upgrade-once state.
 		<-UpgradeLevel <-UpgradeLimit lt <-UpgradeLimit eq0 or if
 			<-State 1 add ->State
 			<-State 1 gt if
@@ -53,9 +113,9 @@ endonce
 			endif
 			1 ->Changed
 		else
-			"Upgrade limit reached" SetText
-			220 50 50 255 SetTextColor 20 SetTextY 1.1 SetTextSize
-			90 SetTimer1		
+			0  SetTimer2
+			0  SetTimer3
+			90 SetTimer0		
 		endif
 	endif
 	<-State 1 eq <-Changed and if #if we are upgrading allow for ammo flow.
@@ -66,9 +126,8 @@ endonce
 			Self CONST_SHOWAMMOBAR 1 SetUnitAttribute
 			Self CONST_REQUESTPACKETS 1 SetUnitAttribute
 			Self CONST_CONNECTABLE 1 SetUnitAttribute
-			"Initiating upgrade" SetText
-			50 220 50 255 SetTextColor 20 SetTextY 1.1 SetTextSize
-			90 SetTimer1
+			90 SetTimer2
+			0  SetTimer3
 			0 ->Changed
 	endif
 	<-State 2 gte <-Changed and if #Same but for continuous upgrades
@@ -79,9 +138,8 @@ endonce
 			Self CONST_SHOWAMMOBAR 1 SetUnitAttribute
 			Self CONST_REQUESTPACKETS 1 SetUnitAttribute
 			Self CONST_CONNECTABLE 1 SetUnitAttribute
-			"Commencing repeated upgrading" SetText
-			50 220 50 255 SetTextColor 20 SetTextY 1.1 SetTextSize
-			90 SetTimer1
+			90 SetTimer2
+			0  SetTimer3
 			0 ->Changed
 	endif
 	<-State 0 eq <-Changed and if #if we stopped upgrading, disable ammo flow
@@ -93,15 +151,13 @@ endonce
 			Self CONST_REQUESTPACKETS 0 SetUnitAttribute
 			Self CONST_CONNECTABLE 0 SetUnitAttribute
 			0 ->Changed
-			"Upgrade cancelled" SetText
-			220 50 50 255 SetTextColor 20 SetTextY 1.1 SetTextSize
-			90 SetTimer1
+			90 SetTimer2
+			0  SetTimer3
 	endif
 	<-State 1 eq Self CONST_AMMO GetUnitAttribute Self CONST_MAXAMMO GetUnitAttribute eq and if #if we were doing an upgrade once, and succesfully got all the ammo, upgrade then return to inactive state.
 		<-UpgradeLevel 1 add ->UpgradeLevel
-		"Upgrade complete!" SetText
-		50 220 50 255 SetTextColor 20 SetTextY 1.1 SetTextSize
-		90 SetTimer1
+		0  SetTimer2
+		90 SetTimer3	
 		0 ->State
 		Self CONST_CANREQUESTAMMO 0 SetUnitAttribute
 		Self CONST_PACKETREQUESTDELAY 0 SetUnitAttribute
@@ -111,23 +167,37 @@ endonce
 		Self CONST_REQUESTPACKETS 0 SetUnitAttribute
 		Self CONST_CONNECTABLE 0 SetUnitAttribute
 	endif
-	<-State 2  gte Self CONST_AMMO GetUnitAttribute Self CONST_MAXAMMO GetUnitAttribute eq and if #if we were continuously upgrading, upgrade ourselves then resume. If we hit the upgrade cap, stop and wait for it to increase.
+	<-State 2 gte if
+		<-UpgradeLevel <-UpgradeLimit eq <-UpgradeLimit neq0 and if
+			"Max upgrade level reached, standing by" SetText
+			220 220 50 255 SetTextColor 15 SetTextY 0.6 SetTextSize
+			Self CONST_CANREQUESTAMMO 0 SetUnitAttribute
+			Self CONST_PACKETREQUESTDELAY 0 SetUnitAttribute
+			Self CONST_MAXAMMO 0 SetUnitAttribute
+			Self CONST_AMMO 0 SetUnitAttribute
+			Self CONST_SHOWAMMOBAR 0 SetUnitAttribute
+			Self CONST_REQUESTPACKETS 0 SetUnitAttribute
+			Self CONST_CONNECTABLE 0 SetUnitAttribute
+			return
+		else
+			Self CONST_CANREQUESTAMMO 1 SetUnitAttribute
+			Self CONST_PACKETREQUESTDELAY <-RequestRate SetUnitAttribute
+			Self CONST_MAXAMMO <-BaseValue <-AddValue <-UpgradeLevel mul add SetUnitAttribute
+			Self CONST_SHOWAMMOBAR 1 SetUnitAttribute
+			Self CONST_REQUESTPACKETS 1 SetUnitAttribute
+			Self CONST_CONNECTABLE 1 SetUnitAttribute
+		endif
+	endif
+	<-State 2 gte Self CONST_AMMO GetUnitAttribute Self CONST_MAXAMMO GetUnitAttribute eq and if #if we were continuously upgrading, upgrade ourselves then resume. If we hit the upgrade cap, stop and wait for it to increase.
 		<-UpgradeLevel <-UpgradeLimit lt <-UpgradeLimit eq0 or if
 			<-UpgradeLevel 1 add ->UpgradeLevel
-			"Upgrade complete, re-activating." SetText
-			50 220 50 255 SetTextColor 20 SetTextY 1.1 SetTextSize
-			90 SetTimer1
+			0  SetTimer2
+			90 SetTimer3
 			Self CONST_AMMO 0 SetUnitAttribute
 			Self CONST_PACKETREQUESTDELAY <-RequestRate SetUnitAttribute
 			Self CONST_MAXAMMO <-BaseValue <-AddValue <-UpgradeLevel mul add SetUnitAttribute
 		else
-			"U" GetKeyDown GetMouseCell CurrentCoords Distance 2 lte and if
-				0 ->State
-				1 ->Changed
-			endif
-			"Max upgrade level reached, standing by" SetText
-			220 220 50 255 SetTextColor 15 SetTextY 0.6 SetTextSize
-			return
+
 		endif
 	endif
 endif
