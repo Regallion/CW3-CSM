@@ -154,7 +154,14 @@ endif
 			<-Duration SetTimer1
 		endif
 		GetTimer2 eq0 if
-			0 ->Setup
+			CreateList ->Energizees
+			CurrentCoords <-Radius 0 GetAllUnitsInRange 0 do
+				->unit
+				<-unit "EmitterInterface.crpl" "UpgradeEnabled" GetScriptVar 1 eq if
+					<-Energizees <-unit  AppendToList
+				endif
+			loop
+			150 SetTimer2
 		endif
 	endif
 	<-InsertedChip "TowerChip.crpl" "TimeSpent" <-InsertedChip "TowerChip.crpl" "TimeSpent"  GetScriptVar 1 add SetScriptVar
