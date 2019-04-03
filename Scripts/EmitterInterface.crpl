@@ -8,6 +8,7 @@ $Mouseover:0
 
 once
 	@awake
+	@ProcessImages
 	Self "Arrow1" "NONE" SetImage
 	Self "Arrow2" "NONE" SetImage
 endonce
@@ -49,7 +50,7 @@ endonce
 			return
 		endif
 	endif
-	<-State 2 gte "U" GetKeyDown and GetMouseCell CurrentCoords Distance 2 lte and <-UpgradeLevel <-UpgradeLimit eq and <-UpgradeLimit neq0 and if
+	<-State 2 gte "U" GetKeyDown and GetMouseCell CurrentCoords Distance 1 lte and <-UpgradeLevel <-UpgradeLimit eq and <-UpgradeLimit neq0 and if
 		0 ->State
 		1 ->Changed
 		return
@@ -94,7 +95,7 @@ endonce
 	endif
 	Self <-EmitterType ".crpl" concat "EmissionBonus" <-UpgradeLevel <-EmissionEffect mul SetScriptVar #Sets emission bonus every frame.
 
-	"U" GetKeyDown "LeftShift" GetKey "RightShift" GetKey or and GetMouseCell CurrentCoords Distance 2 lte and if #If we do shift+U set up continuous upgrage mode which is states 2 and 3. That is, you can enter that stante from both "off" and "on" states.
+	"U" GetKeyDown "LeftShift" GetKey "RightShift" GetKey or and GetMouseCell CurrentCoords Distance 1 lte and if #If we do shift+U set up continuous upgrage mode which is states 2 and 3. That is, you can enter that stante from both "off" and "on" states.
 		<-UpgradeLevel <-UpgradeLimit lt <-UpgradeLimit eq0 or if
 			<-State 2 add ->State
 			<-State 3 gt if
@@ -114,7 +115,7 @@ endonce
 			90 SetTimer0	
 		endif
 	endif
-	"U" GetKeyDown "LeftShift" GetKey "RightShift" GetKey or not and GetMouseCell CurrentCoords Distance 2 lte and if #If we do just U, set up an upgrade-once state.
+	"U" GetKeyDown "LeftShift" GetKey "RightShift" GetKey or not and GetMouseCell CurrentCoords Distance 1 lte and if #If we do just U, set up an upgrade-once state.
 		<-UpgradeLevel <-UpgradeLimit lt <-UpgradeLimit eq0 or if
 			<-State 1 add ->State
 			<-State 1 gt if
