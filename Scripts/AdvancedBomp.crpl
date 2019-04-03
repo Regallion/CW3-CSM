@@ -299,25 +299,23 @@ endonce
 	endif
 	<-BombType <-! 10 eq if #Tuneup bomb. Upgrades target emitter. Respects UpgradeLimit
 		<-Active not if
-			<-MovingUnit "EmitterInterface.crpl" "UpgradeLimit" GetScriptVar ->Limit
 			<-MovingUnit "EmitterInterface.crpl" "UpgradeLevel" GetScriptVar ->Current
-			<-Current <-Power add ->Target
-			<-Limit neq0 if
-				<-Target <-Limit min ->Target
-			endif
-			<-MovingUnit "EmitterInterface.crpl" "State" 0 SetScriptVar
+			<-MovingUnit "EmitterInterface.crpl" "State" GetScriptVar ->SavedState
 			<-MovingUnit "EmitterInterface.crpl" "BombPresent" 1 SetScriptVar
 			1 ->Active
 		endif
 		<-Unchipped 1 eq if #occurs when chips is removed from factory. Prevents exploits.
 			<-MovingUnit "EmitterInterface.crpl" "BombPresent" 0 SetScriptVar
+			<-SavedState 0 gt if
+				<-MovingUnit "EmitterInterface.crpl" "Changed" 1 SetScriptVar
+			endif
 			<-CreatedBy "ChipFactory.crpl" dup2 "STATE_RESET" GetScriptVar "state" swap SetScriptVar
 			@CancelReservation
 			Self 0 Destroy
 		endif
 		GetTimer0 30.0 div 0 round SetText
 		GetTimer0 eq0 if
-			<-MovingUnit "EmitterInterface.crpl" "UpgradeLevel" <-Target SetScriptVar
+			@upgradeEmitter
 			<-MovingUnit "EmitterInterface.crpl" "BombPresent" 0 SetScriptVar
 			<-CreatedBy "ChipFactory.crpl" dup2 "STATE_RESET" GetScriptVar "state" swap SetScriptVar
 			@CancelReservation
@@ -727,3 +725,21 @@ endif
 			<-LaunchedFirework "Firework.crpl" "Power" <-Power SetScriptVar
 			<-LaunchedFirework "Firework.crpl" "TargetX" CurrentX <-Radius neg <-Radius 1 add RandInt add SetScriptVar
 			<-LaunchedFirework "Firework.crpl" "TargetY" CurrentY <-Radius neg <-Radius 1 add RandInt add SetScriptVar
+			
+:upgradeEmitter
+			<-MovingUnit "EmitterInterface.crpl" "UpgradeLimit" GetScriptVar ->Limit
+			<-Current <-Limit lt <-Limit eq0 or if
+				<-Current <-Power add ->Target
+				<-Limit neq0 if
+					<-Target <-Limit min ->Target
+				endif
+				<-MovingUnit "EmitterInterface.crpl" "UpgradeLevel" <-Target SetScriptVar
+			endif
+			<-SavedState 0 neq <-Target <-Limit neq and if
+				<-MovingUnit "EmitterInterface.crpl" "Changed" 1 SetScriptVar
+			else
+				<-SavedState 1 eq if
+					<-MovingUnit "EmitterInterface.crpl" "State" 0 SetScriptVar
+				endif
+			endif
+			

@@ -27,19 +27,27 @@ GetTimer3 neq0 if
     "This upgrader will become active in " GetTimer3 30.0 div 0 Round " seconds" concat concat SetPopupText
     return
 endif
-
-<-Changed if
-	
-	"Upgrade any friendly emitter by pressing U while on it.
-	Press Shift+U on an emitter to enable continuous upgrading.
-	Cost of upgrade is " <-BaseValue " plus " <-AddValue " per upgrade level of an emitter.
-	Every upgrade adds flat " <-EmissionEffect " to AC emissions
-	Upgrades at a speed of " 30 <-RequestRate 1 add div floor " packets per second" concat  concat concat concat concat concat concat concat ->PopupText
-	<-UpgradeLimit neq0 if
-	<-PopupText "
-	You can upgrade up to " <-UpgradeLimit " times" concat concat concat ->PopupText
+0 GetMouseButtonDown if
+	#Check whether the click was in the UI area of the screen. We want to ignore those clicks.
+	GetMouseScreenPixelPosition 96 gt if
+		GetMouseCell CurrentCoords Distance 1.5 lt  if
+			<-Page 1 add ->Page
+			<-Page 1 gt if
+				0 ->Page
+			endif
+			@FormText
+		endif
 	endif
-	<-PopupText SetPopupText
+endif
+"U" GetKeyDown GetMouseCell CurrentCoords Distance 3 lte and if
+	"HasEmitterInterface" 1  GetCoresWithVar
+		0 do
+			->Unit
+			<-Unit "EmitterInterface.crpl" "StopMaxUpgrade" 1 SetScriptVar
+		loop
+endif
+<-Changed if
+	@FormText
 	"HasEmitterInterface" 1  GetCoresWithVar
 	0 do
 		->Unit
@@ -53,7 +61,27 @@ endif
 	0 ->Changed
 endif
 
+:FormText
 
+<-Page 0 eq if
+	"Upgrade any friendly emitter by pressing U while mousing over it.
+	Press Shift+U on an emitter to enable continuous upgrading. 
+	To cancel continuous upgrades on ALL already maxed emitters, press U on this building.
+	Click this to switch to upgrade stats display." ->PopupText
+	<-PopupText SetPopupText
+endif
+<-Page 1 eq if
+	"Cost of upgrade is " <-BaseValue " plus " <-AddValue " per upgrade level of an emitter.
+	Every upgrade adds flat " <-EmissionEffect " to AC emissions
+	Upgrades at a speed of " 30 <-RequestRate asfloat 1 add div 2 round " packets per second" concat  concat concat concat concat concat concat concat ->PopupText
+	<-UpgradeLimit neq0 if
+		<-PopupText "
+		You can upgrade up to " <-UpgradeLimit " times" concat concat concat ->PopupText
+	endif
+	<-PopupText "
+	Click this to switch to instructions display. " concat ->PopupText
+	<-PopupText SetPopupText
+endif
 :awake
 Self "main" "Custom19_128" SetImage
 Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute 

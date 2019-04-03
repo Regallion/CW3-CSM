@@ -1,0 +1,26 @@
+#Shows text. Produced by EmitterInterface.
+$CreatedBy:-1
+once
+@awake
+ 0 SetTextX -12 SetTextY 
+ 0.5 SetTextSize
+	<-CreatedBy -1 eq if
+		self 0 Destroy
+	endif
+endonce
+<-Changed if
+	<-Text SetText
+	<-Max if
+		220 220 50 255 SetTextColor
+	else
+		255 255 255 255 SetTextColor
+	endif
+	0 ->Changed
+endif
+:awake
+Self "main" "NONE" SetImage
+Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute 
+Self CONST_NULLIFIERDAMAGES 0 SetUnitAttribute 
+Self CONST_TAKEMAPSPACE 0 SetUnitAttribute
+Self CONST_SUPPORTSDIGITALIS 0 SetUnitAttribute 
+Self CONST_CREATEPZ 0 SetUnitAttribute

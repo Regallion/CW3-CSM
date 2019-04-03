@@ -1,0 +1,4 @@
+GetMouseCell ->y ->x
+Self CONST_COORDX <-x SetUnitAttribute
+Self CONST_COORDY <-y SetUnitAttribute
+CurrentCoords GetTerrainOverride SetPopupText

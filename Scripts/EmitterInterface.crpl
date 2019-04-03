@@ -8,14 +8,19 @@ $Mouseover:0
 
 once
 	@awake
+	Self "Arrow1" "NONE" SetImage
+	Self "Arrow2" "NONE" SetImage
 endonce
 
 
 <-UpgradeEnabled if #The entire upgrading thing only fires if it's actually upgrade-enabled
+	GetGameTimeFrames 240 mod eq0 if
+		@ProcessImages
+	endif
 	<-EmitterType "EmitterACDeath" eq if #Blue emitters never emit AC and as such are never actually upgradeable
 		0 ->UpgradeEnabled
 	endif
-	<-BombPresent if
+	<-BombPresent if #if under the influence of a tune-up bomb no upgrading can take place.
 			"Tune-up in progress" SetText
 			220 220 50 255 SetTextColor 20 SetTextY 0.8 SetTextSize
 			Self CONST_CANREQUESTAMMO 0 SetUnitAttribute
@@ -82,6 +87,10 @@ endonce
 			"Upgrade limit reached" SetText
 			220 50 50 255 SetTextColor 20 SetTextY 1.1 SetTextSize
 		endif
+		<-State 2 gte if
+			"Max upgrade" SetText
+			220 220 50 255 SetTextColor 15 SetTextY 0.6 SetTextSize
+		endif
 	endif
 	Self <-EmitterType ".crpl" concat "EmissionBonus" <-UpgradeLevel <-EmissionEffect mul SetScriptVar #Sets emission bonus every frame.
 
@@ -128,7 +137,9 @@ endonce
 			Self CONST_CONNECTABLE 1 SetUnitAttribute
 			90 SetTimer2
 			0  SetTimer3
+			0  SetTimer0
 			0 ->Changed
+			@ProcessImages
 	endif
 	<-State 2 gte <-Changed and if #Same but for continuous upgrades
 			Self CONST_CANREQUESTAMMO 1 SetUnitAttribute
@@ -140,7 +151,9 @@ endonce
 			Self CONST_CONNECTABLE 1 SetUnitAttribute
 			90 SetTimer2
 			0  SetTimer3
+			0  SetTimer0
 			0 ->Changed
+			@ProcessImages
 	endif
 	<-State 0 eq <-Changed and if #if we stopped upgrading, disable ammo flow
 			Self CONST_CANREQUESTAMMO 0 SetUnitAttribute
@@ -153,9 +166,12 @@ endonce
 			0 ->Changed
 			90 SetTimer2
 			0  SetTimer3
+			0  SetTimer0
+			@ProcessImages
 	endif
 	<-State 1 eq Self CONST_AMMO GetUnitAttribute Self CONST_MAXAMMO GetUnitAttribute eq and if #if we were doing an upgrade once, and succesfully got all the ammo, upgrade then return to inactive state.
 		<-UpgradeLevel 1 add ->UpgradeLevel
+		
 		0  SetTimer2
 		90 SetTimer3	
 		0 ->State
@@ -166,11 +182,15 @@ endonce
 		Self CONST_SHOWAMMOBAR 0 SetUnitAttribute
 		Self CONST_REQUESTPACKETS 0 SetUnitAttribute
 		Self CONST_CONNECTABLE 0 SetUnitAttribute
+		@ProcessImages
 	endif
 	<-State 2 gte if
 		<-UpgradeLevel <-UpgradeLimit eq <-UpgradeLimit neq0 and if
-			"Max upgrade level reached, standing by" SetText
-			220 220 50 255 SetTextColor 15 SetTextY 0.6 SetTextSize
+			<-StopMaxUpgrade if
+				0 ->State
+				1 ->Changed
+				0 ->StopMaxUpgrade
+			endif
 			Self CONST_CANREQUESTAMMO 0 SetUnitAttribute
 			Self CONST_PACKETREQUESTDELAY 0 SetUnitAttribute
 			Self CONST_MAXAMMO 0 SetUnitAttribute
@@ -180,6 +200,7 @@ endonce
 			Self CONST_CONNECTABLE 0 SetUnitAttribute
 			return
 		else
+			0 ->StopMaxUpgrade
 			Self CONST_CANREQUESTAMMO 1 SetUnitAttribute
 			Self CONST_PACKETREQUESTDELAY <-RequestRate SetUnitAttribute
 			Self CONST_MAXAMMO <-BaseValue <-AddValue <-UpgradeLevel mul add SetUnitAttribute
@@ -196,8 +217,10 @@ endonce
 			Self CONST_AMMO 0 SetUnitAttribute
 			Self CONST_PACKETREQUESTDELAY <-RequestRate SetUnitAttribute
 			Self CONST_MAXAMMO <-BaseValue <-AddValue <-UpgradeLevel mul add SetUnitAttribute
-		else
-
+			@ProcessImages
+			<-UpgradeLevel <-UpgradeLimit eq if
+				300 SetTimer0	
+			endif
 		endif
 	endif
 endif
@@ -205,7 +228,7 @@ endif
 
 :awake
 	0 OperateWhilePaused
-	<-State 1 eq if
+	<-State 1 gt <-BombPresent eq0 and if
 			Self CONST_CANREQUESTAMMO 1 SetUnitAttribute
 			Self CONST_PACKETREQUESTDELAY <-RequestRate SetUnitAttribute
 			Self CONST_MAXAMMO <-BaseValue <-AddValue <-UpgradeLevel mul add SetUnitAttribute
@@ -221,5 +244,40 @@ endif
 			Self CONST_REQUESTPACKETS 0 SetUnitAttribute
 			Self CONST_CONNECTABLE 0 SetUnitAttribute
 	endif
+
 :destroyed
 	0 OperateWhilePaused
+:ProcessImages
+<-State 0 eq if
+Self "Arrow1" "NONE" SetImage
+Self "Arrow2" "NONE" SetImage
+endif
+<-State 1 eq if
+Self "Arrow1" "Custom81" SetImage
+Self "Arrow2" "NONE" SetImage
+endif
+<-State 2 gte if
+Self "Arrow1" "NONE" SetImage
+Self "Arrow2" "Custom82" SetImage
+endif
+Self "Arrow1" 0 0 -29 SetImagePosition
+Self "Arrow2" 0 0 -29 SetImagePosition
+
+<-SavedProgress <-UpgradeLevel eq <-SavedLimit <-UpgradeLimit eq and if #You really only need to set text if upgrade level changed.
+	return
+endif
+
+<-TextShower eq0 <-TextShower CONST_ISDESTROYED GetUnitAttribute 1 eq or <-UpgradeLevel 1 gte and if
+	"CRPLCORE" CurrentX CurrentY CreateUnit ->TextShower
+	<-TextShower "EmText.crpl" AddScriptToUnit
+	<-TextShower "EmText.crpl" "CreatedBy" Self SetScriptVar
+endif
+<-UpgradeLevel <-UpgradeLimit eq if #If we are at upgrage limit, color the text yellow, to signify max. Otherwise they are white.
+	<-TextShower "EmText.crpl" "Max" 1 SetScriptVar
+else
+	<-TextShower "EmText.crpl" "Max" 0 SetScriptVar
+endif
+<-TextShower "EmText.crpl" "Text" <-UpgradeLevel "/" <-UpgradeLimit concat concat SetScriptVar
+<-TextShower "EmText.crpl" "Changed" 1 SetScriptVar
+<-UpgradeLevel ->SavedProgress 
+<-UpgradeLimit ->SavedLimit 
