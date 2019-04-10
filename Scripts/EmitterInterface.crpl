@@ -15,9 +15,11 @@ endonce
 
 
 <-UpgradeEnabled if #The entire upgrading thing only fires if it's actually upgrade-enabled
+
 	GetGameTimeFrames 240 mod eq0 if
 		@ProcessImages
 	endif
+
 	<-EmitterType "EmitterACDeath" eq if #Blue emitters never emit AC and as such are never actually upgradeable
 		0 ->UpgradeEnabled
 	endif
@@ -50,7 +52,9 @@ endonce
 			return
 		endif
 	endif
-	<-State 2 gte "U" GetKeyDown and GetMouseCell CurrentCoords Distance 1 lte and <-UpgradeLevel <-UpgradeLimit eq and <-UpgradeLimit neq0 and if
+	<-State 2 gte <-Valid and <-UpgradeLevel <-UpgradeLimit eq and <-UpgradeLimit neq0 and if
+		0 ->Valid
+		0 ->Shifty
 		0 ->State
 		1 ->Changed
 		return
@@ -95,7 +99,9 @@ endonce
 	endif
 	Self <-EmitterType ".crpl" concat "EmissionBonus" <-UpgradeLevel <-EmissionEffect mul SetScriptVar #Sets emission bonus every frame.
 
-	"U" GetKeyDown "LeftShift" GetKey "RightShift" GetKey or and GetMouseCell CurrentCoords Distance 1 lte and if #If we do shift+U set up continuous upgrage mode which is states 2 and 3. That is, you can enter that stante from both "off" and "on" states.
+	<-Valid <-Shifty and if #If we do shift+U set up continuous upgrage mode which is states 2 and 3. That is, you can enter that stante from both "off" and "on" states.
+		0 ->Valid
+		0 ->Shifty
 		<-UpgradeLevel <-UpgradeLimit lt <-UpgradeLimit eq0 or if
 			<-State 2 add ->State
 			<-State 3 gt if
@@ -115,7 +121,9 @@ endonce
 			90 SetTimer0	
 		endif
 	endif
-	"U" GetKeyDown "LeftShift" GetKey "RightShift" GetKey or not and GetMouseCell CurrentCoords Distance 1 lte and if #If we do just U, set up an upgrade-once state.
+	<-Valid <-Shifty not and if #If we do just U, set up an upgrade-once state.
+		0 ->Valid
+		0 ->Shifty
 		<-UpgradeLevel <-UpgradeLimit lt <-UpgradeLimit eq0 or if
 			<-State 1 add ->State
 			<-State 1 gt if
@@ -128,6 +136,8 @@ endonce
 			90 SetTimer0		
 		endif
 	endif
+	0 ->Valid
+	0 ->Shifty
 	<-State 1 eq <-Changed and if #if we are upgrading allow for ammo flow.
 			Self CONST_CANREQUESTAMMO 1 SetUnitAttribute
 			Self CONST_PACKETREQUESTDELAY <-RequestRate SetUnitAttribute
@@ -172,7 +182,7 @@ endonce
 	endif
 	<-State 1 eq Self CONST_AMMO GetUnitAttribute Self CONST_MAXAMMO GetUnitAttribute eq and if #if we were doing an upgrade once, and succesfully got all the ammo, upgrade then return to inactive state.
 		<-UpgradeLevel 1 add ->UpgradeLevel
-		
+		0  SetTimer0
 		0  SetTimer2
 		90 SetTimer3	
 		0 ->State

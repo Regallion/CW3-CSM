@@ -39,12 +39,22 @@ endif
 		endif
 	endif
 endif
-"U" GetKeyDown GetMouseCell CurrentCoords Distance 3 lte and if
-	"HasEmitterInterface" 1  GetCoresWithVar
-		0 do
-			->Unit
-			<-Unit "EmitterInterface.crpl" "StopMaxUpgrade" 1 SetScriptVar
-		loop
+
+"U" GetKeyDown if
+	GetMouseCell CurrentCoords Distance 3 lte if
+		"HasEmitterInterface" 1  GetCoresWithVar
+			0 do
+				->Unit
+				<-Unit "EmitterInterface.crpl" "StopMaxUpgrade" 1 SetScriptVar
+			loop
+	endif
+	GetMouseCell 1 GetEnemyUnitsInRange 0 do
+		->Processing
+		<-Processing "EmitterInterface.crpl" "Valid" 1 SetScriptVar
+		"LeftShift" GetKey "RightShift" GetKey or if
+			<-Processing "EmitterInterface.crpl" "Shifty" 1 SetScriptVar
+		endif
+	loop
 endif
 <-Changed if
 	@FormText
