@@ -13,6 +13,7 @@ $Name:"DiscoEmitter"
 #ImageSlot can be changed if you want to use a different slot.
 $ImageSlot:"Custom0"
 $Empowerment:1
+$EmpowermentAC:1
 $Unstopped:1
 Once
 @awake
@@ -31,9 +32,9 @@ GetTimer0 eq0 <-Creepin and if
 endif
 GetTimer1 eq0 <-Acreepin and if
 	<-multi if
-		<-TotalPower <-ACamt mul <-EmissionBonus sub  <-Unstopped mul ->tAmount
+		<-ACamt <-TotalPower <-EmpowermentAC mul mul <-EmissionBonus sub  <-Unstopped mul ->tAmount
 	else
-		<-ACamt <-EmissionBonus sub <-Unstopped mul ->tAmount
+		<-ACamt <-EmpowermentAC mul <-EmissionBonus sub <-Unstopped mul ->tAmount
 	endif
 	@ACProd
 	Self "main" 0 256 RandInt 0 256 RandInt 0 256 RandInt 125 256 RandInt SetImageColor

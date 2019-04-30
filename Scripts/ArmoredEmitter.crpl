@@ -4,8 +4,10 @@
 #Creeper amount and anticreeper amount are stored in separate variables so you can have it produce different amounts of each.
 $Armor:150 #How much health the emitter has as long as it has lives. Measures(in frames) the time it takes to die. Note that it will take damage in chunks equal to Cinterval, due to how those emitters are made.
 $Lives:1 #How many times this has to be killed before it becomes a normal flip emitter.
-$EmpowerRange:8.0 #The range of the empowering circle. Grants power to all enemy units in that radius.
-$EmpowerPow:2.5 #The power increase it grants. Multiplier, additive with tower multipliier.
+$EmpowerRange:8.0 #The range of the empowering circle for enemies. Grants power to all enemy units in that radius.
+$EmpowerPow:2.5 #The C power increase it grants. Multiplier, additive with tower multipliier.
+$ACEmpowerRange:8.0 #The range of the empowering circle when affecting friendlies. Grants power to all friendly units in that radius.
+$ACEmpowerPow:2.5 #The AC power increase it grants. Multiplier, multiplicative with tower multipliier.
 $Reincarnation:0 #Regains lives equal to this if re-captured by creeper.
 $HeadHoncho:0 #Does not work right now. If 1, acts as the head of a network. A network may only have 1 head, and it's capture state depends on whether or not this is captured.
 $Camt:30
@@ -23,6 +25,7 @@ $Thresh:1.0
 $ImageSlot:"Custom0"
 $ImageCircle:"Custom4_256"
 $Empowerment:1
+$EmpowermentAC:1
 $Unstopped:1
 Once
 
@@ -42,8 +45,8 @@ endonce
 
 
 GetGameTimeFrames <-StartDelay gt if #if the delay it sover, it acts.
-	<-Changed if #first, we need to empower all surrounding  emitters. From then on, this only occurs if the empowerment state changes.
-		<-Lives 0 gt if #if we have lives, activate empowerment
+	<-Changed if #first, we need to empower all surrounding  emitters. From then on, this only occurs if the empowerment state changes. This works differently, depending on wherher we are alive or not.
+		<-Lives 0 gt if #if we have lives, activate enemy empowerment
 			CurrentCoords <-EmpowerRange GetEnemyUnitsInRange
 			0 do
 				->Unit
@@ -63,7 +66,29 @@ GetGameTimeFrames <-StartDelay gt if #if the delay it sover, it acts.
 			loop
 		endif
 		0 ->Changed
-	endif	
+	endif
+	<-ChangedAC if # this only occurs if the empowerment state changes. 
+		<-state 0 eq if #if we are friendly, activate friendly empowerments
+			CurrentCoords <-ACEmpowerRange GetEnemyUnitsInRange
+			0 do
+				->Unit
+				<-Unit "EmitterInterface.crpl" "EmitterType" GetScriptVar ->EmitterType
+				<-Unit GetUnitType "CRPLCORE" eq <-Unit Self neq and if
+					<-Unit <-EmitterType ".crpl" concat "EmpowermentAC" <-Unit <-EmitterType ".crpl" concat "EmpowermentAC" GetScriptVar  <-ACEmpowerPow add SetScriptVar
+				endif
+			loop
+		else #otherwise, deactivate it.
+			CurrentCoords <-ACEmpowerRange GetEnemyUnitsInRange
+			0 do
+				->Unit
+				<-Unit "EmitterInterface.crpl" "EmitterType" GetScriptVar ->EmitterType
+				<-Unit GetUnitType "CRPLCORE" eq <-Unit Self neq and if
+					<-Unit <-EmitterType ".crpl" concat "EmpowermentAC" <-Unit <-EmitterType ".crpl" concat "EmpowermentAC" GetScriptVar  <-ACEmpowerPow sub SetScriptVar
+				endif
+			loop
+		endif
+		0 ->ChangedAC
+	endif
 	#The timers are used to track how long since the emitter last flipped, and hide the "flip text" after 5 seconds.
 	GetTimer0 eq0 GetTimer1 eq0 and if "" SetText endif
 
@@ -108,6 +133,12 @@ GetGameTimeFrames <-StartDelay gt if #if the delay it sover, it acts.
 				150 SetTimer1
 				#Swap out the state so it behaves properly on next invocation
 				0 ->state
+				<-ACEmpowerRange 0 gt if
+					Self "range" <-ImageCircle SetImage
+					Self "range" <-ACEmpowerRange 2 mul 0.9 add 3.0 div dup SetImageScale
+					Self "range" 50 255 50 255 SetImageColor
+					1 ->ChangedAC
+				endif
 				Self "main" 255 255 255 255 SetImageColor
 				#AC production and Creeper production have been placed in functions so they can easily be activated immediately upon flipping.
 				@ACProd
@@ -122,16 +153,20 @@ GetGameTimeFrames <-StartDelay gt if #if the delay it sover, it acts.
 			50 220 50 255 SetTextColor 20 SetTextY 1.1 SetTextSize
 			150 SetTimer0
 			Self "main" 150 150 150 255 SetImageColor
+			Self "range" "NONE" SetImage
 			<-Reincarnation if #if flips back AND reinc exists, starts acting like an armored emitter again.
 				<-Reincarnation ->Lives
-				Self "range" <-ImageCircle SetImage
-				Self "range" <-EmpowerRange 2 mul 0.9 add 3.0 div dup SetImageScale
-				Self "range" 255 50 50 255 SetImageColor
+				<-EmpowerRange 0 gt if
+					Self "range" <-ImageCircle SetImage
+					Self "range" <-EmpowerRange 2 mul 0.9 add 3.0 div dup SetImageScale
+					Self "range" 255 50 50 255 SetImageColor
+					1 ->Changed
+				endif
 				Self "main" 0.8 0.3 <-Lives mul add dup SetImageScale
 				Self "main" 150 25 <-Lives mul add 255 min 150 150 255 SetImageColor
-				1 ->Changed
 			endif
 			1 ->state
+			1 ->ChangedAC
 			@CProd
 		else
 			@ACProd
@@ -155,7 +190,7 @@ endif
 	Self CONST_SHOWHEALTHBAR 1 SetUnitAttribute
 	Self "main" <-ImageSlot SetImage
 	Self "main" 0.8 0.3 <-Lives mul add dup SetImageScale
-	<-State 1 eq if
+	<-state 1 eq if
 		Self "main" 150 25 <-Lives mul add 255 min 150 150 255 SetImageColor
 	else
 		Self "main" 255 255 255 255 SetImageColor
@@ -165,7 +200,13 @@ endif
 		Self "range" <-EmpowerRange 2 mul 0.9 add 3.0 div dup SetImageScale
 		Self "range" 255 50 50 255 SetImageColor
 	else
-		Self "range" "NONE" SetImage
+		<-ACEmpowerRange 0 gt <-state 0 eq and if
+			Self "range" <-ImageCircle SetImage
+			Self "range" <-ACEmpowerRange 2 mul 0.9 add 3.0 div dup SetImageScale
+			Self "range" 50 255 50 255 SetImageColor
+		else
+			Self "range" "NONE" SetImage
+		endif
 	endif
 	Self "EmitterInterface.crpl" "HasEmitterInterface" GetScriptVar eq0 if
 		Self "EmitterInterface.crpl" AddScriptToUnit
@@ -179,7 +220,7 @@ endif
 	"Assault with anti-creeper to defeat this formidable foe" <-lb concat "Producing " concat <-tCAmount concat " creeper every " concat <-Cinterval 30.00 div 2 Round 1000 mul concat " milliseconds." concat "
 	Remaining lives: " <-Lives concat concat ->PopupText
 	<-EmpowerRange 0 gt <-Lives 0 gt and if
-	<-PopupText "
+		<-PopupText "
 		Increases the output multiplier of enemies in range by " <-EmpowerPow concat concat <-lb <-lb concat concat <-lb <-lb concat concat ->PopupText
 	endif
 	<-PopupText SetPopupText
@@ -194,11 +235,15 @@ endif
 	#Only update the tAmount value if multi has been flagged. Otherwise we stick with the base value.
 
 	<-multi if
-		<-TotalPower <-ACamt mul <-EmissionBonus sub  <-Unstopped mul ->tAmount
+		<-ACamt <-TotalPower <-EmpowermentAC mul mul <-EmissionBonus sub  <-Unstopped mul ->tAmount
 	else
-		<-ACamt <-EmissionBonus sub <-Unstopped mul ->tAmount
+		<-ACamt <-EmpowermentAC mul <-EmissionBonus sub <-Unstopped mul ->tAmount
 	endif
-	"Producing " <-tAmount <-Unstopped mul abs concat " anti-creeper every " concat <-ACinterval 30.00 div 2 Round 1000 mul concat " milliseconds." concat ->PopupText SetPopupText
+	"Producing " <-tAmount <-Unstopped mul abs concat " anti-creeper every " concat <-ACinterval 30.00 div 2 Round 1000 mul concat " milliseconds." concat ->PopupText 
+	<-ACEmpowerRange 0 gt if
+		<-PopupText "
+		Increases the output multiplier of friends in range by " <-ACEmpowerPow concat concat ->PopupText
+	endif
 	<-Reincarnation 0 gt if
 		<-PopupText "
 		If retaken by creeper will regain " <-Reincarnation concat concat 

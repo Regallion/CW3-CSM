@@ -2,6 +2,13 @@
 $ImageNormal:"Custom18_128"
 $ImageLine:"Custom3pp"
 once
+	"Name" "walldigger" GetCoresWithVar if #Acquires variables from walldigger to ensure coherent terrain alterations.
+		->Walldigger
+		ClearStack
+	endif
+	<-Walldigger "walldigger.crpl" "Voidaffects" GetScriptVar ->voidmod
+	<-Walldigger "walldigger.crpl" "Multi" GetScriptVar ->terrmod
+	<-Walldigger "walldigger.crpl" "Freeze" GetScriptVar ->freezeterr
 	@Shutdown
 	1 ->Size
 	#Sets states for later use
@@ -94,6 +101,7 @@ endif
 			<-Duration SetTimer1
 		endif
     endif
+
     <-ChipType <-! 3 eq if #Connector chip. Makes a relay and a PZ under itself, maintains the relay in case of creeper, destroys both on deactivation.
 		CurrentCoords GetCreeper 0 lte if
 			<-Setup not if
@@ -139,7 +147,7 @@ endif
 			Self 3 Destroy
 		endif
 	endif
-	<-ChipType <-! 5 eq if #Energizer. Provides energy to nearby
+	<-ChipType <-! 5 eq if #Energizer. Provides energy to nearby stuff
 		<-Setup not if
 			<-ChipSpecial "," Split ->Temp
 			<-Temp 0 GetListElement ->AffectAll
@@ -178,11 +186,45 @@ endif
 			<-Delay SetTimer2
 		endif
 	endif
+    <-ChipType <-! 6 eq if #Firework chip. Randomly shoots fireworks around itself.
+		<-Setup not if
+			@Entomb
+			1 ->Setup
+		endif
+    endif
+	<-ChipType <-! 7 eq if #ACifier. Provides AC to nearby stuff
+		<-Setup not if
+			<-ChipSpecial ->Delay
+			CreateList ->ACees
+			CurrentCoords <-Radius 0 GetAllUnitsInRange 0 do
+				->unit
+				<-ACees <-unit  AppendToList
+			loop
+			<-Duration SetTimer1
+			<-Delay SetTimer2
+			1 ->Setup
+		endif
+		GetTimer1 eq0 if
+			@ACify
+			<-Duration SetTimer1
+		endif
+		GetTimer2 eq0 if
+			CreateList ->ACees
+			CurrentCoords <-Radius 0 GetAllUnitsInRange 0 do
+				->unit
+				<-ACees <-unit  AppendToList
+			loop
+			<-Delay SetTimer2
+		endif
+	endif
 	<-InsertedChip "TowerChip.crpl" "TimeSpent" <-InsertedChip "TowerChip.crpl" "TimeSpent"  GetScriptVar 1 add SetScriptVar
 endif
 
 
 :Shutdown #Generic function to restore tower to inactive state.
+<-Entombed if
+	@Detomb
+endif
 0 SetTimer1
 0 SetTimer2
 0 SetTimer3
@@ -254,9 +296,42 @@ loop
 
 <-Energizees GetListCount 0 do
 	<-Energizees I GetListElement ->TargetUnit
-	<-TargetUnit CONST_AMMO dup2 GetUnitAttribute <-Power add SetUnitAttribute
-loop
+	<-TargetUnit CONST_ISBUILDING GetUnitAttribute 1 eq if
 
+	else
+		<-TargetUnit CONST_AMMO dup2 GetUnitAttribute <-Power add SetUnitAttribute
+	endif
+loop
+:ACify
+
+<-ACees GetListCount 0 do
+	<-ACees I GetListElement ->TargetUnit
+	<-TargetUnit CONST_AMMOAC dup2 GetUnitAttribute <-Power add SetUnitAttribute
+loop
+:Entomb
+CurrentX <-Radius add CurrentX <-Radius sub 1 add do # J = X
+	CurrentY <-Radius add CurrentY <-Radius sub 1 add do # I = Y
+		J I GetTerrain	->CurrLevel
+		<-CurrLevel 1 gte if
+			<-CurrLevel  <-Power add 10 min ->TargetLevel
+			J I <-TargetLevel  SetTerrain
+			J I <-TargetLevel <-terrmod mul SetTerrainOverride
+		endif
+	loop
+loop
+1 ->Entombed
+:Detomb
+CurrentX <-Radius add CurrentX <-Radius sub 1 add do # J = X
+	CurrentY <-Radius add CurrentY <-Radius sub 1 add do # I = Y
+		J I GetTerrain	->CurrLevel
+		<-CurrLevel 1 gte if
+			J I GetTerrain <-Power sub 1 max ->TargetLevel
+			J I <-TargetLevel  SetTerrain
+			J I <-TargetLevel <-terrmod mul SetTerrainOverride
+		endif
+	loop
+loop
+0 ->Entombed
 :SetImageAndText
     
 	<-state <-STATE_INACTIVE eq if #base state
@@ -306,6 +381,8 @@ loop
 	3 ->Connector
 	4 ->VoidBomb
 	5 ->Energizer
+	6 ->Entomber
+	7 ->ACifier
 	0 ->STATE_INACTIVE
     1 ->STATE_ACTIVE
     @SetImageAndText

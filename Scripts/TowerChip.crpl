@@ -5,16 +5,26 @@
 #other scripts required to accomodate this script: FreeTower
 
 $ChipMovementSpeed:1.0 #How fast the CHIP will move
-$Radius:10.0 # defines the radius of the effect of the chip. Negator chips use it for destruction radius, fireworks determine how big the spread is, VacuumBombs use it for explosion range and vacuum range. Energizers affect emitters in this radius.
-$Power:5.0 # Defines the effect of certain chips. For Energy chips it produces that many reactors(floored), for negator chips defines how many levels of creeper it can remove at once. same for fireworks. For VacuumBombs defines the suction effect. For Energizers, this is how much ammo it restores per tick.
-$Duration:90 # duration of chip effect in frames. For Negator chips, defines the interval between destroying pulses .For fireworks defines how often fireworks are fired. For VaccumBombs it's a delay before exploding.
-$ChipType:"Generator" # valid types: "Generator", "Negator","Firework" "Connector" "VoidBomb" "Energizer". Connector bombs do not take any effect-related parameters.
+$Radius:10.0 # defines the radius of the effect of the chip. 
+#Negator chips use it for destruction radius, 
+#fireworks determine how big the spread is, 
+#VacuumBombs use it for explosion range and vacuum range. 
+#Energizers affect emitters in this radius.
+#Entombers use it to determine how big the terrain square is.
+$Power:5.0 # Defines the effect of certain chips. For Energy chips it produces that many reactors(floored), 
+#for negator chips defines how many levels of creeper it can remove at once. same for fireworks. 
+#For VacuumBombs defines the suction effect. 
+#For Energizers and ACifiers, this is how much ammo it restores per tick.
+#For Entombers, this is the target terrain height.
+$Duration:90 # duration of chip effect in frames. For Negator chips, defines the interval between destroying pulses .For fireworks defines how often fireworks are fired. For VaccumBombs it's a delay before exploding. For Energizer and ACIfiers it's the frame delay between resupplies
+$ChipType:"Generator" # valid types: "Generator", "Negator","Firework" "Connector" "VoidBomb" "Energizer", "Entomber" "ACifier". Connector bombs do not take any effect-related parameters.
 $ChipSpecial:"" #Freeform field for setting special traits for chips. 
 #For Generators, setting it to 1 also causes it to drop a PZ.
 #For negator chips, 0 affects only creeper, 1 affects AC  2 affects AC and C. 
 #For fireworks, determines the explosion radius of a firework. 
 #For VaccumBomb 0 does nothing, 1 causes it to destroy terrain in range. 
 #For Energizer, accepts 2 inputs, the first is a boolean. If true adds ammo to ALL units in range, otherwise only to upgradeables. The second is the recheck delay in frames. Separate by comma.
+#For ACifier, accepts 1 input, recheck delay in frames.
 $TimeLimit:0 # 0 for unlimited, otherwise defines after how many frames of being active the chip self-destructs.
 $NameOverride:"" #Chip name override. If non-empty, this will show in mouseover text. If empty, mouseover text is generated from the effects of the chip.
 $Description:"" #This is appended after the name of the chip in mouseover. Primarily meant to be used for flavor.
@@ -30,7 +40,7 @@ once
     ClearTraceLog
     HideTraceLog
     0 ->Liberated
-	CreateList ->ChipToTowerParameters #This is later used to pass on the parameters of the chip to the factory. Does not pass parameters relevant to only the chip.
+	CreateList ->ChipToTowerParameters #This is later used to pass on the parameters of the chip to the tower. Does not pass parameters relevant to only the chip.
 	 "ChipSpecial" "ChipType" "Duration" "Power" "Radius" <-ChipToTowerParameters AppendStackToList 
 	0 ->TimeSpent
 	@awake
@@ -225,6 +235,8 @@ endif
 	3 ->Connector
 	4 ->VoidBomb
 	5 ->Energizer
+	6 ->Entomber
+	7 ->ACifier
 	Self "range1" "Custom4_256" SetImage
     Self "range1" <-Radius 2 mul 0.9 add 3.0 div dup SetImageScale
 	Self "range1" 255 0 0 0 SetImageColor
@@ -358,6 +370,12 @@ endif
 endif
 <-ChipType "Energizer" eq if
 	"Energizer R" <-Radius "D" <-Duration "P" <-Power concat concat concat concat concat ->PopupText
+endif
+<-ChipType "Entomber" eq if
+	"Entomber R" <-Radius  "P" <-Power concat concat concat ->PopupText
+endif
+<-ChipType "ACifier" eq if
+	"ACifier R" <-Radius "D" <-Duration  "P" <-Power concat concat concat concat concat ->PopupText
 endif
 <-NameOverride "" eq not if
 	<-NameOverride ->PopupText

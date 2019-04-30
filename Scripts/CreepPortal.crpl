@@ -9,7 +9,10 @@ $Thresh:1
 $ImageLine:"Custom3pp"
 
 once
+	HideTraceLog
+	ClearTraceLog
 	<-colorID ->trueColor
+	<-colorID ->lastColor
 	@awake
 	<-Conduction 0 eq if
 		Self "dot" 0 0 0 255 SetImageColor
@@ -140,7 +143,22 @@ once
     @InitColor
     @InitLineImages
 endonce
-
+<-colorID <-lastColor neq if
+	"lastColor" <-lastColor GetCoresWithVar 0 do
+		->lastGate
+		<-lastGate "CreepPortal.crpl" "Rerender" 1 SetScriptVar
+	loop
+	"colorID" <-colorID GetCoresWithVar 0 do
+		->lastGate
+		<-lastGate "CreepPortal.crpl" "Rerender" 1 SetScriptVar
+	loop
+	<-colorID ->lastColor
+endif
+<-Rerender if
+    @InitColor
+    @InitLineImages
+	0 ->Rerender
+endif
 GetMouseCell CurrentCoords Distance 1.5 lte if #hardwired 3x3 size, but meh, it's for visual effect only
     <-LINE_ALPHA 17 add 255 min ->LINE_ALPHA
 else
@@ -150,52 +168,58 @@ endif
 @RenderLineImages
 
 :InitColor # -
-    <-trueColor 0 eq if #red
+    <-colorID 0 eq if #red
         255 ->R
         0 ->G
         0 ->B
         return
     endif
-    <-trueColor 1 eq if #green
+    <-colorID 1 eq if #green
         0 ->R
         255 ->G
         0 ->B
         return
     endif
-    <-trueColor 2 eq if #pink
+    <-colorID 2 eq if #pink
         255 ->R
         64 ->G
         128 ->B
         return
     endif
-    <-trueColor 3 eq if #yellow
+    <-colorID 3 eq if #yellow
         255 ->R
         255 ->G
         0 ->B
         return
     endif
-    <-trueColor 4 eq if #blue
+    <-colorID 4 eq if #blue
         0 ->R
         0 ->G
         255 ->B
         return
     endif
-    <-trueColor 5 eq if #black
+    <-colorID 5 eq if #black
         128 ->R
         128 ->G
         128 ->B
         return
     endif
-    <-trueColor 6 eq if #brown
+    <-colorID 6 eq if #brown
         192 ->R
         98 ->G
         0 ->B
         return
     endif
-    <-trueColor 7 eq if #white
+    <-colorID 7 eq if #white
         255 ->R
         255 ->G
         255 ->B
+        return
+    endif
+    <-colorID 8 gte if #WOWZERS
+        30 <-colorID mul 255 mod ->R
+        50 <-colorID mul 255 mod ->G
+        80 <-colorID mul 255 mod ->B
         return
     endif
     # unknow color - use teal
@@ -204,25 +228,31 @@ endif
     255 ->B
     
 :InitLineImages # -
-    0 ->LINES
-    "trueColor" <-trueColor GetCoresWithVar 0 do
-        ->ILI_Uid
-        <-ILI_Uid Self neq if
-            CurrentPixelCoords
-                <-ILI_Uid CONST_PIXELCOORDY GetUnitAttribute swap sub ->ILI_Y
-                <-ILI_Uid CONST_PIXELCOORDX GetUnitAttribute swap sub ->ILI_X
-            
-            "line" <-LINES concat ->ILI_Name
-            Self <-ILI_Name <-ImageLine SetImage
-            Self <-ILI_Name <-ILI_X <-ILI_Y 0 0 Distance 24 sub 24.0 div 0.15 SetImageScale
-            Self <-ILI_Name <-ILI_Y <-ILI_X atan2 SetImageRotation
-            Self <-ILI_Name <-ILI_X 2.0 div <-ILI_Y 2.0 div -11 SetImagePosition
-            Self <-ILI_Name 0 0 0 0 SetImageColor #hide for now, color will be set in render
-            
-            <-LINES 1 add ->LINES
-        endif
-    loop
-    
+	<-LINES 0 do	
+		"line" I concat ->ILI_Name
+		Self <-ILI_Name "NONE" SetImage
+	loop
+	0 ->LINES
+    <-colorID 0 gte if
+		0 ->LINES
+		"colorID" <-colorID GetCoresWithVar 0 do
+			->ILI_Uid
+			<-ILI_Uid Self neq if
+				CurrentPixelCoords
+					<-ILI_Uid CONST_PIXELCOORDY GetUnitAttribute swap sub ->ILI_Y
+					<-ILI_Uid CONST_PIXELCOORDX GetUnitAttribute swap sub ->ILI_X
+				
+				"line" <-LINES concat ->ILI_Name
+				Self <-ILI_Name <-ImageLine SetImage
+				Self <-ILI_Name <-ILI_X <-ILI_Y 0 0 Distance 24 sub 24.0 div 0.15 SetImageScale
+				Self <-ILI_Name <-ILI_Y <-ILI_X atan2 SetImageRotation
+				Self <-ILI_Name <-ILI_X 2.0 div <-ILI_Y 2.0 div -11 SetImagePosition
+				Self <-ILI_Name 0 0 0 0 SetImageColor #hide for now, color will be set in render
+				
+				<-LINES 1 add ->LINES
+			endif
+		loop
+	endif
     0 ->LINE_ALPHA
 
 :RenderLineImages # -

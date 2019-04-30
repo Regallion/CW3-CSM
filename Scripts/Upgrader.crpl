@@ -81,7 +81,7 @@ endif
 	<-PopupText SetPopupText
 endif
 <-Page 1 eq if
-	"Cost of upgrade is " <-BaseValue " plus " <-AddValue " per upgrade level of an emitter.
+	"Cost of upgrade is " <-BaseValue " plus " <-AddValue " energy per upgrade level of an emitter.
 	Every upgrade adds flat " <-EmissionEffect " to AC emissions
 	Upgrades at a speed of " 30 <-RequestRate asfloat 1 add div 2 round " packets per second" concat  concat concat concat concat concat concat concat ->PopupText
 	<-UpgradeLimit neq0 if
