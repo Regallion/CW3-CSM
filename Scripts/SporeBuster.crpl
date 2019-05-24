@@ -1,0 +1,63 @@
+#Custom friendly spore launcher. Expected to be unique.
+
+$Name:"SporeBuster"
+$BasePower:30.0 #Base payload in creeper levels
+$BaseDelay:20 #Base delay in seconds
+$BaseTargets:1 #base spores created
+$BaseBalls:"MAKE UNIQUE" #lol
+
+once 
+<-BaseDelay 30 mul SetTimer1
+endonce
+GetTimer1 eq0 if
+	@FindTarget
+	@Fire
+	<-BaseDelay 30 mul SetTimer1
+endif
+@SetText
+
+
+:awake
+0 OperateWhilePaused
+Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute Self CONST_NULLIFIERDAMAGES 0 SetUnitAttribute Self CONST_SUPPORTSDIGITALIS 0 SetUnitAttribute
+Self CONST_CREATEPZ 0 SetUnitAttribute
+Self "main" "CustomSporeTower" SetImage
+Self "main" 1.2 1.2 SetImageScale
+Self "main" 125 125 0 255  SetImageColor
+
+:FindTarget
+0 ->CurrDistance
+0 ->UnitDistance
+CreateList ->Targets
+CreateList ->Distances
+CurrentCoords 9999 TRUE GetAllUnitsInRange 0 do
+	->Unit
+	<-Unit "EmitterInterface.crpl" "EmitterType" GetScriptVar ->Type
+	<-Unit <-Type ".crpl" concat "state" GetScriptVar ->State
+	<-State 1 eq if
+		CurrentCoords <-Unit CONST_COORDX GetUnitAttribute <-Unit CONST_COORDY GetUnitAttribute Distance ->UnitDistance
+		<-BaseTargets 0 do
+			<-Distances I GetListElement ->Distance
+			<-Distance eq0 if
+				9999 ->Distance
+			endif
+			<-Distance <-UnitDistance gt if
+				<-Targets I <-Unit InsertListElement
+				<-Distances I <-UnitDistance InsertListElement
+				<-Targets <-BaseTargets  RemoveListElement
+				<-Distances <-BaseTargets  RemoveListElement
+				break
+			endif
+		loop
+	endif
+loop
+:Fire
+<-BaseTargets 0 do
+	CurrentCoords <-Targets I GetListElement CONST_COORDX GetUnitAttribute <-Targets I GetListElement CONST_COORDY GetUnitAttribute 1  <-BasePower neg CreateSpore
+loop 
+:SetText
+<-BaseTargets 1 eq if
+	"Will fire " <-BaseTargets " spore in " GetTimer1 30 div floor " seconds" concat concat concat concat SetPopupText
+else
+	"Will fire " <-BaseTargets " spores in " GetTimer1 30 div floor " seconds" concat concat concat concat SetPopupText
+endif

@@ -1,0 +1,114 @@
+#Custom friendly spore launcher. Expected to be unique.
+
+$Name:"SporeCharger"
+$PowerAlt:0.0 #Base payload alteration. You want it to be positive
+$DelayAlt:0 #Base delay alteration. You want it to be negative. Make sure it never goes to 0.
+$TargetsAlt:0 #Extra spores created
+
+once 
+"Name" "SporeBuster" GetCoresWithVar #Finds the main global script.
+	0 do
+		->SporeBuster
+		break
+	loop
+Self CONST_PACKETREQUESTDELAY 2 SetUnitAttribute
+Self CONST_MAXAMMO 100 SetUnitAttribute
+Self CONST_AMMO 0 SetUnitAttribute
+Self "main" 255 1 1 255  SetImageColor
+endonce
+<-Active not if
+	Self CONST_AMMO GetUnitAttribute Self CONST_MAXAMMO GetUnitAttribute eq if
+		1 ->Active
+		Self CONST_MAXAMMO 1000 SetUnitAttribute
+		Self CONST_AMMO 1000 SetUnitAttribute
+		Self CONST_PACKETREQUESTDELAY 0 SetUnitAttribute
+		<-SporeBuster "SporeBuster.crpl" "BasePower" <-SporeBuster "SporeBuster.crpl" "BasePower" GetScriptVar <-PowerAlt add SetScriptVar
+		<-SporeBuster "SporeBuster.crpl" "BaseDelay" <-SporeBuster "SporeBuster.crpl" "BaseDelay" GetScriptVar <-DelayAlt add SetScriptVar
+		<-SporeBuster "SporeBuster.crpl" "BaseTargets" <-SporeBuster "SporeBuster.crpl" "BaseTargets" GetScriptVar <-TargetsAlt add SetScriptVar
+		1 ->AmmoDrain
+		Self "main" 1 255 1 255  SetImageColor
+	endif
+else
+	<-Timer 1 add ->Timer
+	<-Timer 5 mod eq0 if
+		Self CONST_AMMO Self CONST_AMMO GetUnitAttribute <-AmmoDrain sub SetUnitAttribute
+	endif
+	<-Timer 60 eq if
+		0 ->Timer
+		<-AmmoDrain 1 add ->AmmoDrain
+	endif
+	Self CONST_AMMO GetUnitAttribute eq0 if
+		0 ->Active
+		Self CONST_PACKETREQUESTDELAY 2 SetUnitAttribute
+		Self CONST_MAXAMMO 100 SetUnitAttribute
+		<-SporeBuster "SporeBuster.crpl" "BasePower" <-SporeBuster "SporeBuster.crpl" "BasePower" GetScriptVar <-PowerAlt sub SetScriptVar
+		<-SporeBuster "SporeBuster.crpl" "BaseDelay" <-SporeBuster "SporeBuster.crpl" "BaseDelay" GetScriptVar <-DelayAlt sub SetScriptVar
+		<-SporeBuster "SporeBuster.crpl" "BaseTargets" <-SporeBuster "SporeBuster.crpl" "BaseTargets" GetScriptVar <-TargetsAlt sub SetScriptVar
+		Self "main" 255 1 1 255  SetImageColor
+	endif
+
+endif
+@SetText
+:awake
+0 OperateWhilePaused
+Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute Self CONST_NULLIFIERDAMAGES 0 SetUnitAttribute Self CONST_SUPPORTSDIGITALIS 0 SetUnitAttribute
+Self CONST_CREATEPZ 0 SetUnitAttribute
+Self "main" "CustomEmitter" SetImage
+Self "main" 1.2 1.2 SetImageScale
+<-Active if
+	Self "main" 1 255 1 255  SetImageColor
+else
+	Self "main" 255 1 1 255  SetImageColor
+endif
+Self CONST_CANREQUESTAMMO 1 SetUnitAttribute
+Self CONST_SHOWAMMOBAR 1 SetUnitAttribute
+Self CONST_REQUESTPACKETS 1 SetUnitAttribute
+Self CONST_CONNECTABLE 1 SetUnitAttribute
+:SetText
+<-Active if
+	<-PowerAlt 0 gt if
+		"Increases the spore power by " <-PowerAlt concat ->PopupText
+	else
+		"Decreases the spore power by " <-PowerAlt concat ->PopupText
+	endif
+	<-DelayAlt 0 lt if
+		<-PopupText "
+		Decreases delay by " <-DelayAlt concat concat ->PopupText
+	else
+		<-PopupText "
+		Increases delay by " <-DelayAlt concat concat ->PopupText
+	endif
+	<-TargetsAlt 0 gt if
+		<-PopupText "
+		Increases total targets by " <-TargetsAlt concat concat ->PopupText
+	else
+		<-PopupText "
+		Decreases total targets by " <-TargetsAlt concat concat ->PopupText
+	endif
+	<-PopupText "
+	Loses " <-AmmoDrain 6 mul " ammo every second" concat concat concat ->PopupText
+	<-PopupText SetPopupText
+else
+	<-PowerAlt 0 gt if
+		"Will increase the spore power by " <-PowerAlt concat ->PopupText
+	else
+		"Will decrease the spore power by " <-PowerAlt concat ->PopupText
+	endif
+	<-DelayAlt 0 lt if
+		<-PopupText "
+		Will decrease delay by " <-DelayAlt concat concat ->PopupText
+	else
+		<-PopupText "
+		Will increase delay by " <-DelayAlt concat concat ->PopupText
+	endif
+	<-TargetsAlt 0 gt if
+		<-PopupText "
+		Will increase total targets by " <-TargetsAlt concat concat ->PopupText
+	else
+		<-PopupText "
+		Will decrease total targets by " <-TargetsAlt concat concat ->PopupText
+	endif
+	<-PopupText "
+	Charge this with ammo to activate" concat ->PopupText
+	<-PopupText SetPopupText
+endif
