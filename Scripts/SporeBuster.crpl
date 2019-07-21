@@ -1,7 +1,7 @@
 #Custom friendly spore launcher. Expected to be unique.
 
 $Name:"SporeBuster"
-$BasePower:30.0 #Base payload in creeper levels
+$BasePower:90.0 #Base payload in creeper levels
 $BaseDelay:20 #Base delay in seconds
 $BaseTargets:1 #base spores created
 $BaseBalls:"MAKE UNIQUE" #lol

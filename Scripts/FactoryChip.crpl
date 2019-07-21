@@ -261,7 +261,8 @@ endif
     Self "selector" "Custom20" SetImage
     Self "selector" -3 SetImagePositionZ
     Self "selector" 255 255 255 0 SetImageColor
-
+	2 @ChangeShadowSize
+	
 :FindAndActivateAlchemiter
 CurrentCoords 3 GetEnemyUnitsInRange 0 do
 	->unit

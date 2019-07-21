@@ -1,9 +1,16 @@
-#Custom friendly spore launcher. Expected to be unique.
+#Power this to empower spore launchers. Expected to have downtime.
 
 $Name:"SporeCharger"
 $PowerAlt:0.0 #Base payload alteration. You want it to be positive
 $DelayAlt:0 #Base delay alteration. You want it to be negative. Make sure it never goes to 0.
 $TargetsAlt:0 #Extra spores created
+$DrainIncrease:1 #how much ammo drain is increased by
+$AmmoDrainFreq:5 #will perform ammo drain once every that many frames. DO NOT SET TO 0 OR NEGATIVE
+$AmmoDrainIncreaseFreq:60 #Will perform ammo drain increase once every that many frames. DO NOT SET TO 0 OR NEGATIVE
+$AmmoToActivate:100 #How much ammo to go from inactive to active
+$InactivePacketDelay:2 #Delay in frames between packets when inactive.
+$ActiveAmmo:1000 #How much ammo it has when active
+$ActivePacketDelay:0#Delay in framesbetween packets when active
 
 once 
 "Name" "SporeBuster" GetCoresWithVar #Finds the main global script.
@@ -11,36 +18,36 @@ once
 		->SporeBuster
 		break
 	loop
-Self CONST_PACKETREQUESTDELAY 2 SetUnitAttribute
-Self CONST_MAXAMMO 100 SetUnitAttribute
+Self CONST_PACKETREQUESTDELAY <-InactivePacketDelay SetUnitAttribute
+Self CONST_MAXAMMO <-AmmoToActivate SetUnitAttribute
 Self CONST_AMMO 0 SetUnitAttribute
 Self "main" 255 1 1 255  SetImageColor
 endonce
 <-Active not if
 	Self CONST_AMMO GetUnitAttribute Self CONST_MAXAMMO GetUnitAttribute eq if
 		1 ->Active
-		Self CONST_MAXAMMO 1000 SetUnitAttribute
-		Self CONST_AMMO 1000 SetUnitAttribute
-		Self CONST_PACKETREQUESTDELAY 0 SetUnitAttribute
+		Self CONST_MAXAMMO <-ActiveAmmo SetUnitAttribute
+		Self CONST_AMMO <-ActiveAmmo SetUnitAttribute
+		Self CONST_PACKETREQUESTDELAY <-ActivePacketDelay SetUnitAttribute
 		<-SporeBuster "SporeBuster.crpl" "BasePower" <-SporeBuster "SporeBuster.crpl" "BasePower" GetScriptVar <-PowerAlt add SetScriptVar
 		<-SporeBuster "SporeBuster.crpl" "BaseDelay" <-SporeBuster "SporeBuster.crpl" "BaseDelay" GetScriptVar <-DelayAlt add SetScriptVar
 		<-SporeBuster "SporeBuster.crpl" "BaseTargets" <-SporeBuster "SporeBuster.crpl" "BaseTargets" GetScriptVar <-TargetsAlt add SetScriptVar
-		1 ->AmmoDrain
+		<-DrainIncrease ->AmmoDrain
 		Self "main" 1 255 1 255  SetImageColor
 	endif
 else
 	<-Timer 1 add ->Timer
-	<-Timer 5 mod eq0 if
+	<-Timer <-AmmoDrainFreq mod eq0 if
 		Self CONST_AMMO Self CONST_AMMO GetUnitAttribute <-AmmoDrain sub SetUnitAttribute
 	endif
-	<-Timer 60 eq if
-		0 ->Timer
-		<-AmmoDrain 1 add ->AmmoDrain
+	<-Timer <-AmmoDrainIncreaseFreq mod eq0 if
+		<-AmmoDrain <-DrainIncrease add ->AmmoDrain
 	endif
 	Self CONST_AMMO GetUnitAttribute eq0 if
 		0 ->Active
-		Self CONST_PACKETREQUESTDELAY 2 SetUnitAttribute
-		Self CONST_MAXAMMO 100 SetUnitAttribute
+		0 ->Timer
+		Self CONST_PACKETREQUESTDELAY <-InactivePacketDelay SetUnitAttribute
+		Self CONST_MAXAMMO <-AmmoToActivate SetUnitAttribute
 		<-SporeBuster "SporeBuster.crpl" "BasePower" <-SporeBuster "SporeBuster.crpl" "BasePower" GetScriptVar <-PowerAlt sub SetScriptVar
 		<-SporeBuster "SporeBuster.crpl" "BaseDelay" <-SporeBuster "SporeBuster.crpl" "BaseDelay" GetScriptVar <-DelayAlt sub SetScriptVar
 		<-SporeBuster "SporeBuster.crpl" "BaseTargets" <-SporeBuster "SporeBuster.crpl" "BaseTargets" GetScriptVar <-TargetsAlt sub SetScriptVar
@@ -65,28 +72,41 @@ Self CONST_SHOWAMMOBAR 1 SetUnitAttribute
 Self CONST_REQUESTPACKETS 1 SetUnitAttribute
 Self CONST_CONNECTABLE 1 SetUnitAttribute
 :SetText
+"" ->PopupText
 <-Active if
 	<-PowerAlt 0 gt if
 		"Increases the spore power by " <-PowerAlt concat ->PopupText
 	else
-		"Decreases the spore power by " <-PowerAlt concat ->PopupText
+		<-PowerAlt 0 eq if
+		
+		else
+			"Decreases the spore power by " <-PowerAlt concat ->PopupText
+		endif
 	endif
 	<-DelayAlt 0 lt if
 		<-PopupText "
 		Decreases delay by " <-DelayAlt concat concat ->PopupText
 	else
-		<-PopupText "
-		Increases delay by " <-DelayAlt concat concat ->PopupText
+		<-DelayAlt 0 eq if
+		
+		else
+			<-PopupText "
+			Increases delay by " <-DelayAlt concat concat ->PopupText
+		endif
 	endif
 	<-TargetsAlt 0 gt if
 		<-PopupText "
 		Increases total targets by " <-TargetsAlt concat concat ->PopupText
 	else
-		<-PopupText "
-		Decreases total targets by " <-TargetsAlt concat concat ->PopupText
+		<-PowerAlt 0 eq if
+		
+		else
+			<-PopupText "
+			Decreases total targets by " <-TargetsAlt concat concat ->PopupText
+		endif
 	endif
 	<-PopupText "
-	Loses " <-AmmoDrain 6 mul " ammo every second" concat concat concat ->PopupText
+	Loses " <-AmmoDrain 30 <-AmmoDrainFreq div mul " ammo every second" concat concat concat ->PopupText
 	<-PopupText SetPopupText
 else
 	<-PowerAlt 0 gt if
@@ -111,4 +131,4 @@ else
 	<-PopupText "
 	Charge this with ammo to activate" concat ->PopupText
 	<-PopupText SetPopupText
-endif
+endif 

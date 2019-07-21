@@ -175,31 +175,32 @@ endif
 
 
 :SetBridgeState #sets the state of all connected bridges and tells them to act on it.
--1 ->BridgeState
-<-State 0 eq if
-	0 ->OnBridgeState
-	1 ->OffBridgeState
-endif
-<-State 1 eq if
-	1 ->OnBridgeState
-	0 ->OffBridgeState
-endif
+<-Decontaminated if
+	-1 ->BridgeState
+	<-State 0 eq if
+		0 ->OnBridgeState
+		1 ->OffBridgeState
+	endif
+	<-State 1 eq if
+		1 ->OnBridgeState
+		0 ->OffBridgeState
+	endif
 
-<-OnBridgeState 0 gte if
-	"BridgeID" <-OnControllerID GetCoresWithVar
-		0 do
-			->BridgeID
-			<-BridgeID "FlipBridgeCore.crpl" "State" <-OnBridgeState SetScriptVar
-			<-BridgeID "FlipBridgeCore.crpl" "Activated" 1 SetScriptVar
-		loop
-	"BridgeID" <-OffControllerID GetCoresWithVar
-		0 do
-			->BridgeID
-			<-BridgeID "FlipBridgeCore.crpl" "State" <-OffBridgeState SetScriptVar
-			<-BridgeID "FlipBridgeCore.crpl" "Activated" 1 SetScriptVar
-		loop
+	<-OnBridgeState 0 gte if
+		"BridgeID" <-OnControllerID GetCoresWithVar
+			0 do
+				->BridgeID
+				<-BridgeID "FlipBridgeCore.crpl" "State" <-OnBridgeState SetScriptVar
+				<-BridgeID "FlipBridgeCore.crpl" "Activated" 1 SetScriptVar
+			loop
+		"BridgeID" <-OffControllerID GetCoresWithVar
+			0 do
+				->BridgeID
+				<-BridgeID "FlipBridgeCore.crpl" "State" <-OffBridgeState SetScriptVar
+				<-BridgeID "FlipBridgeCore.crpl" "Activated" 1 SetScriptVar
+			loop
+	endif
 endif
-
 
 
 

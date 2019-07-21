@@ -259,3 +259,24 @@ endif
 		CurrentCoords <-tAmount SetCreeperNoLower
 	endif
 	<-ACinterval Delay
+:destroyed
+<-Lives 0 gt if #if we have lives, deactivate enemy empowerment
+	CurrentCoords <-EmpowerRange GetEnemyUnitsInRange
+	0 do
+		->Unit
+		<-Unit "EmitterInterface.crpl" "EmitterType" GetScriptVar ->EmitterType
+		<-Unit GetUnitType "CRPLCORE" eq <-Unit Self neq and if
+			<-Unit <-EmitterType ".crpl" concat "Empowerment" <-Unit <-EmitterType ".crpl" concat "Empowerment" GetScriptVar  <-EmpowerPow sub SetScriptVar
+		endif
+	loop
+endif
+<-state 0 eq if #if we are friendly, deactivate friendly empowerments
+	CurrentCoords <-ACEmpowerRange GetEnemyUnitsInRange
+	0 do
+		->Unit
+		<-Unit "EmitterInterface.crpl" "EmitterType" GetScriptVar ->EmitterType
+		<-Unit GetUnitType "CRPLCORE" eq <-Unit Self neq and if
+			<-Unit <-EmitterType ".crpl" concat "EmpowermentAC" <-Unit <-EmitterType ".crpl" concat "EmpowermentAC" GetScriptVar  <-ACEmpowerPow sub SetScriptVar
+		endif
+	loop
+endif
