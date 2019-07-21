@@ -4,16 +4,31 @@ $Name:"SporeBuster"
 $BasePower:90.0 #Base payload in creeper levels
 $BaseDelay:20 #Base delay in seconds
 $BaseTargets:1 #base spores created
+$EnableOverkill:0 # Defines how to deal when BaseTargets is greater than the number of valid targets.
+#If 1, extra spores will be shot at random emitters from the target list.
+#If 2, extra spores are evenly distributed to targets.
+#If 0, extra spores are discarded.
 $BaseBalls:"MAKE UNIQUE" #lol
 
 once 
 <-BaseDelay 30 mul SetTimer1
 endonce
-GetTimer1 eq0 if
-	@FindTarget
-	@Fire
-	<-BaseDelay 30 mul SetTimer1
-endif
+<-EnableOverkill not if
+	GetTimer1 eq0 if
+		@FindTarget
+		@Fire
+		<-BaseDelay 30 mul SetTimer1
+	endif
+else
+	<-Targets GetListCount eq0 GetTimer1 eq0 and if
+		@FindTarget
+		<-BaseDelay 30 mul SetTimer1
+	endif
+	<-Targets GetListCount neq0 GetTimer2 eq0 and if
+		@Fire
+		3 SetTimer2
+	endif
+endif 
 @SetText
 
 
@@ -51,13 +66,41 @@ CurrentCoords 9999 TRUE GetAllUnitsInRange 0 do
 		loop
 	endif
 loop
+<-EnableOverkill 1 eq <-Targets GetListCount <-BaseTargets lt and <-Targets GetListCount neq0 and if 
+	<-BaseTargets <-Targets GetListCount sub ->Extras
+	<-Targets GetListCount ->TargetCount
+		<-Extras 0 do
+			0 <-TargetCount RandInt ->Index
+			<-Targets dup <-Index GetListElement AppendToList
+		loop
+endif
+<-EnableOverkill 2 eq <-Targets GetListCount <-BaseTargets lt and <-Targets GetListCount neq0 and if 
+	<-BaseTargets <-Targets GetListCount mod ->Extras
+	<-BaseTargets <-Extras sub <-Targets GetListCount div 1 sub ->Multi
+	<-Targets GetListCount ->TargetCount
+	<-Multi 0 do
+		<-TargetCount 0 do
+			<-Targets dup I GetListElement AppendToList
+		loop
+	loop
+	<-Extras 0 do
+		<-Targets dup I GetListElement AppendToList
+	loop
+endif
 :Fire
-<-BaseTargets 0 do
-	CurrentCoords <-Targets I GetListElement CONST_COORDX GetUnitAttribute <-Targets I GetListElement CONST_COORDY GetUnitAttribute 1  <-BasePower neg CreateSpore
-loop 
+<-EnableOverkill not if
+	<-BaseTargets 0 do
+		CurrentCoords <-Targets I GetListElement CONST_COORDX GetUnitAttribute <-Targets I GetListElement CONST_COORDY GetUnitAttribute 1  <-BasePower neg CreateSpore
+	loop 
+else
+	CurrentCoords <-Targets 0 GetListElement CONST_COORDX GetUnitAttribute <-Targets 0 GetListElement CONST_COORDY GetUnitAttribute 1  <-BasePower neg CreateSpore
+	<-Targets 0 RemoveListElement
+endif
+
+
 :SetText
 <-BaseTargets 1 eq if
 	"Will fire " <-BaseTargets " spore in " GetTimer1 30 div floor " seconds" concat concat concat concat SetPopupText
 else
-	"Will fire " <-BaseTargets " spores in " GetTimer1 30 div floor " seconds" concat concat concat concat SetPopupText
+	"Will fire up to " <-BaseTargets " spores in " GetTimer1 30 div floor " seconds" concat concat concat concat SetPopupText
 endif
