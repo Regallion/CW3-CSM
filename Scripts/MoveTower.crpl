@@ -7,6 +7,7 @@ $DecontaminationCooldown:5 #Decontamination cooldown before use
 $RestrictMove:0 #If restricted, can only move to 3x3 free land.
 once
 	0 ->Movable
+	1 ->occupied
 	"Name" "walldigger" GetCoresWithVar if #Acquires variables from walldigger to ensure coherent terrain alterations.
 		->Walldigger
 		ClearStack
@@ -83,6 +84,7 @@ GetTimer3 eq0 <-Liberated 1 eq <-Decontaminated 0 eq and and if #If decon succes
 	Self "main" 255 255 255 255 SetImageColor
 	1 ->Decontaminated
 	1 ->Movable
+	0 ->occupied
 	@SetImageAndText
 endif
 
