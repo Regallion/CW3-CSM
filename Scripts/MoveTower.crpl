@@ -1,7 +1,11 @@
-#FreeTower. Insert Chips to have effects. Depends 100% on chips to have an effect.
-$ImageNormal:"Custom18_128"
+#MoveTower. Insert Chips to have effects. Depends 100% on chips to have an effect. Can be moved as long as it's empty
+$ImageImmovable:"Custom20_128"
+$ImageMovable:"Custom21_128"
 $ImageLine:"Custom3pp"
+$MoveSpeed:1.0 #Movement speed of tower
+$DecontaminationCooldown:5 #Decontamination cooldown before use
 once
+	0 ->Movable
 	"Name" "walldigger" GetCoresWithVar if #Acquires variables from walldigger to ensure coherent terrain alterations.
 		->Walldigger
 		ClearStack
@@ -22,11 +26,63 @@ once
 	HideTraceLog
 	ClearTraceLog
 	@Awake
-   
+	Self "selector" 255 255 255 0 SetImageColor
 	-1 ->InsertedChip #Assumes this is empty. If the Tower starts with a chip on top, the 1 delay on the chip will set this after the initialization
 endonce
 GetTimer0 eq0 if #Timer for removing temporary texts
     "" SetText
+endif
+<-InsertedChip -1 neq if
+	1 ->Liberated
+	1 ->Decontaminated
+	0 ->Movable
+	0 SetTimer3
+	@SetImageAndText
+endif
+
+<-Liberated not if
+Self "main" 80 80 80 255 SetImageColor
+	CurrentCoords GetCreeper -4 lte if
+		"Initializing decontamination procedure" SetText
+		50 220 50 255 SetTextColor 20 SetTextY 1.1 SetTextSize
+		150 SetTimer0
+		<-DecontaminationCooldown 30 mul SetTimer3
+		1 ->Liberated
+		Self "main" 130 130 130 255 SetImageColor
+		@SetImageAndText
+	else
+		@SetImageAndText
+		return
+	endif
+endif
+
+
+
+
+GetTimer3 neq0 if #Decontamination timer. Continuosly checks if the tower wasn't overtaken by creeper again. If it was, aborts the liberation.
+    CurrentCoords GetCreeper -4 lte if
+		@SetImageAndText
+		return
+	else
+		"Unacceptable contamination levels, aborting decontamination" SetText
+        220 50 50 255 SetTextColor 20 SetTextY 1.1 SetTextSize
+		150 SetTimer0
+		0 ->Liberated
+		0 SetTimer3
+		@SetImageAndText
+		return
+	endif
+else
+    
+endif
+GetTimer3 eq0 <-Liberated 1 eq <-Decontaminated 0 eq and and if #If decon successful, activates the chip.
+	"Decontamination succesful" SetText
+    50 220 50 255 SetTextColor 20 SetTextY 1.1 SetTextSize
+	150 SetTimer0
+	Self "main" 255 255 255 255 SetImageColor
+	1 ->Decontaminated
+	1 ->Movable
+	@SetImageAndText
 endif
 
 <-state <-STATE_INACTIVE eq if #base state
@@ -34,7 +90,8 @@ endif
 		@SetImageAndText
 	else
 		<-STATE_ACTIVE ->state
-		"Activating" SetText
+		"Engaging chip function" SetText
+
         50 220 50 255 SetTextColor 20 SetTextY 1.0 SetTextSize
         150 SetTimer0
 	endif
@@ -44,8 +101,8 @@ endif
 		@SetImageAndText
 	else
 		<-STATE_INACTIVE ->state
-		"SHUTTING DOWN" SetText
-        220 50 50 255 SetTextColor 20 SetTextY 1.0 SetTextSize
+		"Enabling Movement" SetText
+        250 250 50 255 SetTextColor 20 SetTextY 1.0 SetTextSize
         150 SetTimer0
 		@Shutdown
 		return
@@ -220,7 +277,85 @@ endif
 	<-InsertedChip "TowerChip.crpl" "TimeSpent" <-InsertedChip "TowerChip.crpl" "TimeSpent"  GetScriptVar 1 add SetScriptVar
 endif
 
+<-Movable if
+		#Check for click event
+	0 GetMouseButtonDown if
+		#Check whether the click was in the UI area of the screen. We want to ignore those clicks.
+		GetMouseScreenPixelPosition 96 gt if
+			#Check whether the unit is selected yet.
+			<-selected eq0 if
+				#If the unit is not currently selected, we check to see if the click happened within a certain radius of the unit.
+				# 2 -> 0.75, 3 -> 1, 4 -> 2
+				GetMouseCell CurrentCoords Distance 2 lt if
+					#Make sure we didn't already select another unit this click
+					"selected" 1 GetCoresWithVar dup eq0 if
+						pop
+						#Sets the selected state. We'll get to applying the effects in another block.
+						1 ->selected
+					else
+						0 do
+							pop
+						loop
+					endif
+					#Kill the selection process if shift is held. Multi unit selection should not be possible for this unit, including for vanilla units.
+					"RightShift" GetKey neq0 "LeftShift" GetKey neq0 or if
+						0 ->selected
+					endif
+					#The 1 delay is to prevent aberrant behavior with clicks being processed multiple times.
+					1 Delay
+				endif
+			else
+				#This else block will execute if the unit is already selected. Now we check whether the mouse location is valid.
+				<-greenShadow if
+					AbortMove
+					ClearQueuedMoves
+					<-X <-Y PixelToCell <-MoveSpeed QueueMove
+					1 ->moving
+				endif
+				0 ->greenShadow
+				0 ->selected
+			endif
+		endif
+	endif
 
+	#Apply effects depending on selected state. Most of these could be triggered on change of the state instead, but I don't trust all states to be stored properly on save and load so I've updated these properties every frame. As long as there aren't tons of these units on the map it shouldn't be a performance concern.
+	<-selected eq0 if
+		#These important part of these SetImageColor commands is the final 0. That's the alpha value. That means these calls will set the images to be invisible.
+		Self "shadow" 255 0 0 0 SetImageColor
+		Self "range1" 255 0 0 0 SetImageColor
+		self "selector" <-selectorRotation SetImageRotation
+		Self "selector" 1.35 dup SetImageScale
+		<-selectorRotation add(0.048 <-MoveSpeed mul) if(dup PI 2.0 mul gt) sub(PI 2.0 mul) endif ->selectorRotation
+		<-moving if
+			Self "selector" 0 0 0 0 SetImageColor
+		else
+			Self "selector" 10 10 255 225 SetImageColor
+		endif
+		#I don't really think this is necessary, but it's just to give the image a designated location after it stops following the mouse.
+		self "shadow" 0 0 -5.9 SetImagePosition
+	else
+		#If the unit is selected first we display the selector image.
+		Self "selector" 255 255 255 255 SetImageColor
+		<-selectorRotation add(0.096 <-MoveSpeed mul) if(dup PI 2.0 mul gt) sub(PI 2.0 mul) endif ->selectorRotation
+		self "selector" <-selectorRotation SetImageRotation
+		GetMousePosition ->Y ->X 
+		1 ->greenShadow
+		Self "shadow" 0 240 0 240 SetImageColor
+		CurrentPixelCoords ->uy ->ux
+		<-Y <-uy sub ->idy
+		<-X <-ux sub ->idx
+		Self "shadow" <-idx <-idy -5.9 SetImagePosition
+		Self "shadow" 0 240 0 240 SetImageColor
+		#Finally, check to see if the user presses "Space" or "Escape" and deselect the unit if they do.
+		"Space" GetKeyDown "Escape" GetKeyDown or if 0 ->selected endif
+	endif
+
+	<-moving if
+		GetQueuedMoveCount eq0 if
+			0 ->moving
+		endif
+	endif
+endif
 :Shutdown #Generic function to restore tower to inactive state.
 <-Entombed if
 	@Detomb
@@ -337,8 +472,18 @@ loop
 	<-state <-STATE_INACTIVE eq if #base state
         "Insert a tower chip to activate" ->PopText
     endif
+	<-Movable if
+		Self "main" <-ImageMovable SetImage
+		Self "main" 0 0 -4 SetImagePosition
+	else
+		Self "main" <-ImageImmovable SetImage
+		Self "main" 0 0 -4 SetImagePosition
+		Self "shadow" 0 0 0 0 SetImageColor
+		Self "selector" 0 0 0 0 SetImageColor
+	endif
     <-state <-STATE_ACTIVE eq if
-      "" ->PopText
+		"" ->PopText
+
 	  # <-ChipType <-! 0 eq if
 		#	<-Creeped not if
 		#		"Maintaining " <-Power floor " reactors" concat concat ->PopText 
@@ -363,9 +508,16 @@ loop
 		#	"Shooting a firework every  " <-Duration 30.0 div 0 round " seconds" concat concat ->PopText 
 		#endif
     endif
-	
+	<-Liberated not if
+		"Requires decontamination before use" ->PopText
+	endif
+	GetTimer3 neq0 if #Timer display
+		"Decontamination in progress, completion in " GetTimer3 30.0 div 0 Round " seconds" concat concat ->PopText
+	endif
 	<-PopText SetPopupText
 :Awake
+	ClearTraceLog
+	HideTraceLog	
     Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute 
     Self CONST_NULLIFIERDAMAGES 0 SetUnitAttribute 
     Self CONST_SUPPORTSDIGITALIS 0 SetUnitAttribute 
@@ -373,9 +525,12 @@ loop
     Self CONST_TAKEMAPSPACE 1 SetUnitAttribute
 	Self CONST_CELLWIDTH 3 SetUnitAttribute
 	Self CONST_CELLHEIGHT 3 SetUnitAttribute
-	Self "main" <-ImageNormal SetImage
 	Self "main" 0 0 -4 SetImagePosition
-	1 ->Size
+	Self "shadow" "Custom33" SetImage
+    Self "shadow" -5.9 SetImagePositionZ
+	Self "selector" "Custom20" SetImage
+    Self "selector" -7 SetImagePositionZ
+    1 ->Size
     0 ->Generator #setting up types
 	1 ->Negator
 	2 ->Firework

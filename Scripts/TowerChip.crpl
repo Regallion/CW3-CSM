@@ -1,5 +1,5 @@
 
-#Specialized unit that can be slotted onto FreeTowers to provide effects.
+#Specialized unit that can be slotted onto FreeTowers or MoveTowers to provide effects.
 # ------------------------------------------
 
 #other scripts required to accomodate this script: FreeTower
@@ -161,7 +161,7 @@ endif
                 @UnoccupyTower
                 <-TargetTower ->MovingTower
                 @OccupyTower
-				<-TargetTower "FreeTower.crpl" "Name" GetScriptVar "" concat "Tower" eq if
+				<-TargetTower "FreeTower.crpl" "Name" GetScriptVar "" concat "Tower" eq <-TargetTower "MoveTower.crpl" "Name" GetScriptVar "" concat "Tower" eq or if
 				<-TargetTower CONST_COORDX GetUnitAttribute <-TargetTower CONST_COORDY GetUnitAttribute <-ChipMovementSpeed QueueMove
 				endif
 				<-TargetTower "BlockerDocker.crpl" "IsBlockerDocker" GetScriptVar 1 eq if
@@ -222,7 +222,7 @@ endif
 		0 ->moving
 	endif
 endif
-
+ClearStack
 :awake
     Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute 
     Self CONST_NULLIFIERDAMAGES 0 SetUnitAttribute 
@@ -254,10 +254,10 @@ endif
 	Self "selector" 0.3 0.3 SetImageScale
 
 :FindAndActivateTower
-CurrentCoords 3 GetEnemyUnitsInRange 0 do
+CurrentCoords 2 GetEnemyUnitsInRange 0 do
 	->unit
 	<-unit GetUnitType "CRPLCORE" eq if
-		<-unit "FreeTower.crpl" "Size" GetScriptVar if
+		<-unit "FreeTower.crpl" "Size" GetScriptVar <-unit "MoveTower.crpl" "Size" GetScriptVar or if
 			<-unit ->AssignedTower
             <-unit ->MovingTower
 			-1 ->TargetTower
@@ -266,6 +266,11 @@ CurrentCoords 3 GetEnemyUnitsInRange 0 do
 			<-AssignedTower CONST_COORDY GetUnitAttribute ->falg_ty
 			Self CONST_COORDX <-falg_tx SetUnitAttribute
 			Self CONST_COORDY <-falg_ty SetUnitAttribute
+			
+			<-AssignedTower CONST_PIXELCOORDX GetUnitAttribute ->falg_tx
+			<-AssignedTower CONST_PIXELCOORDY GetUnitAttribute ->falg_ty
+			Self CONST_PIXELCOORDX <-falg_tx SetUnitAttribute
+			Self CONST_PIXELCOORDY <-falg_ty SetUnitAttribute
 			@ActivateTower
 			return
 		endif
@@ -291,12 +296,14 @@ endif
 :OccupyTower
     <-MovingTower -1 neq if
         <-MovingTower "FreeTower.crpl" "occupied" 1 SetScriptVar
+		<-MovingTower "MoveTower.crpl" "occupied" 1 SetScriptVar <-MovingTower "MoveTower.crpl" "Movable" 0 SetScriptVar
 		<-MovingTower "BlockerDocker.crpl" "occupied" 1 SetScriptVar
     endif
 
 :UnoccupyTower
     <-MovingTower -1 neq if
         <-MovingTower "FreeTower.crpl" "occupied" 0 SetScriptVar
+		<-MovingTower "MoveTower.crpl" "occupied" 0 SetScriptVar <-MovingTower "MoveTower.crpl" "Movable" 1 SetScriptVar
 		<-MovingTower "BlockerDocker.crpl" "occupied" 0 SetScriptVar
     endif
 
@@ -305,7 +312,7 @@ endif
     GetMouseCell 2 GetEnemyUnitsInRange 0 do
         ->unit
         <-unit GetUnitType "CRPLCORE" eq if
-           <-unit "FreeTower.crpl" "Name" GetScriptVar "" concat "Tower" eq <-unit "FreeTower.crpl" "occupied" GetScriptVar not and if
+           <-unit "FreeTower.crpl" "Name" GetScriptVar "" concat "Tower" eq <-unit "FreeTower.crpl" "occupied" GetScriptVar not and <-unit "MoveTower.crpl" "Name" GetScriptVar "" concat "Tower" eq <-unit "MoveTower.crpl" "occupied" GetScriptVar not and <-unit "MoveTower.crpl" "moving" GetScriptVar not and or if
 		        1 ->greenShadow
 				<-unit ->TargetTower
                 <-unit CONST_COORDX GetUnitAttribute ->targetX
@@ -403,14 +410,21 @@ endif
 :ActivateTower
 <-ChipToTowerParameters GetListCount 0 do #Passes paramters to Tower
 	<-AssignedTower "FreeTower.crpl" <-ChipToTowerParameters I GetListElement dup <-! SetScriptVar
+	<-AssignedTower "MoveTower.crpl" <-ChipToTowerParameters I GetListElement dup <-! SetScriptVar
 loop
 <-AssignedTower "FreeTower.crpl" "InsertedChip" Self SetScriptVar
-
-<-AssignedTower "FreeTower.crpl" "Size" GetScriptVar @TrueSizeToSize @ChangeSize
+<-AssignedTower "FreeTower.crpl" "Size" GetScriptVar dup if
+	@TrueSizeToSize @ChangeSize
+ endif
+<-AssignedTower "MoveTower.crpl" "InsertedChip" Self SetScriptVar
+<-AssignedTower "MoveTower.crpl" "Size" GetScriptVar dup if
+	@TrueSizeToSize @ChangeSize
+ endif
 
 
 :DeactivateTower
 <-AssignedTower "FreeTower.crpl" "InsertedChip" -1 SetScriptVar
+<-AssignedTower "MoveTower.crpl" "InsertedChip" -1 SetScriptVar
 -1 ->AssignedTower
 1 @ChangeSize
 
