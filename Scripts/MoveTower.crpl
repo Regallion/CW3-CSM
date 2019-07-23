@@ -4,6 +4,7 @@ $ImageMovable:"Custom21_128"
 $ImageLine:"Custom3pp"
 $MoveSpeed:1.0 #Movement speed of tower
 $DecontaminationCooldown:5 #Decontamination cooldown before use
+$RestrictMove:0 #If restricted, can only move to 3x3 free land.
 once
 	0 ->Movable
 	"Name" "walldigger" GetCoresWithVar if #Acquires variables from walldigger to ensure coherent terrain alterations.
@@ -338,14 +339,23 @@ endif
 		Self "selector" 255 255 255 255 SetImageColor
 		<-selectorRotation add(0.096 <-MoveSpeed mul) if(dup PI 2.0 mul gt) sub(PI 2.0 mul) endif ->selectorRotation
 		self "selector" <-selectorRotation SetImageRotation
-		GetMousePosition ->Y ->X 
-		1 ->greenShadow
-		Self "shadow" 0 240 0 240 SetImageColor
-		CurrentPixelCoords ->uy ->ux
-		<-Y <-uy sub ->idy
-		<-X <-ux sub ->idx
-		Self "shadow" <-idx <-idy -5.9 SetImagePosition
-		Self "shadow" 0 240 0 240 SetImageColor
+		
+		<-RestrictMove if
+			@ValidateMove
+		else
+			GetMousePosition ->Y ->X 
+			1 ->greenShadow
+		endif
+		<-greenShadow if
+			Self "shadow" 0 240 0 240 SetImageColor
+			CurrentPixelCoords ->uy ->ux
+			<-Y <-uy sub ->idy
+			<-X <-ux sub ->idx
+			Self "shadow" <-idx <-idy -5.9 SetImagePosition
+			Self "shadow" 0 240 0 240 SetImageColor
+		else
+			Self "shadow" 240 0 0 240 SetImageColor
+		endif
 		#Finally, check to see if the user presses "Space" or "Escape" and deselect the unit if they do.
 		"Space" GetKeyDown "Escape" GetKeyDown or if 0 ->selected endif
 	endif
@@ -356,6 +366,45 @@ endif
 		endif
 	endif
 endif
+:ValidateMove
+
+GetMousePosition ->Y ->X 
+GetMouseCell ->CY ->CX
+CurrentPixelCoords ->uy ->ux
+<-Y <-uy sub ->idy
+<-X <-ux sub ->idx
+Self "shadow" <-idx <-idy -5.9 SetImagePosition
+0 ->LastTerrain
+0 ->failed
+1 ->greenShadow
+<-CY 2 add <-CY 1 sub do
+	<-failed if
+		break
+	endif
+	<-CX 2 add <-CX 1 sub do
+		I J GetCellOccupiedCount neq0 if
+			0 ->greenShadow
+			1 ->failed
+			break
+		endif
+		I J GetTerrain ->Terrain
+		<-LastTerrain neq0 if
+			<-Terrain <-LastTerrain neq if
+				0 ->greenShadow
+				1 ->failed
+				break
+			endif
+		endif
+		<-Terrain 0 gt if
+			<-Terrain ->LastTerrain
+		else
+			0 ->greenShadow
+			1 ->failed
+			break
+		endif
+	loop
+loop
+
 :Shutdown #Generic function to restore tower to inactive state.
 <-Entombed if
 	@Detomb
