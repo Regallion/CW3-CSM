@@ -260,6 +260,11 @@ endif
         "line" I concat ->ILI_Name
         Self <-ILI_Name <-R <-G <-B <-LINE_ALPHA SetImageColor
     loop
+:destroyed
+	"colorID" <-colorID GetCoresWithVar 0 do
+		->lastGate
+		<-lastGate "CreepPortal.crpl" "Rerender" 1 SetScriptVar
+	loop
 
 :awake
 Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute 

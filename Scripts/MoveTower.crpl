@@ -162,10 +162,10 @@ endif
 		endif
     endif
 
-    <-ChipType <-! 3 eq if #Connector chip. Makes a relay and a PZ under itself, maintains the relay in case of creeper, destroys both on deactivation.
+    <-ChipType <-! 3 eq if #Connector chip. Makes a relay and a PZ under itself, maintains the relay in case of creeper, destroys both on deactivation. If Special, drops a collector instead.
 		CurrentCoords GetCreeper 0 lte if
 			<-Setup not if
-				@CreateSrelay
+				@CreateConnection
 				1 ->Setup
 				180 SetTimer1
 				return
@@ -175,14 +175,18 @@ endif
 				1 ->Okay
 				CurrentCoords 0 0 GetAllUnitsInRange 0 do
 					->unit
-					<-unit GetUnitType "RELAY" eq if
+					<-unit GetUnitType "RELAY" eq <-unit GetUnitType "COLLECTOR" eq or if
 						0 ->Okay
 						ClearStack
 						break
 					endif
 				loop
 				<-Okay if
-					"RELAY" CurrentCoords CreateUnit pop
+					<-ChipSpecial eq0 if
+						"RELAY" CurrentCoords CreateUnit pop
+					else
+						"COLLECTOR" CurrentCoords CreateUnit pop
+					endif
 				endif
 			endif
 		else
@@ -246,7 +250,7 @@ endif
 			<-Delay SetTimer2
 		endif
 	endif
-    <-ChipType <-! 6 eq if #Firework chip. Randomly shoots fireworks around itself.
+    <-ChipType <-! 6 eq if #Entomber chip. Alters surrounding terrain.
 		<-Setup not if
 			@Entomb
 			1 ->Setup
@@ -421,7 +425,7 @@ endif
 DisableTowerField
 CurrentCoords 0 0 GetAllUnitsInRange 0 do
 	->unit
-	<-unit GetUnitType "REACTOR" eq <-unit GetUnitType "POWERZONE" eq <-unit GetUnitType "RELAY" eq or or if
+	<-unit GetUnitType "REACTOR" eq <-unit GetUnitType "POWERZONE" eq <-unit GetUnitType "RELAY" eq <-unit GetUnitType "COLLECTOR" eq or or or if
 		<-unit 0 destroy
 	endif
 0 ->Energizees
@@ -432,10 +436,14 @@ loop
 	"REACTOR" CurrentCoords CreateUnit ->Reactor
 	<-Reactor CONST_ISBUILDING 0 SetUnitAttribute
 loop
-:CreateSrelay
-"RELAY" CurrentCoords CreateUnit ->Relay
+:CreateConnection
+<-ChipSpecial eq0 if
+	"RELAY" CurrentCoords CreateUnit ->Connection
+else
+	"COLLECTOR" CurrentCoords CreateUnit ->Connection
+endif
 "POWERZONE" CurrentCoords CreateUnit pop
-<-Relay CONST_ISBUILDING 0 SetUnitAttribute
+<-Connection CONST_ISBUILDING 0 SetUnitAttribute
 
 :Vacuum #Sucks in creeper.
 <-Radius <-Power -1000000 mul dup 0 0 EnableTowerField

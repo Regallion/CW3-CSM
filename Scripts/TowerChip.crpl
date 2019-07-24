@@ -20,6 +20,7 @@ $Duration:90 # duration of chip effect in frames. For Negator chips, defines the
 $ChipType:"Generator" # valid types: "Generator", "Negator","Firework" "Connector" "VoidBomb" "Energizer", "Entomber" "ACifier". Connector bombs do not take any effect-related parameters.
 $ChipSpecial:"" #Freeform field for setting special traits for chips. 
 #For Generators, setting it to 1 also causes it to drop a PZ.
+#For Connectors, causes it to spawn a collector instead of a relay.
 #For negator chips, 0 affects only creeper, 1 affects AC  2 affects AC and C. 
 #For fireworks, determines the explosion radius of a firework. 
 #For VaccumBomb 0 does nothing, 1 causes it to destroy terrain in range. 
@@ -370,7 +371,13 @@ endif
 	"Festive R" <-Radius "D" <-Duration "P" <-Power "S" <-BombSpecial concat concat concat concat concat concat concat ->PopupText
 endif
 <-ChipType "Connector" eq if
-	"Connector" ->PopupText
+	"Connector" 
+	<-ChipSpecial if
+		"-C" concat
+	else
+		"-R" concat
+	endif
+	->PopupText
 endif
 <-ChipType "VoidBomb" eq if
 	"DO NOT USE" ->PopupText
