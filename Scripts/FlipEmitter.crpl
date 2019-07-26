@@ -18,6 +18,8 @@ $Empowerment:1
 $EmpowermentAC:1
 $Unstopped:1
 Once
+1 ->Cvar
+1 ->ACvar
 #Initialize the state as creeper or AC.
 <-startState ->state
 #Export a linebreak to help with text generation.
@@ -93,7 +95,7 @@ endif
 #Creeper production function
 :CProd
 	#This should all be pretty self explanatory. The popup text may seem a bit complex, but just trust it ;) 
-	<-Camt <-Empowerment <-NegaPower add 0.1 max mul <-Unstopped mul ->tCAmount
+	<-Camt <-Empowerment <-NegaPower add 0.1 max mul <-Cvar mul <-Unstopped mul ->tCAmount
 	"Flood me with anti-creeper to save me!" <-lb concat "Producing " concat <-tCAmount concat " creeper every " concat <-Cinterval 30.00 div 2 Round 1000 mul concat " milliseconds." concat <-lb <-lb concat concat SetPopupText
 	Self CONST_COUNTSFORVICTORY 1 SetUnitAttribute
 	Self "main" 150 150 150 255 SetImageColor
@@ -106,9 +108,9 @@ endif
 :ACProd
 	#Only update the tAmount value if multi has been flagged. Otherwise we stick with the base value.
 	<-multi if
-		<-ACamt <-TotalPower <-EmpowermentAC mul mul <-EmissionBonus sub  <-Unstopped mul ->tAmount
+		<-ACamt <-TotalPower <-EmpowermentAC mul mul <-EmissionBonus sub <-ACvar mul  <-Unstopped mul ->tAmount
 	else
-		<-ACamt <-EmpowermentAC mul <-EmissionBonus sub <-Unstopped mul ->tAmount
+		<-ACamt <-EmpowermentAC mul <-EmissionBonus sub  <-ACvar mul <-Unstopped mul ->tAmount
 	endif
 	"Producing " <-tAmount <-Unstopped mul abs concat " anti-creeper every " concat <-ACinterval 30.00 div 2 Round 1000 mul concat " milliseconds." concat <-lb <-lb concat concat SetPopupText
 	Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute

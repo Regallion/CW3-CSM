@@ -8,6 +8,7 @@ $StartDelay:0 #Delays that many frames before startingg production.
 $Unstopped:1 #Do not alter. If set to 0 prevents emitter from working.
 $EmpowermentAC:1
 once 
+	1 ->ACvar
 	@awake
 	#The 4 delay is to make sure the AC multi tower has time to establish its variables before being picked up by this script. My custom creeper emitter script also has this delay to avoid unbalance.
 	4 delay
@@ -18,9 +19,9 @@ GetGameTimeFrames <-StartDelay gt if
 	 
 	#If we've flagged a multi tower, we have to check on every invocation to update our ACamt in case the global multi has changed since our last check. Otherwise the total ACamt remains at the value we set back in the initial check.
 	<-multi if
-		<-ACamt <-TotalPower <-EmpowermentAC mul mul <-EmissionBonus sub  <-Unstopped mul ->tAmount
+		<-ACamt <-TotalPower <-EmpowermentAC mul mul <-EmissionBonus sub <-ACvar mul  <-Unstopped mul ->tAmount
 	else
-		<-ACamt <-EmpowermentAC mul <-EmissionBonus sub <-Unstopped mul ->tAmount
+		<-ACamt <-EmpowermentAC mul <-EmissionBonus sub  <-ACvar mul <-Unstopped mul ->tAmount
 	endif
 	<-tAmount neq0 if
 		CurrentCoords <-tAmount SetCreeperNoLower

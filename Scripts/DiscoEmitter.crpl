@@ -16,6 +16,8 @@ $Empowerment:1
 $EmpowermentAC:1
 $Unstopped:1
 Once
+1 ->Cvar
+1 ->ACvar
 @awake
 #The delay is to match the other emitters.
 4 delay
@@ -32,9 +34,9 @@ GetTimer0 eq0 <-Creepin and if
 endif
 GetTimer1 eq0 <-Acreepin and if
 	<-multi if
-		<-ACamt <-TotalPower <-EmpowermentAC mul mul <-EmissionBonus sub  <-Unstopped mul ->tAmount
+		<-ACamt <-TotalPower <-EmpowermentAC mul mul <-EmissionBonus sub <-ACvar mul  <-Unstopped mul ->tAmount
 	else
-		<-ACamt <-EmpowermentAC mul <-EmissionBonus sub <-Unstopped mul ->tAmount
+		<-ACamt <-EmpowermentAC mul <-EmissionBonus sub  <-ACvar mul <-Unstopped mul ->tAmount
 	endif
 	@ACProd
 	Self "main" 0 256 RandInt 0 256 RandInt 0 256 RandInt 125 256 RandInt SetImageColor
@@ -58,7 +60,7 @@ endif
 	<-Y <-Range 1 add add <-Y <-Range sub do
 		<-X <-Range 1 add add <-X <-Range sub do
 			I J GetCreeper 1500 lt if
-				I J <-Camt <-Empowerment <-NegaPower add 0.1 max mul <-Unstopped mul AddCreeper
+				I J <-Camt <-Empowerment <-NegaPower add 0.1 max mul <-Cvar mul <-Unstopped mul AddCreeper
 			endif
 		loop
 	loop

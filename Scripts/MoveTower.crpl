@@ -35,11 +35,14 @@ GetTimer0 eq0 if #Timer for removing temporary texts
     "" SetText
 endif
 <-InsertedChip -1 neq if
-	1 ->Liberated
-	1 ->Decontaminated
-	0 ->Movable
-	0 SetTimer3
-	@SetImageAndText
+	once
+		1 ->Liberated
+		1 ->Decontaminated
+		0 ->Movable
+		0 SetTimer3
+		Self "main" 255 255 255 255 SetImageColor
+		@SetImageAndText
+	endonce
 endif
 
 <-Liberated not if
@@ -110,13 +113,16 @@ endif
 		@Shutdown
 		return
 	endif
-    <-ChipType <-! 0 eq if #Power chip. Creates a stack of reactors under itself and maintains them in case of creeper. Destroys them if deactivated. If special, ALSO drops a PZ
+    <-ChipType <-! 0 eq if #Materializer chip. Creates a stack of units under itself and maintains them in case of creeper. Destroys them if deactivated. If special, ALSO drops a PZ
 		CurrentCoords GetCreeper 0 lte if
 			<-Setup not if
-				<-ChipSpecial 1 eq if
+				<-ChipSpecial "," Split ->Temp
+				<-Temp 0 GetListElement ->UnitType
+				<-Temp 1 GetListElement ->PZ
+				<-PZ 1 eq if
 					"POWERZONE" CurrentCoords CreateUnit pop
 				endif
-				@CreateReactors
+				@CreateUnits
 				1 ->Setup
 				180 SetTimer1
 				return
@@ -126,14 +132,14 @@ endif
 				1 ->Okay
 				CurrentCoords 0 0 GetAllUnitsInRange 0 do
 					->unit
-					<-unit GetUnitType "REACTOR" eq if
+					<-unit GetUnitType "CRPLCORE" neq <-unit GetUnitType "POWERZONE" neq and if
 						0 ->Okay
 						ClearStack
 						break
 					endif
 				loop
 				<-Okay if
-					@CreateReactors
+					@CreateUnits
 				endif
 			endif
 		else
@@ -162,36 +168,37 @@ endif
 		endif
     endif
 
-    <-ChipType <-! 3 eq if #Connector chip. Makes a relay and a PZ under itself, maintains the relay in case of creeper, destroys both on deactivation. If Special, drops a collector instead.
-		CurrentCoords GetCreeper 0 lte if
-			<-Setup not if
-				@CreateConnection
-				1 ->Setup
-				180 SetTimer1
-				return
+
+    <-ChipType <-! 3 eq if #Variator chip. Cyclically alters nearby emitter values from base to min to max.
+		<-Setup not if
+			<-ChipSpecial "," Split ->Temp
+			<-Temp 0 GetListElement ->MinValue
+			<-Temp 1 GetListElement ->MaxValue
+			<-Temp 2 GetListElement ->Mode
+			<-MinValue asfloat ->MinValue
+			<-MaxValue asfloat ->MaxValue
+			<-Mode asint ->Mode
+			<-MaxValue <-MinValue sub ->DiffValue
+			<-MinValue 1 gt if
+				1 ->CurrentPhase
+			else
+				2 ->CurrentPhase
 			endif
-			0 ->Creeped
-			GetTimer1 eq0 if
-				1 ->Okay
-				CurrentCoords 0 0 GetAllUnitsInRange 0 do
-					->unit
-					<-unit GetUnitType "RELAY" eq <-unit GetUnitType "COLLECTOR" eq or if
-						0 ->Okay
-						ClearStack
-						break
-					endif
-				loop
-				<-Okay if
-					<-ChipSpecial eq0 if
-						"RELAY" CurrentCoords CreateUnit pop
-					else
-						"COLLECTOR" CurrentCoords CreateUnit pop
-					endif
+			CreateList ->Victims
+			CurrentCoords <-Radius 0 GetAllUnitsInRange 0 do
+				->unit
+				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" neq if
+					<-Victims <-unit AppendToList
 				endif
-			endif
-		else
-			1 ->Creeped
-			0 ->Setup
+			loop
+			<-Duration ->GoalTime
+			1 ->CurrValue
+			30 SetTimer1
+			1 ->Setup
+		endif
+		GetTimer1 eq0 if
+			@Variate
+			30 SetTimer1
 		endif
 	endif
 	<-ChipType <-! 4 eq if #VoidBomb. Sucks in creeper then explodes. If special, REALLY explodes.
@@ -410,7 +417,6 @@ Self "shadow" <-idx <-idy -5.9 SetImagePosition
 		endif
 	loop
 loop
-
 :Shutdown #Generic function to restore tower to inactive state.
 <-Entombed if
 	@Detomb
@@ -422,29 +428,62 @@ endif
 0 ->Delay
 0 ->AffectAll
 0 ->Temp
+0 ->MinValue
+0 ->MaxValue
+0 ->DiffValue
+0 ->CurrValue
+0 ->CurrentPhase
+0 ->GoalTime
 DisableTowerField
+<-Victims GetListCount 0 do
+	<-Victims I GetListElement ->Victim
+	<-Victim "EmitterInterface.crpl" "EmitterType" GetScriptVar ->EmitterType
+	<-Victim <-EmitterType ".crpl" concat "ACvar" 1 SetScriptVar
+	<-Victim <-EmitterType ".crpl" concat "Cvar" 1 SetScriptVar
+loop
 CurrentCoords 0 0 GetAllUnitsInRange 0 do
 	->unit
-	<-unit GetUnitType "REACTOR" eq <-unit GetUnitType "POWERZONE" eq <-unit GetUnitType "RELAY" eq <-unit GetUnitType "COLLECTOR" eq or or or if
+	<-unit GetUnitType "CRPLCORE" neq <-unit GetUnitType "GUPPYAIR" neq and if
 		<-unit 0 destroy
 	endif
+loop
 0 ->Energizees
-loop
+0 ->Victims
 
-:CreateReactors 
+
+:CreateUnits 
 <-Power floor 0 do
-	"REACTOR" CurrentCoords CreateUnit ->Reactor
-	<-Reactor CONST_ISBUILDING 0 SetUnitAttribute
+	<-UnitType CurrentCoords CreateUnit ->GeneratedUnit
+	<-GeneratedUnit CONST_ISBUILDING 0 SetUnitAttribute
+	<-GeneratedUnit 0 SetUnitSelectableOverride
 loop
-:CreateConnection
-<-ChipSpecial eq0 if
-	"RELAY" CurrentCoords CreateUnit ->Connection
-else
-	"COLLECTOR" CurrentCoords CreateUnit ->Connection
+:Variate
+<-CurrentPhase 1 eq if
+	<-CurrValue <-DiffValue <-GoalTime div 30 mul add  <-MaxValue min ->CurrValue
+	
 endif
-"POWERZONE" CurrentCoords CreateUnit pop
-<-Connection CONST_ISBUILDING 0 SetUnitAttribute
+<-CurrentPhase 2 eq if
+	<-CurrValue <-DiffValue <-GoalTime div 30 mul sub  <-MinValue max ->CurrValue
+	
+endif
 
+<-CurrValue <-MinValue eq if
+	1 ->CurrentPhase
+endif
+<-CurrValue <-MaxValue eq if
+	2 ->CurrentPhase
+endif
+
+<-Victims GetListCount 0 do
+	<-Victims I GetListElement ->Victim
+	<-Victim "EmitterInterface.crpl" "EmitterType" GetScriptVar ->EmitterType
+	<-Mode 0 eq <-Mode 2 eq or if
+		<-Victim <-EmitterType ".crpl" concat "ACvar" <-CurrValue SetScriptVar
+	endif
+	<-Mode 1 eq <-Mode 2 eq or if
+		<-Victim <-EmitterType ".crpl" concat "Cvar" <-CurrValue SetScriptVar
+	endif
+loop
 :Vacuum #Sucks in creeper.
 <-Radius <-Power -1000000 mul dup 0 0 EnableTowerField
 :Explode
@@ -590,10 +629,10 @@ loop
 	Self "selector" "Custom20" SetImage
     Self "selector" -7 SetImagePositionZ
     1 ->Size
-    0 ->Generator #setting up types
+    0 ->Materializer #setting up types
 	1 ->Negator
 	2 ->Firework
-	3 ->Connector
+	3 ->Variator
 	4 ->VoidBomb
 	5 ->Energizer
 	6 ->Entomber

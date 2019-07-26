@@ -10,17 +10,22 @@ $Radius:10.0 # defines the radius of the effect of the chip.
 #fireworks determine how big the spread is, 
 #VacuumBombs use it for explosion range and vacuum range. 
 #Energizers affect emitters in this radius.
+#Variators use that range to look for units.
 #Entombers use it to determine how big the terrain square is.
-$Power:5.0 # Defines the effect of certain chips. For Energy chips it produces that many reactors(floored), 
+$Power:5.0 # Defines the effect of certain chips. For Materializer chips it produces that many units(floored), 
 #for negator chips defines how many levels of creeper it can remove at once. same for fireworks. 
 #For VacuumBombs defines the suction effect. 
 #For Energizers and ACifiers, this is how much ammo it restores per tick.
 #For Entombers, this is the target terrain height.
-$Duration:90 # duration of chip effect in frames. For Negator chips, defines the interval between destroying pulses .For fireworks defines how often fireworks are fired. For VaccumBombs it's a delay before exploding. For Energizer and ACIfiers it's the frame delay between resupplies
-$ChipType:"Generator" # valid types: "Generator", "Negator","Firework" "Connector" "VoidBomb" "Energizer", "Entomber" "ACifier". Connector bombs do not take any effect-related parameters.
+$Duration:90 # duration of chip effect in frames. 
+#For Negator chips, defines the interval between destroying pulses .
+#For fireworks defines how often fireworks are fired. 
+#For VaccumBombs it's a delay before exploding. 
+#For Energizer and ACIfiers it's the frame delay between resupplies
+$ChipType:"Materializer" # valid types: "Materializer", "Negator","Firework"  "Variator" "VoidBomb" "Energizer", "Entomber" "ACifier". Connector bombs do not take any effect-related parameters.
 $ChipSpecial:"" #Freeform field for setting special traits for chips. 
-#For Generators, setting it to 1 also causes it to drop a PZ.
-#For Connectors, causes it to spawn a collector instead of a relay.
+#For For Materializers, takes 2 comma-separated values. First the unit type then whether or not it has to be on a PZ. Example: RELAY,1 will produce a relay on a pz.
+#For Variators, takes 3 comma separated values: minimum power %, maximum power %, mode. Modes: 0-affect only AC, 1 - affect only C 2- affect all. Example: 0.1,0.5,2 means it variates emitters between 10% and 50% of their output and affects all kinds of emissions. Min value has to be < MaxValue and neither is allowed to be negative
 #For negator chips, 0 affects only creeper, 1 affects AC  2 affects AC and C. 
 #For fireworks, determines the explosion radius of a firework. 
 #For VaccumBomb 0 does nothing, 1 causes it to destroy terrain in range. 
@@ -230,10 +235,10 @@ ClearStack
     Self CONST_SUPPORTSDIGITALIS 0 SetUnitAttribute 
     Self CONST_CREATEPZ 0 SetUnitAttribute
     Self CONST_TAKEMAPSPACE 0 SetUnitAttribute
-    0 ->Generator #setting up types to decide on an image
+    0 ->Materializer #setting up types to decide on an image
 	1 ->Negator
 	2 ->Firework
-	3 ->Connector
+	3 ->Variator
 	4 ->VoidBomb
 	5 ->Energizer
 	6 ->Entomber
@@ -364,20 +369,21 @@ endif
 <-ChipType "Negator" eq if
 	"Annihilator R" <-Radius  "S" <-ChipSpecial "P" <-Power "D" <-Duration concat concat concat concat concat concat concat ->PopupText
 endif
-<-ChipType "Generator" eq if
-	"Generator P" <-Power "S" <-ChipSpecial concat concat concat ->PopupText
-endif
-<-ChipType "Firework" eq if
-	"Festive R" <-Radius "D" <-Duration "P" <-Power "S" <-BombSpecial concat concat concat concat concat concat concat ->PopupText
-endif
-<-ChipType "Connector" eq if
-	"Connector" 
-	<-ChipSpecial if
-		"-C" concat
-	else
-		"-R" concat
+<-ChipType "Materializer" eq if
+	<-ChipSpecial "," Split ->Temp
+	<-Temp 0 GetListElement ->UnitType
+	<-Temp 1 GetListElement ->PZ
+	"Materializer: " <-UnitType concat "-" concat <-Power floor concat
+	<-PZ if
+		"-E" concat
 	endif
 	->PopupText
+endif
+<-ChipType "Firework" eq if
+	"Festive R" <-Radius "D" <-Duration "P" <-Power "S" <-ChipSpecial concat concat concat concat concat concat concat ->PopupText
+endif
+<-ChipType "Variator" eq if
+	"Variator R" <-Radius "D" <-Duration "S" <-ChipSpecial concat concat concat concat concat concat concat ->PopupText
 endif
 <-ChipType "VoidBomb" eq if
 	"DO NOT USE" ->PopupText

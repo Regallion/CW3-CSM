@@ -27,8 +27,10 @@ $ImageCircle:"Custom4_256"
 $Empowerment:1
 $EmpowermentAC:1
 $Unstopped:1
-Once
 
+Once
+1 ->Cvar
+1 ->ACvar
 #Initialize the state as creeper or AC.
 1 ->state
 1 ->Changed
@@ -216,7 +218,7 @@ endif
 #Creeper production function
 :CProd
 	#This should all be pretty self explanatory. The popup text may seem a bit complex, but just trust it ;) 
-	<-Camt <-Empowerment <-NegaPower add 0.1 max mul <-Unstopped mul ->tCAmount
+	<-Camt <-Empowerment <-NegaPower add 0.1 max mul <-Cvar mul <-Unstopped mul ->tCAmount
 	"Assault with anti-creeper to defeat this formidable foe" <-lb concat "Producing " concat <-tCAmount concat " creeper every " concat <-Cinterval 30.00 div 2 Round 1000 mul concat " milliseconds." concat "
 	Remaining lives: " <-Lives concat concat ->PopupText
 	<-EmpowerRange 0 gt <-Lives 0 gt and if
@@ -235,9 +237,9 @@ endif
 	#Only update the tAmount value if multi has been flagged. Otherwise we stick with the base value.
 
 	<-multi if
-		<-ACamt <-TotalPower <-EmpowermentAC mul mul <-EmissionBonus sub  <-Unstopped mul ->tAmount
+		<-ACamt <-TotalPower <-EmpowermentAC mul mul <-EmissionBonus sub <-ACvar mul  <-Unstopped mul ->tAmount
 	else
-		<-ACamt <-EmpowermentAC mul <-EmissionBonus sub <-Unstopped mul ->tAmount
+		<-ACamt <-EmpowermentAC mul <-EmissionBonus sub  <-ACvar mul <-Unstopped mul ->tAmount
 	endif
 	"Producing " <-tAmount <-Unstopped mul abs concat " anti-creeper every " concat <-ACinterval 30.00 div 2 Round 1000 mul concat " milliseconds." concat ->PopupText 
 	<-ACEmpowerRange 0 gt if

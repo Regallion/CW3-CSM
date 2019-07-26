@@ -17,6 +17,7 @@ $Digi:1
 $Empowerment:1
 $Unstopped:1
 once
+1 ->Cvar
 
 0 ->dead
 @awake
@@ -63,7 +64,7 @@ GetGameTimeFrames <-StartDelay gt if
 		endif
 	else
 		#If we're not dead, standard emitter behavior ensues. 
-		<-Camt <-Empowerment <-NegaPower add 0.1 max mul <-Unstopped mul ->tCAmount
+		<-Camt <-Empowerment <-NegaPower add 0.1 max mul <-Cvar mul <-Unstopped mul ->tCAmount
 		<-tCAmount neq0 if
 			CurrentCoords <-tCAmount SetCreeperNoLower
 		endif
