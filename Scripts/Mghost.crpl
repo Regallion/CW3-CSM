@@ -4,6 +4,8 @@ once
 Self "main" <-ImageNormal SetImage
 Self CONST_TAKEMAPSPACE 1 SetUnitAttribute
 Self CONST_CREATEPZ 0 SetUnitAttribute
+Self CONST_NULLIFIERDAMAGES 0 SetUnitAttribute
+Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute
 Self "main" 255 255 255 80 SetImageColor
 1 delay
 endonce
