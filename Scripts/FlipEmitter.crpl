@@ -108,9 +108,9 @@ endif
 :ACProd
 	#Only update the tAmount value if multi has been flagged. Otherwise we stick with the base value.
 	<-multi if
-		<-ACamt <-TotalPower <-EmpowermentAC mul mul <-EmissionBonus sub <-ACvar mul  <-Unstopped mul ->tAmount
+		<-ACamt <-TotalPower <-EmpowermentAC mul mul  <-ACvar mul <-EmissionBonus sub  <-Unstopped mul ->tAmount
 	else
-		<-ACamt <-EmpowermentAC mul <-EmissionBonus sub  <-ACvar mul <-Unstopped mul ->tAmount
+		<-ACamt <-EmpowermentAC mul <-ACvar mul <-EmissionBonus sub   <-Unstopped mul ->tAmount
 	endif
 	"Producing " <-tAmount <-Unstopped mul abs concat " anti-creeper every " concat <-ACinterval 30.00 div 2 Round 1000 mul concat " milliseconds." concat <-lb <-lb concat concat SetPopupText
 	Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute

@@ -324,6 +324,11 @@ endif
 					AbortMove
 					ClearQueuedMoves
 					<-X <-Y PixelToCell <-MoveSpeed QueueMove
+					<-Ghost 0 Destroy
+					"CRPLCORE" <-X <-Y PixelToCell CreateUnit ->Ghost
+					<-Ghost "Mghost.crpl" AddScriptToUnit
+					<-Ghost "Mghost.crpl" "ImageNormal" <-ImageMovable SetScriptVar
+					<-Ghost "Mghost.crpl" "Parent" Self SetScriptVar
 					1 ->moving
 				endif
 				0 ->greenShadow
@@ -376,6 +381,7 @@ endif
 	<-moving if
 		GetQueuedMoveCount eq0 if
 			0 ->moving
+			<-Ghost 0 Destroy
 		endif
 	endif
 endif

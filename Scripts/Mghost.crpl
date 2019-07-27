@@ -1,0 +1,17 @@
+$ghost:1
+
+once
+Self "main" <-ImageNormal SetImage
+Self CONST_TAKEMAPSPACE 1 SetUnitAttribute
+Self CONST_CREATEPZ 0 SetUnitAttribute
+Self "main" 255 255 255 80 SetImageColor
+1 delay
+endonce
+
+0 GetMouseButtonDown if
+	GetMouseScreenPixelPosition 96 gt if
+		GetMouseCell CurrentCoords Distance 2 lt if
+			<-Parent "MoveTower.crpl" "selected" 1 SetScriptVar
+		endif
+	endif
+endif
