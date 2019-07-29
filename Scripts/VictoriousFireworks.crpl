@@ -11,6 +11,12 @@ endonce
 	CurrentCoords 500 1  GetAllUnitsInRange
 	0 do
 		->ProcessedUnit
+		<-ProcessedUnit GetUnitType ->Type
+		<-Type "SHIELDKEY" eq  <-Type "TECHARTIFACT" eq or <-Type "MESSAGEARTIFACT" eq or <-Type "INHIBITOR" eq or <-Type "SPORETOWER" eq or <-Type "AETOWER" eq or <-Type "RUNNERNEST" eq or if
+			<-ProcessedUnit ->VictoryUnit #if a unit is found, save it.
+			ClearStack
+			break
+		endif
 		<-ProcessedUnit CONST_COUNTSFORVICTORY GetUnitAttribute 1 eq if
 			<-ProcessedUnit ->VictoryUnit #if a unit is found, save it.
 			ClearStack
