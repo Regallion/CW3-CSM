@@ -355,8 +355,9 @@ GetTimer3 neq0 if #Timer display
 	return
 endif
 <-Liberated not <-Movable 1 eq and if #Explains how to start the liberation process if the chip is movable. Immovable chips do not require decontamination
-	"Creeper contamination exceeding operational parameters, decontamination required" SetPopupText
-	return 
+	"Creeper contamination exceeding operational parameters, decontamination required
+	" ->PopupText
+	<-PopupText
 endif
 #The following sets very technical description for bombs. It is advised to use NameOverride for flavor, but if unused, user will be able to determine the properties of the chip at a glance.
 <-BombType "Conversion" eq if
@@ -434,6 +435,9 @@ endif
 <-ManufacturingEnergy neq0 if
 	<-PopupText "
 	 This chip requires " <-ManufacturingEnergy " energy to produce a bomb" concat concat concat ->PopupText
+endif
+<-Liberated not <-Movable 1 eq and if #Technical
+	 <-PopupText concat ->PopupText 
 endif
 <-PopupText SetPopupText
 
