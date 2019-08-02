@@ -1,0 +1,124 @@
+#Absorber. Consumes nearby C and AC, bursts when overfilled. Can have effects on burst. 
+$AbsorbRange:1 #Range of absorb. Square.
+$AbsorbCmod:1.0 #How much of consumed creeper goes to storage.
+$AbsorbACmod:1.0 #How much of consumed anticreeper goes to storage.
+$StorageCapacity:100000.0 #How much can this store before bursting. 0 for infinity
+$DestroyMode:0 #What to do on destruction.
+$Deathtimer:150 #How many frames to wait for death
+#0 - does nothing except disappear.
+#1 - Makes a PZ
+$Name:"Absorber"
+#ImageSlot can be changed if you want to use a different slot.
+$ImageSlot:"Custom85"
+$ImageSquare:"Custom5_256"
+Once
+
+#Export a linebreak to help with text generation.
+"
+" ->lb
+@awake
+4 delay
+
+endonce
+
+
+
+<-Storage abs <-StorageCapacity gte <-dead not and if
+	<-Deathtimer eq0 if
+		self 3 destroy
+	endif
+	
+	0 5 RandInt ->rand
+	<-rand 0 eq if
+	"STORAGE OVERLOAD" SetText
+	endif
+	<-rand 1 eq if 
+	"CONTAINMENT BREACH" SetText
+	endif
+	<-rand 2 eq if
+	"ENGAGING DUMPING PROTOCOLS" SetText
+	endif
+	<-rand 3 eq if
+	"UNFORTUNATE" SetText
+	endif
+	<-rand 4 eq if
+	"TERMINATING" SetText
+	endif
+	50 220 50 255 SetTextColor 20 SetTextY 1.1 SetTextSize
+	#Set the dead state so the emitter behaves properly in the interim period before being destroyed.
+	1 ->dead
+	<-Deathtimer SetTimer0
+endif
+<-dead if
+	GetTimer0 eq0 if
+		self 3 destroy
+	endif
+else
+	CurrentX <-AbsorbRange add 1 add CurrentX <-AbsorbRange sub do # J = X
+		CurrentY <-AbsorbRange add 1 add CurrentY <-AbsorbRange sub do # I = Y
+			J I GetCreeper asfloat ->Value
+			<-Value 0 gt if
+				<-Storage <-Value <-AbsorbACmod mul add <-StorageCapacity min ->Storage
+			else
+				<-Storage <-Value <-AbsorbCmod mul add <-StorageCapacity min ->Storage
+			endif
+			J I 0 SetCreeper
+		loop
+	loop
+	@GeneratePopupText
+	<-Storage 0 lt if
+		Self "main" <-AC_R <-AC_G <-AC_B 255 <-Storage abs <-StorageCapacity div mul asint 100 max SetImageColor
+	else
+		<-Storage 0 gt if
+			Self "main" <-C_R <-C_G <-C_B 255 <-Storage abs <-StorageCapacity div mul asint 100 max SetImageColor
+		else
+			Self "main" 255 255 255 255 SetImageColor
+		endif
+	endif
+endif
+
+
+:awake
+	ClearTraceLog
+	Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute 
+    Self CONST_NULLIFIERDAMAGES 0 SetUnitAttribute 
+    Self CONST_SUPPORTSDIGITALIS 0 SetUnitAttribute 
+    Self CONST_CREATEPZ 0 SetUnitAttribute
+	<-DestroyMode 1 eq if
+		Self CONST_CREATEPZ 1 SetUnitAttribute
+	endif
+	Self "main" <-ImageSlot SetImage
+	Self "main" 0.8 0.3 1 <-Storage abs <-StorageCapacity  div add mul add dup SetImageScale
+	GetCreeperColors 255 mul ->AC_B 255 mul ->AC_G 255 mul ->AC_R 255 mul ->C_B 255 mul ->C_G 255 mul ->C_R
+	<-Storage 0 lt if
+		Self "main" <-AC_R <-AC_G <-AC_B 255 <-Storage abs <-StorageCapacity div mul asint 100 max SetImageColor
+	else
+		<-Storage 0 gt if
+			Self "main" <-C_R <-C_G <-C_B 255 <-Storage abs <-StorageCapacity div mul asint 100 max SetImageColor
+		else
+			Self "main" 255 255 255 255 SetImageColor
+		endif
+	endif
+	<-AbsorbRange 0 gt if
+		Self "range" <-ImageSquare SetImage
+		Self "range" <-AbsorbRange 2 mul 1.0 add 3.0 div dup SetImageScale
+		Self "range" 255 255 255 255 SetImageColor
+	else	
+		Self "range" "NONE" SetImage
+	endif
+:GeneratePopupText #General method for determining popup text
+"Absorber R" <-AbsorbRange concat " Cmod " concat <-AbsorbCmod concat " ACmod " concat <-AbsorbACmod concat "
+ Storage at " concat <-Storage abs concat "/" concat <-StorageCapacity concat "
+ " concat
+ <-Storage 0 lt if
+	"Currently storing anticreeper" concat ->PopupText
+else
+	<-Storage 0 gt if
+		"Currently storing creeper" concat ->PopupText
+	else
+		"Currently empty" concat ->PopupText
+	endif
+endif
+
+<-PopupText SetPopupText
+:destroyed
