@@ -58,9 +58,9 @@ else
 		CurrentY <-AbsorbRange add 1 add CurrentY <-AbsorbRange sub do # I = Y
 			J I GetCreeper asfloat ->Value
 			<-Value 0 gt if
-				<-Storage <-Value <-AbsorbACmod mul add <-StorageCapacity min ->Storage
-			else
 				<-Storage <-Value <-AbsorbCmod mul add <-StorageCapacity min ->Storage
+			else
+				<-Storage <-Value <-AbsorbACmod mul add <-StorageCapacity min ->Storage
 			endif
 			J I 0 SetCreeper
 		loop
