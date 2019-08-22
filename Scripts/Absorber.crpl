@@ -191,22 +191,28 @@ endif
 	<-PopupText "
 Will alter the AC stores of nearby units by " concat <-ACammoChanger <-Storage neg <-StorageCapacity div mul 2 round concat " every second" concat ->PopupText
 endif
-<-LeavePZ if
-	<-PopupText "
+<-Destructible if
+	<-LeavePZ if
+		<-PopupText "
 Will leave behind a Power Zone on death" concat ->PopupText
-endif
-<-Rain if
-	<-PopupText "
+	endif
+	<-Rain if
+		<-PopupText "
 Will violently launch storage contents into the air on death" concat ->PopupText
-endif
-<-Dump if
-	<-PopupText "
+	endif
+	<-Dump if
+		<-PopupText "
 Will leak storage contents on death" concat ->PopupText
-endif
-<-TowerPower neq0 if
-	<-PopupText "
+	endif
+	<-TowerPower neq0 if
+		<-PopupText "
 Will leave behind a " concat <-TowerPower concat " power tower on death" concat ->PopupText
+	endif
+else
+	<-PopupText "
+Will not die when full" concat ->PopupText
 endif
+
 <-PopupText SetPopupText
 :destroyed
 <-Rain if
