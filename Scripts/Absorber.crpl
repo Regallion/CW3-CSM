@@ -3,7 +3,19 @@ $AbsorbRange:1 #Range of absorb. Square.
 $AbsorbCmod:1.0 #How much of consumed creeper goes to storage.
 $AbsorbACmod:1.0 #How much of consumed anticreeper goes to storage.
 $StorageCapacity:100000.0 #How much can this store before bursting. 0 for infinity
-$DestroyMode:0 #What to do on destruction.
+$DestroyModes:"0,0,0,0" #What to do on destruction.
+#First value is whether or not to leave a PZ on death
+#Second value is to whether spawn rain on death. Storage is rained in increments of 100 creeper. It is not recommended to spawn more than 100 droplets.
+#Third value is whether or not to dump stored creeper. Creeper is dumped at 2000 per cell, with no more 3 radius being affected.
+#Fourth value is to drop a powering tower. If the value is not 0, the value is the power of the resulting tower.
+$Destructible:1 #If 0, will not die on storage overflow.
+$AuraModes:"0,0,0,0" #Has an effect on stuff in it's range
+#Generally an aura will have 100% of it's effect if the absorber is full of AC and -100% of it's effect if it's full of C. 
+#First value is whether or not it generates a health-altering field. Heals/deals that much damage every second. Will not kill non-standard units.
+#Second value is whether or not it generates an ammo-altering field. Adds/removes that much ammo every second.
+#Third value is whether or not whether or not it generates an acammo-altering field. Adds/removes that much acammo every second.
+#Fourth value is unused
+$AuraRadius:0 #Radius of the aura effect.
 $Deathtimer:150 #How many frames to wait for death
 #0 - does nothing except disappear.
 #1 - Makes a PZ
@@ -12,7 +24,17 @@ $Name:"Absorber"
 $ImageSlot:"Custom85"
 $ImageSquare:"Custom5_256"
 Once
-
+0.0 ->storage
+<-DestroyModes "," Split ->Temp
+<-Temp 0 GetListElement ->LeavePZ
+<-Temp 1 GetListElement ->Rain
+<-Temp 2 GetListElement ->Dump
+<-Temp 3 GetListElement ->TowerPower
+<-AuraModes "," Split ->Temp
+<-Temp 0 GetListElement ->HealthChanger
+<-Temp 1 GetListElement ->AmmoChanger
+<-Temp 2 GetListElement ->ACammoChanger
+<-Temp 3 GetListElement ->Temp
 #Export a linebreak to help with text generation.
 "
 " ->lb
@@ -21,9 +43,11 @@ Once
 
 endonce
 
+<-HealthChanger neq0 <-AmmoChanger neq0 or <-ACammoChanger neq0 or if
 
+endif
 
-<-Storage abs <-StorageCapacity gte <-dead not and if
+<-Storage abs <-StorageCapacity gte <-dead not and <-Destructible neq0 and if
 	<-Deathtimer eq0 if
 		self 3 destroy
 	endif
@@ -49,6 +73,7 @@ endonce
 	1 ->dead
 	<-Deathtimer SetTimer0
 endif
+
 <-dead if
 	GetTimer0 eq0 if
 		self 3 destroy
@@ -58,13 +83,19 @@ else
 		CurrentY <-AbsorbRange add 1 add CurrentY <-AbsorbRange sub do # I = Y
 			J I GetCreeper asfloat ->Value
 			<-Value 0 gt if
-				<-Storage <-Value <-AbsorbCmod mul add <-StorageCapacity min ->Storage
+				<-Storage <-StorageCapacity lt if
+					<-Storage <-Value <-AbsorbCmod mul add  ->Storage
+					J I 0 SetCreeper
+				endif
 			else
-				<-Storage <-Value <-AbsorbACmod mul add <-StorageCapacity min ->Storage
+				<-Storage <-StorageCapacity neg gt if
+					<-Storage <-Value <-AbsorbACmod mul add  ->Storage
+					J I 0 SetCreeper
+				endif
 			endif
-			J I 0 SetCreeper
 		loop
 	loop
+	<-Storage <-StorageCapacity min <-StorageCapacity neg max ->Storage
 	@GeneratePopupText
 	<-Storage 0 lt if
 		Self "main" <-AC_R <-AC_G <-AC_B 255 <-Storage abs <-StorageCapacity div mul asint 100 max SetImageColor
@@ -77,14 +108,36 @@ else
 	endif
 endif
 
+<-HealthChanger neq0 <-AmmoChanger neq0 or <-ACammoChanger neq0 or GetTimer2 eq0 and if
+	CreateList ->AffectedUnits
+	CurrentCoords <-AuraRadius 1 GetAllUnitsInRange 0 do
+		->unit
+		<-AffectedUnits <-unit  AppendToList
+	loop
+	<-AffectedUnits GetListCount 0 do
+		<-AffectedUnits I GetListElement ->TargetUnit
+		<-TargetUnit CONST_ISBUILDING GetUnitAttribute 1 neq if
+			<-TargetUnit CONST_HEALTH dup2 GetUnitAttribute <-HealthChanger <-Storage neg <-StorageCapacity div mul add SetUnitAttribute
+			<-TargetUnit GetUnitType "CRPLCORE" neq if
+				<-TargetUnit CONST_HEALTH GetUnitAttribute eq0 if
+					<-TargetUnit 3 Destroy
+				endif
+			endif
+			<-TargetUnit CONST_AMMOAC dup2 GetUnitAttribute <-ACammoChanger <-Storage neg <-StorageCapacity div mul add SetUnitAttribute
+			<-TargetUnit CONST_AMMO dup2 GetUnitAttribute <-AmmoChanger <-Storage neg <-StorageCapacity div mul add SetUnitAttribute
+		endif
+	loop
+	30 SetTimer2
+endif
 
 :awake
 	ClearTraceLog
+	HideTraceLog
 	Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute 
     Self CONST_NULLIFIERDAMAGES 0 SetUnitAttribute 
     Self CONST_SUPPORTSDIGITALIS 0 SetUnitAttribute 
     Self CONST_CREATEPZ 0 SetUnitAttribute
-	<-DestroyMode 1 eq if
+	<-LeavePZ 1 eq if
 		Self CONST_CREATEPZ 1 SetUnitAttribute
 	endif
 	Self "main" <-ImageSlot SetImage
@@ -106,6 +159,13 @@ endif
 	else	
 		Self "range" "NONE" SetImage
 	endif
+	<-AuraRadius 0 gt if
+		Self "rangea" <-ImageSquare SetImage
+		Self "rangea" <-AuraRadius 2 mul 1.0 add 3.0 div dup SetImageScale
+		Self "rangea" 0 255 0 100 SetImageColor
+	else	
+		Self "rangea" "NONE" SetImage
+	endif
 :GeneratePopupText #General method for determining popup text
 "Absorber R" <-AbsorbRange concat " Cmod " concat <-AbsorbCmod concat " ACmod " concat <-AbsorbACmod concat "
  Storage at " concat <-Storage abs concat "/" concat <-StorageCapacity concat "
@@ -119,6 +179,55 @@ else
 		"Currently empty" concat ->PopupText
 	endif
 endif
-
+<-HealthChanger neq0 if
+	<-PopupText "
+Will alter the health of nearby units by " concat <-HealthChanger <-Storage neg <-StorageCapacity div mul 2 round  concat " every second" concat ->PopupText
+endif
+<-AmmoChanger neq0 if
+	<-PopupText "
+Will alter the ammo of nearby units by " concat <-AmmoChanger <-Storage neg <-StorageCapacity div mul 2 round  concat " every second" concat ->PopupText
+endif
+<-ACammoChanger neq0 if
+	<-PopupText "
+Will alter the AC stores of nearby units by " concat <-ACammoChanger <-Storage neg <-StorageCapacity div mul 2 round concat " every second" concat ->PopupText
+endif
+<-LeavePZ if
+	<-PopupText "
+Will leave behind a Power Zone on death" concat ->PopupText
+endif
+<-Rain if
+	<-PopupText "
+Will violently launch storage contents into the air on death" concat ->PopupText
+endif
+<-Dump if
+	<-PopupText "
+Will leak storage contents on death" concat ->PopupText
+endif
+<-TowerPower neq0 if
+	<-PopupText "
+Will leave behind a " concat <-TowerPower concat " power tower on death" concat ->PopupText
+endif
 <-PopupText SetPopupText
 :destroyed
+<-Rain if
+	<-Storage abs asfloat 100.0 div floor ->Droplets
+	<-Droplets 1 gt if
+		<-Droplets 100 <-Storage <-Storage abs div mul MakeRain
+	else
+		<-Storage asfloat 15.0 div floor 15 MakeRain
+	endif
+endif
+<-Dump if
+	<-Storage abs asfloat 2000.0 div ceil sqrt floor 3 min ->Radius
+	<-Storage asfloat <-Radius 2 mul 1 add 2 pow div 2000 min ->CreeperPower
+	CurrentX <-Radius add 1 add CurrentX <-Radius sub do # J = X
+		CurrentY <-Radius add 1 add CurrentY <-Radius sub do # I = Y
+			J I <-CreeperPower SetCreeper
+		loop
+	loop
+endif
+<-TowerPower neq0 if
+	"CRPLCORE" CurrentX CurrentY CreateUnit ->Tower
+	<-Tower "ACmultitower.crpl" AddScriptToUnit
+	<-Tower "ACmultitower.crpl" "Power" <-TowerPower SetScriptVar
+endif
