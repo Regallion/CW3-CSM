@@ -1,6 +1,6 @@
 #Stargate script
 $colorID:0 #States color, 5 for black.
-$Name:"Portal" #For identification
+$Name:"CreepPortal" #For identification
 $Size:2 #Size in cells. Always square.
 $StartDelay:0 
 $Conduction:0 #Defines whether it conducts both AC and C, or just AC. 1 for just C conduction, 0 for both, -1 for AC conduction.
@@ -61,7 +61,7 @@ once
 	1 ->conductable
 	<-Conduction <-Thresh mul ->Thresh
 	0 ->parentCore
-    0 ->Occupied
+    Self "DockerInterface.crpl" "Occupied" "0" SetScriptVar
     
     <-isDark if
         0 ->darkRotation
@@ -271,7 +271,10 @@ Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute
 Self CONST_NULLIFIERDAMAGES 0 SetUnitAttribute 
 Self CONST_SUPPORTSDIGITALIS 0 SetUnitAttribute 
 Self CONST_CREATEPZ 0 SetUnitAttribute
-
+Self "DockerInterface.crpl" "HasDockerInterface" GetScriptVar eq0 if
+	Self "DockerInterface.crpl" AddScriptToUnit
+endif
+Self "DockerInterface.crpl" "DockableType" <-Name SetScriptVar
 1 OperateWhilePaused
 
 <-colorID -1 eq <-joined 1 eq or if #Ensures that the correct color and image are set for joined stargates.

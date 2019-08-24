@@ -1,0 +1,5 @@
+#Interface for dockables
+
+$HasDockerInterface:1
+
+$DockableType:""

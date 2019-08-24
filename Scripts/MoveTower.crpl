@@ -5,9 +5,10 @@ $ImageLine:"Custom3pp"
 $MoveSpeed:1.0 #Movement speed of tower
 $DecontaminationCooldown:5 #Decontamination cooldown before use
 $RestrictMove:0 #If restricted, can only move to 3x3 free land.
+$Name:"MoveTower"
 once
 	0 ->Movable
-	1 ->occupied
+	Self "DockerInterface.crpl" "Occupied" "1" SetScriptVar
 	"Name" "walldigger" GetCoresWithVar if #Acquires variables from walldigger to ensure coherent terrain alterations.
 		->Walldigger
 		ClearStack
@@ -23,7 +24,6 @@ once
 		ClearStack
 	endif
 	<-Walldigger "walldigger.crpl" "Voidaffects" GetScriptVar ->voidmod
-	"Tower" ->Name
     <-STATE_INACTIVE ->state #Starts inactive
 	HideTraceLog
 	ClearTraceLog
@@ -87,7 +87,7 @@ GetTimer3 eq0 <-Liberated 1 eq <-Decontaminated 0 eq and and if #If decon succes
 	Self "main" 255 255 255 255 SetImageColor
 	1 ->Decontaminated
 	1 ->Movable
-	0 ->occupied
+	Self "DockerInterface.crpl" "Occupied" "0" SetScriptVar
 	@SetImageAndText
 endif
 
@@ -330,6 +330,7 @@ endif
 					<-Ghost "Mghost.crpl" "ImageNormal" <-ImageMovable SetScriptVar
 					<-Ghost "Mghost.crpl" "Parent" Self SetScriptVar
 					1 ->moving
+					Self "DockerInterface.crpl" "Moving" "1" SetScriptVar
 				endif
 				0 ->greenShadow
 				0 ->selected
@@ -381,6 +382,7 @@ endif
 	<-moving if
 		GetQueuedMoveCount eq0 if
 			0 ->moving
+			Self "DockerInterface.crpl" "Moving" "0" SetScriptVar
 			<-Ghost 0 Destroy
 		endif
 	endif
@@ -647,4 +649,7 @@ loop
     1 ->STATE_ACTIVE
     @SetImageAndText
     Self "main" Self CONST_CELLWIDTH GetUnitAttribute 3.0 div Self CONST_CELLHEIGHT GetUnitAttribute 3.0 div SetImageScale
-    
+    Self "DockerInterface.crpl" "HasDockerInterface" GetScriptVar eq0 if
+		Self "DockerInterface.crpl" AddScriptToUnit
+	endif
+	Self "DockerInterface.crpl" "DockableType" <-Name SetScriptVar

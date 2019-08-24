@@ -87,8 +87,8 @@ endonce
 		endif
 		GetTimer0 30.0 div 0 round SetText
 		GetTimer0 eq0 if
-			<-MovingUnit "BlockerDocker.crpl" "IsBlockerDocker" GetScriptVar 1 eq if #allows you to dispose of excess defusers by blowing them on blockers
-				<-MovingUnit "BlockerDocker.crpl" "occupied" 0 SetScriptVar
+			<-MovingUnit "DockerInterface.crpl" "DockableType" GetScriptVar "BlockerDocker" eq if #allows you to dispose of excess defusers by blowing them on blockers
+				<-MovingUnit "DockerInterface.crpl" "Occupied" 0 SetScriptVar
 				<-CreatedBy "ChipFactory.crpl" dup2 "STATE_RESET" GetScriptVar "state" swap SetScriptVar
 				Self 0 Destroy
 			else
@@ -500,7 +500,7 @@ endif
 	<-MovingUnit "EmitterACDread.crpl" "OccupiedBomp" 1 SetScriptVar
 	<-MovingUnit "FlipEmitter.crpl" "OccupiedBomp" 1 SetScriptVar
 	<-MovingUnit "ArmoredEmitter.crpl" "OccupiedBomp" 1 SetScriptVar
-	<-MovingUnit "BlockerDocker.crpl" "occupied" 1 SetScriptVar
+	<-MovingUnit "DockerInterface.crpl" "Occupied" 1 SetScriptVar
 	<-MovingUnit "ACmultitower.crpl" "OccupiedBomp" 1 SetScriptVar
 	<-MovingUnit "Cmultitower.crpl" "OccupiedBomp" 1 SetScriptVar
 :CancelReservation #Reverse to ReserveStop
@@ -510,7 +510,7 @@ endif
 	<-MovingUnit "EmitterACDread.crpl" "OccupiedBomp" 0 SetScriptVar
 	<-MovingUnit "FlipEmitter.crpl" "OccupiedBomp" 0 SetScriptVar
 	<-MovingUnit "ArmoredEmitter.crpl" "OccupiedBomp" 0 SetScriptVar
-	<-MovingUnit "BlockerDocker.crpl" "occupied" 0 SetScriptVar
+	<-MovingUnit "DockerInterface.crpl" "Occupied" 0 SetScriptVar
 	<-MovingUnit "ACmultitower.crpl" "OccupiedBomp" 0 SetScriptVar
 	<-MovingUnit "Cmultitower.crpl" "OccupiedBomp" 0 SetScriptVar
 :ExplodeBomp #Triggered by reaching the target. Triggers the Primed state, gets the timer going for bombs that use it, and resets some visual variables.
@@ -539,7 +539,7 @@ endif
         ->unit
         <-unit GetUnitType "CRPLCORE" eq if #Each type of bomb uses it's own set of valid targets. Target must be unoccupied to be valid.
 			<-BombType "Conversion" eq <-BombType "Firework" eq or if #Conversion and firework bombs can target any type of emitter plus stargates.
-				<-unit "CreepPortal.crpl" "Name" GetScriptVar "" concat "Portal" eq <-unit "CreepPortal.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "CreepPortal.crpl" "Name" GetScriptVar "" concat "CreepPortal" eq <-unit "CreepPortal.crpl" "OccupiedBomp" GetScriptVar not and 
 				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "ACEmitter" eq <-unit "ACEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
 				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "EmitterACDeath" eq <-unit "EmitterACDeath.crpl" "OccupiedBomp" GetScriptVar not and 
 				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "EmitterACDread" eq <-unit "EmitterACDread.crpl" "OccupiedBomp" GetScriptVar not and 
@@ -572,7 +572,7 @@ endif
 				endif
 			endif
 			<-BombType "Singularity" eq <-BombType "Freeze" eq or if #Singularities and freezer bombs can target any type of emitter plus stargates.
-				<-unit "CreepPortal.crpl" "Name" GetScriptVar "" concat "Portal" eq <-unit "CreepPortal.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "CreepPortal.crpl" "Name" GetScriptVar "" concat "CreepPortal" eq <-unit "CreepPortal.crpl" "OccupiedBomp" GetScriptVar not and 
 				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "ACEmitter" eq <-unit "ACEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
 				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "EmitterACDeath" eq <-unit "EmitterACDeath.crpl" "OccupiedBomp" GetScriptVar not and 
 				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "EmitterACDread" eq <-unit "EmitterACDread.crpl" "OccupiedBomp" GetScriptVar not and 
@@ -597,14 +597,14 @@ endif
 			<-BombType "Defuser" eq if #Defusers can only target blue emitters + blockerDockers as fallback.
 				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "EmitterACDeath" eq <-unit "EmitterACDeath.crpl" "OccupiedBomp" GetScriptVar not and 
 				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "EmitterACDread" eq <-unit "EmitterACDread.crpl" "OccupiedBomp" GetScriptVar not and 
-				<-unit "BlockerDocker.crpl" "IsBlockerDocker" GetScriptVar <-unit "BlockerDocker.crpl" "occupied" GetScriptVar not and
+				<-unit "DockerInterface.crpl" "DockableType" GetScriptVar "" concat "BlockerDocker" eq <-unit "DockerInterface.crpl" "Occupied" GetScriptVar not and
 				or or if
 					@SetTargetUnit
 					return
 				endif
             endif
 			<-BombType "Flip" eq if #Flip bombs have the same targeting as conversions, but have a special case for targeting towers.
-				<-unit "CreepPortal.crpl" "Name" GetScriptVar "" concat "Portal" eq <-unit "CreepPortal.crpl" "OccupiedBomp" GetScriptVar not and 
+				<-unit "CreepPortal.crpl" "Name" GetScriptVar "" concat "CreepPortal" eq <-unit "CreepPortal.crpl" "OccupiedBomp" GetScriptVar not and 
 				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "ACEmitter" eq <-unit "ACEmitter.crpl" "OccupiedBomp" GetScriptVar not and 
 				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "EmitterACDeath" eq <-unit "EmitterACDeath.crpl" "OccupiedBomp" GetScriptVar not and 
 				<-unit "EmitterInterface.crpl" "EmitterType" GetScriptVar "" concat "EmitterACDread" eq <-unit "EmitterACDread.crpl" "OccupiedBomp" GetScriptVar not and 

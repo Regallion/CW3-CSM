@@ -176,11 +176,11 @@ endif
                 @UnoccupyAlchemiter
                 <-TargetAlchemiter ->MovingAlchemiter
                 @OccupyAlchemiter
-				<-TargetAlchemiter "ChipFactory.crpl" "Name" GetScriptVar "" concat "Alchemiter" eq if
-				<-TargetAlchemiter CONST_COORDX GetUnitAttribute <-TargetAlchemiter CONST_COORDY GetUnitAttribute 2 add <-ChipMovementSpeed QueueMove
+				<-TargetAlchemiter "DockerInterface.crpl" "DockableType" GetScriptVar "" concat "ChipFactory" eq if
+					<-TargetAlchemiter CONST_COORDX GetUnitAttribute <-TargetAlchemiter CONST_COORDY GetUnitAttribute 2 add <-ChipMovementSpeed QueueMove
 				endif
-				<-TargetAlchemiter "BlockerDocker.crpl" "IsBlockerDocker" GetScriptVar 1 eq if
-				<-TargetAlchemiter CONST_COORDX GetUnitAttribute <-TargetAlchemiter CONST_COORDY GetUnitAttribute <-ChipMovementSpeed QueueMove
+				<-TargetAlchemiter "DockerInterface.crpl" "DockableType" GetScriptVar "" concat "BlockerDocker" eq if
+					<-TargetAlchemiter CONST_COORDX GetUnitAttribute <-TargetAlchemiter CONST_COORDY GetUnitAttribute <-ChipMovementSpeed QueueMove
 				endif
 				1 ->moving
 				<-AssignedAlchemiter -1 neq if
@@ -264,10 +264,10 @@ endif
 	2 @ChangeShadowSize
 	
 :FindAndActivateAlchemiter
-CurrentCoords 3 GetEnemyUnitsInRange 0 do
+CurrentCoords 2 GetEnemyUnitsInRange 0 do
 	->unit
 	<-unit GetUnitType "CRPLCORE" eq if
-		<-unit "ChipFactory.crpl" "Size" GetScriptVar if
+		<-unit "DockerInterface.crpl" "DockableType" GetScriptVar "" concat "ChipFactory" eq if
 			<-unit ->AssignedAlchemiter
             <-unit ->MovingAlchemiter
 			-1 ->TargetAlchemiter
@@ -279,11 +279,21 @@ CurrentCoords 3 GetEnemyUnitsInRange 0 do
 			@ActivateAlchemiter
 			return
 		endif
+		<-unit "DockerInterface.crpl" "DockableType" GetScriptVar "" concat "BlockerDocker" eq if
+			<-unit ->AssignedAlchemiter
+            <-unit ->MovingAlchemiter
+			-1 ->TargetAlchemiter
+            @OccupyAlchemiter
+			<-AssignedAlchemiter CONST_COORDX GetUnitAttribute ->falg_tx
+			<-AssignedAlchemiter CONST_COORDY GetUnitAttribute ->falg_ty
+			Self CONST_COORDX <-falg_tx SetUnitAttribute
+			Self CONST_COORDY <-falg_ty SetUnitAttribute
+			5 @TrueSizeToSize @ChangeSize
+			return
+		endif
 	endif
 loop
-<-MovingAlchemiter -1 neq if
-	 <-MovingAlchemiter CONST_COORDX GetUnitAttribute <-MovingAlchemiter CONST_COORDY GetUnitAttribute <-ChipMovementSpeed QueueMove
-endif
+
 
 
 :CalculateClickRadius #() -> (float radius)
@@ -300,14 +310,12 @@ endif
 
 :OccupyAlchemiter
     <-MovingAlchemiter -1 neq if
-        <-MovingAlchemiter "ChipFactory.crpl" "occupied" 1 SetScriptVar
-		<-MovingAlchemiter "BlockerDocker.crpl" "occupied" 1 SetScriptVar
+        <-MovingAlchemiter "DockerInterface.crpl" "Occupied" 1 SetScriptVar
     endif
 
 :UnoccupyAlchemiter
     <-MovingAlchemiter -1 neq if
-        <-MovingAlchemiter "ChipFactory.crpl" "occupied" 0 SetScriptVar
-		<-MovingAlchemiter "BlockerDocker.crpl" "occupied" 0 SetScriptVar
+        <-MovingAlchemiter "DockerInterface.crpl" "Occupied" 0 SetScriptVar
     endif
 
 :CheckMouseForDockable #() -> () Can be docked on factories and dockers.
@@ -315,7 +323,7 @@ endif
     GetMouseCell 2 GetEnemyUnitsInRange 0 do
         ->unit
         <-unit GetUnitType "CRPLCORE" eq if
-           <-unit "ChipFactory.crpl" "Name" GetScriptVar "" concat "Alchemiter" eq <-unit "ChipFactory.crpl" "occupied" GetScriptVar not and if
+           <-unit "DockerInterface.crpl" "DockableType" GetScriptVar "" concat "ChipFactory" eq <-unit "DockerInterface.crpl" "Occupied" GetScriptVar not and if
 		        1 ->greenShadow
 				<-unit ->TargetAlchemiter
                 <-unit CONST_COORDX GetUnitAttribute ->targetX
@@ -325,10 +333,10 @@ endif
                 CurrentPixelCoords ->cmfp_y ->cmfp_x
                 <-cmfp_uy <-cmfp_y sub ->cmfp_idy
                 <-cmfp_ux <-cmfp_x sub ->cmfp_idx
-                Self "shadow" <-cmfp_idx <-cmfp_idy 10 sub -1.9 SetImagePosition
+                Self "shadow" <-cmfp_idx <-cmfp_idy 16 sub -1.9 SetImagePosition
 				return
 		   endif
-           <-unit "BlockerDocker.crpl" "IsBlockerDocker" GetScriptVar <-unit "BlockerDocker.crpl" "occupied" GetScriptVar not and if
+           <-unit "DockerInterface.crpl" "DockableType" GetScriptVar "" concat "BlockerDocker" eq <-unit "DockerInterface.crpl" "Occupied" GetScriptVar not and if
                 1 ->greenShadow
 				<-unit ->TargetAlchemiter
                 <-unit CONST_COORDX GetUnitAttribute ->targetX

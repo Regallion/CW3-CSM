@@ -6,6 +6,7 @@ $VerificationCooldown:20 #how many seconds of being free from creeper this takes
 $ManufacturingSpeedMod:1.0 #A flat multiplier to all bomb production speeds. Do not set to 0 or negative numbers.
 $Recapturable:0 #if 1, can be recaptured by creeper.
 $ImageLine:"Custom3pp"
+$Name:"ChipFactory"
 once
 	1 ->Size
 	#Sets states for later use
@@ -16,7 +17,6 @@ once
     4 ->STATE_RESET
 	5 ->STATE_REBOOTING
 	6 ->STATE_EMPTY
-	"Alchemiter" ->Name
     <-STATE_INACTIVE ->state #Starts inactive
     -1 ->bombId
 	HideTraceLog
@@ -25,7 +25,7 @@ once
     CreateList ->ManufacturingParameters #This list is used to pass the parameters to the bomb. Does not contain parameters specific to the Alchemiter
 	"BombLifeTime" "BombSpecial" "BombType" "Duration" "SecondConversion" "Power" "Radius" "MovementSpeed" <-ManufacturingParameters AppendStackToList 
 	-1 ->InsertedChip #Assumes this is empty. If the factory starts with a chip on top, the 1 delay on the chip will set this after the initialization
-	1 ->occupied #Also prevents chips from docking for the time being
+	Self "DockerInterface.crpl" "Occupied" "1" SetScriptVar #Also prevents chips from docking for the time being
 endonce
 @CreateLine
 GetMouseCell CurrentCoords Distance 2 lte <-state <-STATE_TRAVEL eq and if 
@@ -37,7 +37,7 @@ endif
 <-state <-STATE_RESET eq if #Occurs after the bomb detonates
 	<-Recapturable if
 		CurrentCoords GetCreeper -4 gt if
-			1 ->occupied
+			Self "DockerInterface.crpl" "Occupied" "1" SetScriptVar
 			<-uid "AdvancedBomp.crpl" "Unchipped" 1 SetScriptVar
 			<-InsertedChip "FactoryChip.crpl" "disabled" 1 SetScriptVar
 			<-STATE_INACTIVE ->state
@@ -59,7 +59,7 @@ endif
 	endif
 	<-InsertedChip -1 eq if #If no chip is present, allow insertion of chips
 		<-STATE_EMPTY ->state
-		0 ->occupied
+		Self "DockerInterface.crpl" "Occupied" "0" SetScriptVar
 		<-ManufacturingParameters GetListCount 0 do
 			 <-ManufacturingParameters I GetListElement 0 ->!
 			 Self CONST_AMMO 0 SetUnitAttribute
@@ -76,7 +76,7 @@ GetTimer1 eq0 if #Timer for removing temporary texts
     "" SetText
 endif
 <-state <-STATE_INACTIVE eq if #Decontamination check. Until flloded by AC will not function
-   1 ->occupied
+   Self "DockerInterface.crpl" "Occupied" "1" SetScriptVar
    <-InsertedChip "FactoryChip.crpl" "disabled" 1 SetScriptVar
    CurrentCoords GetCreeper -4 lte if
 		"Integrity verification initiated" SetText
@@ -124,7 +124,7 @@ GetTimer3 eq0 <-state <-STATE_REBOOTING eq and if #If decontamination succeeds, 
 	endif
 	<-InsertedChip -1 eq if #If no chip is present, allow insertion of chips
 		<-STATE_EMPTY ->state
-		0 ->occupied
+		Self "DockerInterface.crpl" "Occupied" "0" SetScriptVar
 		<-ManufacturingParameters GetListCount 0 do
 			 <-ManufacturingParameters I GetListElement 0 ->!
 			 Self CONST_AMMO 0 SetUnitAttribute
@@ -157,7 +157,7 @@ endif
 		"Production failure: excess creeper detected" SetText
         220 50 50 255 SetTextColor 20 SetTextY 1.1 SetTextSize
 		150 SetTimer1
-		1 ->occupied
+		Self "DockerInterface.crpl" "Occupied" "1" SetScriptVar
 		<-uid "AdvancedBomp.crpl" "Unchipped" 1 SetScriptVar
 		<-InsertedChip "FactoryChip.crpl" "disabled" 1 SetScriptVar
 		<-STATE_INACTIVE ->state
@@ -327,4 +327,7 @@ endif
 
     @SetImageAndText
     Self "main" Self CONST_CELLWIDTH GetUnitAttribute 3.0 div Self CONST_CELLHEIGHT GetUnitAttribute 3.0 div SetImageScale
-    
+    Self "DockerInterface.crpl" "HasDockerInterface" GetScriptVar eq0 if
+		Self "DockerInterface.crpl" AddScriptToUnit
+	endif
+	Self "DockerInterface.crpl" "DockableType" <-Name SetScriptVar

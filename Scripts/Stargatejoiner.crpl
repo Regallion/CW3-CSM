@@ -226,7 +226,7 @@ Self "selector" 255 255 255 0 SetImageColor
 CurrentCoords 1 GetEnemyUnitsInRange 0 do
 	->unit
 	<-unit GetUnitType "CRPLCORE" eq if
-		<-unit "CreepPortal.crpl" "Size" GetScriptVar if
+		<-unit "DockerInterface.crpl" "DockableType" GetScriptVar "" concat "CreepPortal" eq if
 			<-unit ->tetheredGate
             <-unit ->movingGate
 			-1 ->targetGate
@@ -238,11 +238,20 @@ CurrentCoords 1 GetEnemyUnitsInRange 0 do
 			@LockGate
 			return
 		endif
+		<-unit "DockerInterface.crpl" "DockableType" GetScriptVar "" concat "BlockerDocker" eq if
+			<-unit ->tetheredGate
+            <-unit ->movingGate
+			-1 ->targetGate
+            @OccupySg
+			<-tetheredGate CONST_COORDX GetUnitAttribute ->falg_tx
+			<-tetheredGate CONST_COORDY GetUnitAttribute ->falg_ty
+			Self CONST_COORDX <-falg_tx SetUnitAttribute
+			Self CONST_COORDY <-falg_ty SetUnitAttribute
+			return
+		endif
 	endif
 loop
-<-targetGate -1 neq if
-	 <-targetGate CONST_COORDX GetUnitAttribute <-targetGate CONST_COORDY GetUnitAttribute <-MovementSpeed QueueMove
-endif
+
 
 :LockGate
 <-tetheredGate "CreepPortal.crpl" "trueColor" GetScriptVar 5 eq not if 
@@ -360,16 +369,12 @@ endif
 
 :OccupySg
     <-movingGate -1 neq if
-        <-movingGate "CreepPortal.crpl" "occupied" 1 SetScriptVar
-		<-movingGate "CreepPortal.crpl" "joined" 1 SetScriptVar
-		<-movingGate "BlockerDocker.crpl" "occupied" 1 SetScriptVar
+        <-movingGate "DockerInterface.crpl" "Occupied" 1 SetScriptVar
     endif
 
 :UnoccupySg
     <-movingGate -1 neq if
-        <-movingGate "CreepPortal.crpl" "occupied" 0 SetScriptVar
-		<-movingGate "CreepPortal.crpl" "joined" 0 SetScriptVar
-		<-movingGate "BlockerDocker.crpl" "occupied" 0 SetScriptVar
+        <-movingGate "DockerInterface.crpl" "Occupied" 0 SetScriptVar
     endif
 
 :CheckMouseForPortal #() -> ()
@@ -377,7 +382,7 @@ endif
 GetMouseCell 1 GetEnemyUnitsInRange 0 do
 	->unit
 	<-unit GetUnitType "CRPLCORE" eq if
-		<-unit "CreepPortal.crpl" "occupied" GetScriptVar if
+		<-unit "DockerInterface.crpl" "Occupied" GetScriptVar <-unit "DockerInterface.crpl" "HasDockerInterface" GetScriptVar not or if
 			break
 		endif
 		<-unit "CreepPortal.crpl" "Size" GetScriptVar if
@@ -392,19 +397,19 @@ GetMouseCell 1 GetEnemyUnitsInRange 0 do
 			Self "shadow" <-cmfp_idx <-cmfp_idy -1.9 SetImagePosition
 			return
 		endif
-		<-unit "BlockerDocker.crpl" "IsBlockerDocker" GetScriptVar <-unit "BlockerDocker.crpl" "occupied" GetScriptVar not and if
-                1 ->greenShadow
-				<-unit ->targetGate
-                <-unit CONST_COORDX GetUnitAttribute ->targetX
-                <-unit CONST_COORDY GetUnitAttribute ->targetY
-                <-unit CONST_PIXELCOORDX GetUnitAttribute ->cmfp_ux
-                <-unit CONST_PIXELCOORDY GetUnitAttribute ->cmfp_uy
-                CurrentPixelCoords ->cmfp_y ->cmfp_x
-                <-cmfp_uy <-cmfp_y sub ->cmfp_idy
-                <-cmfp_ux <-cmfp_x sub ->cmfp_idx
-                Self "shadow" <-cmfp_idx <-cmfp_idy -1.9 SetImagePosition
-				return
-            endif
+		<-unit "DockerInterface.crpl" "DockableType" GetScriptVar "" concat "BlockerDocker" eq <-unit "DockerInterface.crpl" "Occupied" GetScriptVar not and if
+			1 ->greenShadow
+			<-unit ->targetGate
+			<-unit CONST_COORDX GetUnitAttribute ->targetX
+			<-unit CONST_COORDY GetUnitAttribute ->targetY
+			<-unit CONST_PIXELCOORDX GetUnitAttribute ->cmfp_ux
+			<-unit CONST_PIXELCOORDY GetUnitAttribute ->cmfp_uy
+			CurrentPixelCoords ->cmfp_y ->cmfp_x
+			<-cmfp_uy <-cmfp_y sub ->cmfp_idy
+			<-cmfp_ux <-cmfp_x sub ->cmfp_idx
+			Self "shadow" <-cmfp_idx <-cmfp_idy -1.9 SetImagePosition
+			return
+		endif
 	endif
 loop
 0 ->greenShadow

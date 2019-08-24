@@ -1,6 +1,7 @@
 #FreeTower. Insert Chips to have effects. Depends 100% on chips to have an effect.
 $ImageNormal:"Custom18_128"
 $ImageLine:"Custom3pp"
+$Name:"FreeTower"
 once
 	"Name" "walldigger" GetCoresWithVar if #Acquires variables from walldigger to ensure coherent terrain alterations.
 		->Walldigger
@@ -17,7 +18,6 @@ once
 		ClearStack
 	endif
 	<-Walldigger "walldigger.crpl" "Voidaffects" GetScriptVar ->voidmod
-	"Tower" ->Name
     <-STATE_INACTIVE ->state #Starts inactive
 	HideTraceLog
 	ClearTraceLog
@@ -433,4 +433,7 @@ loop
     1 ->STATE_ACTIVE
     @SetImageAndText
     Self "main" Self CONST_CELLWIDTH GetUnitAttribute 3.0 div Self CONST_CELLHEIGHT GetUnitAttribute 3.0 div SetImageScale
-    
+    Self "DockerInterface.crpl" "HasDockerInterface" GetScriptVar eq0 if
+		Self "DockerInterface.crpl" AddScriptToUnit
+	endif
+	Self "DockerInterface.crpl" "DockableType" <-Name SetScriptVar

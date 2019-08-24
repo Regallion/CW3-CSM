@@ -4,6 +4,7 @@
 
 $Image:"Custom27"
 $IsBlockerDocker:1
+$Name:"BlockerDocker"
 
 once
     @awake
@@ -15,3 +16,7 @@ Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute
 Self CONST_NULLIFIERDAMAGES 0 SetUnitAttribute 
 Self CONST_SUPPORTSDIGITALIS 0 SetUnitAttribute 
 Self CONST_CREATEPZ 0 SetUnitAttribute
+Self "DockerInterface.crpl" "HasDockerInterface" GetScriptVar eq0 if
+	Self "DockerInterface.crpl" AddScriptToUnit
+endif
+Self "DockerInterface.crpl" "DockableType" <-Name SetScriptVar

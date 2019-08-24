@@ -167,12 +167,7 @@ endif
                 @UnoccupyTower
                 <-TargetTower ->MovingTower
                 @OccupyTower
-				<-TargetTower "FreeTower.crpl" "Name" GetScriptVar "" concat "Tower" eq <-TargetTower "MoveTower.crpl" "Name" GetScriptVar "" concat "Tower" eq or if
 				<-TargetTower CONST_COORDX GetUnitAttribute <-TargetTower CONST_COORDY GetUnitAttribute <-ChipMovementSpeed QueueMove
-				endif
-				<-TargetTower "BlockerDocker.crpl" "IsBlockerDocker" GetScriptVar 1 eq if
-				<-TargetTower CONST_COORDX GetUnitAttribute <-TargetTower CONST_COORDY GetUnitAttribute <-ChipMovementSpeed QueueMove
-				endif
 				1 ->moving
 				<-AssignedTower -1 neq if
 					@DeactivateTower
@@ -263,7 +258,7 @@ ClearStack
 CurrentCoords 2 GetEnemyUnitsInRange 0 do
 	->unit
 	<-unit GetUnitType "CRPLCORE" eq if
-		<-unit "FreeTower.crpl" "Size" GetScriptVar <-unit "MoveTower.crpl" "Size" GetScriptVar or if
+		<-unit "DockerInterface.crpl" "DockableType" GetScriptVar "" concat "BlockerDocker" eq <-unit "DockerInterface.crpl" "DockableType" GetScriptVar "" concat "FreeTower" eq <-unit "DockerInterface.crpl" "DockableType" GetScriptVar "" concat "MoveTower" eq or or if
 			<-unit ->AssignedTower
             <-unit ->MovingTower
 			-1 ->TargetTower
@@ -282,9 +277,7 @@ CurrentCoords 2 GetEnemyUnitsInRange 0 do
 		endif
 	endif
 loop
-<-MovingTower -1 neq if
-	 <-MovingTower CONST_COORDX GetUnitAttribute <-MovingTower CONST_COORDY GetUnitAttribute <-ChipMovementSpeed QueueMove
-endif
+
 
 
 :CalculateClickRadius #() -> (float radius)
@@ -301,16 +294,14 @@ endif
 
 :OccupyTower
     <-MovingTower -1 neq if
-        <-MovingTower "FreeTower.crpl" "occupied" 1 SetScriptVar
-		<-MovingTower "MoveTower.crpl" "occupied" 1 SetScriptVar <-MovingTower "MoveTower.crpl" "Movable" 0 SetScriptVar
-		<-MovingTower "BlockerDocker.crpl" "occupied" 1 SetScriptVar
+        <-MovingTower "DockerInterface.crpl" "Occupied" 1 SetScriptVar
+		<-MovingTower "MoveTower.crpl" "Movable" 0 SetScriptVar
     endif
 
 :UnoccupyTower
     <-MovingTower -1 neq if
-        <-MovingTower "FreeTower.crpl" "occupied" 0 SetScriptVar
-		<-MovingTower "MoveTower.crpl" "occupied" 0 SetScriptVar <-MovingTower "MoveTower.crpl" "Movable" 1 SetScriptVar
-		<-MovingTower "BlockerDocker.crpl" "occupied" 0 SetScriptVar
+        <-MovingTower "DockerInterface.crpl" "Occupied" 0 SetScriptVar
+		<-MovingTower "MoveTower.crpl" "Movable" 1 SetScriptVar
     endif
 
 :CheckMouseForDockable #() -> () Can be docked on factories and dockers.
@@ -318,7 +309,7 @@ endif
     GetMouseCell 2 GetEnemyUnitsInRange 0 do
         ->unit
         <-unit GetUnitType "CRPLCORE" eq if
-           <-unit "FreeTower.crpl" "Name" GetScriptVar "" concat "Tower" eq <-unit "FreeTower.crpl" "occupied" GetScriptVar not and <-unit "MoveTower.crpl" "Name" GetScriptVar "" concat "Tower" eq <-unit "MoveTower.crpl" "occupied" GetScriptVar not and <-unit "MoveTower.crpl" "moving" GetScriptVar not and or if
+           <-unit "DockerInterface.crpl" "DockableType" GetScriptVar "" concat "FreeTower" eq <-unit "DockerInterface.crpl" "DockableType" GetScriptVar "" concat "MoveTower" eq or <-unit "DockerInterface.crpl" "Occupied" GetScriptVar not and <-unit "DockerInterface.crpl" "Moving" GetScriptVar not and if
 		        1 ->greenShadow
 				<-unit ->TargetTower
                 <-unit CONST_COORDX GetUnitAttribute ->targetX
@@ -333,7 +324,7 @@ endif
 				Self "range1" <-AC_R <-AC_G <-AC_B 255 SetImageColor
 				return
 		   endif
-           <-unit "BlockerDocker.crpl" "IsBlockerDocker" GetScriptVar <-unit "BlockerDocker.crpl" "occupied" GetScriptVar not and if
+           <-unit "DockerInterface.crpl" "DockableType" GetScriptVar "" concat "BlockerDocker" eq <-unit "DockerInterface.crpl" "Occupied" GetScriptVar not and if
                 1 ->greenShadow
 				<-unit ->TargetTower
                 <-unit CONST_COORDX GetUnitAttribute ->targetX
