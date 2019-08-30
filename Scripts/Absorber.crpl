@@ -17,8 +17,6 @@ $AuraModes:"0,0,0,0" #Has an effect on stuff in it's range
 #Fourth value is unused
 $AuraRadius:0 #Radius of the aura effect.
 $Deathtimer:150 #How many frames to wait for death
-#0 - does nothing except disappear.
-#1 - Makes a PZ
 $Name:"Absorber"
 #ImageSlot can be changed if you want to use a different slot.
 $ImageSlot:"Custom85"
@@ -224,10 +222,10 @@ endif
 	endif
 endif
 <-Dump if
-	<-Storage abs asfloat 2000.0 div ceil sqrt floor 3 min ->Radius
-	<-Storage asfloat <-Radius 2 mul 1 add 2 pow div 2000 min ->CreeperPower
-	CurrentX <-Radius add 1 add CurrentX <-Radius sub do # J = X
-		CurrentY <-Radius add 1 add CurrentY <-Radius sub do # I = Y
+	<-Storage abs asfloat 2000.0 div ceil sqrt ceil 7.0 min ->Radius
+	<-Storage asfloat <-Radius 2 pow div 2000 min ->CreeperPower
+	CurrentX <-Radius 2 div floor add 1 add CurrentX <-Radius 2 div ceil sub 1 add do # J = X
+		CurrentY <-Radius 2 div floor add 1 add CurrentY <-Radius 2 div ceil sub 1 add do # I = Y
 			J I <-CreeperPower SetCreeper
 		loop
 	loop
