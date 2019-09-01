@@ -119,7 +119,7 @@ endif
 			<-TargetUnit CONST_HEALTH dup2 GetUnitAttribute <-HealthChange add SetUnitAttribute
 			<-TargetUnit CONST_HEALTH GetUnitAttribute eq0 <-HealthChange 0 lt and if
 				<-TargetUnit GetUnitType ->Type 
-				<-Type "COMMANDNODE" eq <-Type "COLLECTOR" eq or <-Type "REACTOR" eq or <-Type "OREMINE" eq or <-Type "SIPHON" eq or <-Type "TERP" eq or <-Type "GUPPY" eq or <-Type "GUPPYAIR" eq or <-Type "SHIELD" eq or <-Type "PULSECANNON" eq or <-Type "MORTAR" eq or <-Type "STRAFER" eq or <-Type "STRAFERAIR " eq or <-Type "BOMBER" eq or <-Type "BOMBERAIR" eq or <-Type "SPRAYER" eq or <-Type "NULLIFIER" eq or <-Type "BEAM" eq or <-Type "SNIPER" eq or <-Type "SHIELD" eq or <-Type "PULSECANNON" eq or <-Type "MORTAR" eq or <-Type "STRAFER" eq or <-Type "STRAFERAIR " eq or <-Type "BOMBER" eq or <-Type "BOMBERAIR" eq or <-Type "FORGE" eq or <-Type "BERTHA" eq or <-Type "THOR" eq or if
+				<-Type "COMMANDNODE" eq <-Type "COLLECTOR" eq or <-Type "REACTOR" eq or <-Type "RELAY" eq or <-Type "OREMINE" eq or <-Type "SIPHON" eq or <-Type "TERP" eq or <-Type "GUPPY" eq or <-Type "GUPPYAIR" eq or <-Type "SHIELD" eq or <-Type "PULSECANNON" eq or <-Type "MORTAR" eq or <-Type "STRAFER" eq or <-Type "STRAFERAIR " eq or <-Type "BOMBER" eq or <-Type "BOMBERAIR" eq or <-Type "SPRAYER" eq or <-Type "NULLIFIER" eq or <-Type "BEAM" eq or <-Type "SNIPER" eq or <-Type "SHIELD" eq or  <-Type "FORGE" eq or <-Type "BERTHA" eq or <-Type "THOR" eq or if
 					<-TargetUnit 3 Destroy
 				endif
 			endif
