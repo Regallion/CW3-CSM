@@ -24,15 +24,15 @@ $ImageSquare:"Custom5_256"
 Once
 0.0 ->storage
 <-DestroyModes "," Split ->Temp
-<-Temp 0 GetListElement ->LeavePZ
-<-Temp 1 GetListElement ->Rain
-<-Temp 2 GetListElement ->Dump
-<-Temp 3 GetListElement ->TowerPower
+<-Temp 0 GetListElement asfloat ->LeavePZ
+<-Temp 1 GetListElement asfloat ->Rain
+<-Temp 2 GetListElement asfloat ->Dump
+<-Temp 3 GetListElement asfloat ->TowerPower
 <-AuraModes "," Split ->Temp
-<-Temp 0 GetListElement ->HealthChanger
-<-Temp 1 GetListElement ->AmmoChanger
-<-Temp 2 GetListElement ->ACammoChanger
-<-Temp 3 GetListElement ->Temp
+<-Temp 0 GetListElement asfloat ->HealthChanger
+<-Temp 1 GetListElement asfloat ->AmmoChanger
+<-Temp 2 GetListElement asfloat ->ACammoChanger
+<-Temp 3 GetListElement asfloat ->Temp
 #Export a linebreak to help with text generation.
 "
 " ->lb
