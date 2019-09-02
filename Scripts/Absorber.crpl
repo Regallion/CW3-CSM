@@ -8,7 +8,8 @@ $DestroyModes:"0,0,0,0" #What to do on destruction.
 #Second value is to whether spawn rain on death. Storage is rained in increments of 100 creeper. It is not recommended to spawn more than 100 droplets.
 #Third value is whether or not to dump stored creeper. Creeper is dumped at 2000 per cell, with no more 3 radius being affected.
 #Fourth value is to drop a powering tower. If the value is not 0, the value is the power of the resulting tower.
-$Destructible:1 #If 0, will not die on storage overflow.
+$DestructibleC:1 #If 0, will not die on CREEPER storage overflow.
+$DestructibleAC:1 #If 0, will not die on ANTICREEPER storage overflow.
 $AuraModes:"0,0,0,0" #Has an effect on stuff in it's range
 #Generally an aura will have 100% of it's effect if the absorber is full of AC and -100% of it's effect if it's full of C. 
 #First value is whether or not it generates a health-altering field. Heals/deals that much damage every second. Will not kill non-standard units.
@@ -16,19 +17,21 @@ $AuraModes:"0,0,0,0" #Has an effect on stuff in it's range
 #Third value is whether or not whether or not it generates an acammo-altering field. Adds/removes that much acammo every second.
 #Fourth value is unused
 $AuraRadius:0 #Radius of the aura effect.
-$Deathtimer:150 #How many frames to wait for death
+$Deathtimer:150 #How many frames to wait for death.
+$ReactivationTimer:0 #How many frames to wait for reactivation. If not 0, means that the emitter will trigger it's on-death effects repeatedly, without getting destroyed. Will only trigger if it's destructible by the relevant storage type
 $Name:"Absorber"
 #ImageSlot can be changed if you want to use a different slot.
 $ImageSlot:"Custom85"
 $ImageSquare:"Custom5_256"
 Once
-0.0 ->storage
-<-DestroyModes "," Split ->Temp
+"" SetText
+0.0 ->Storage #Defaults storage to float.
+<-DestroyModes "," Split ->Temp #Splits the Destroy settings into floats.
 <-Temp 0 GetListElement asfloat ->LeavePZ
 <-Temp 1 GetListElement asfloat ->Rain
 <-Temp 2 GetListElement asfloat ->Dump
 <-Temp 3 GetListElement asfloat ->TowerPower
-<-AuraModes "," Split ->Temp
+<-AuraModes "," Split ->Temp #Splits Aura settings into floats.
 <-Temp 0 GetListElement asfloat ->HealthChanger
 <-Temp 1 GetListElement asfloat ->AmmoChanger
 <-Temp 2 GetListElement asfloat ->ACammoChanger
@@ -41,15 +44,35 @@ Once
 
 endonce
 
-<-HealthChanger neq0 <-AmmoChanger neq0 or <-ACammoChanger neq0 or if
-
+GetTimer1 neq0 if #If the unit is recovering from the latest explosion, does nothing except re-generate the text.
+	@GeneratePopupText
+	return
+endif
+<-Reactivating if
+	<-AbsorbRange 0 gt if #The absorption and aura ranges are not dynamic and as such are only set once.
+		Self "range" <-ImageSquare SetImage
+		Self "range" <-AbsorbRange 2 mul 1.0 add 3.0 div dup SetImageScale
+		Self "range" 255 255 255 255 SetImageColor
+	else	
+		Self "range" "NONE" SetImage
+	endif
+	<-AuraRadius 0 gt if
+		Self "rangea" <-ImageSquare SetImage
+		Self "rangea" <-AuraRadius 2 mul 1.0 add 3.0 div dup SetImageScale
+		Self "rangea" 0 255 0 100 SetImageColor
+	else	
+		Self "rangea" "NONE" SetImage
+	endif
+	"" SetText
+	0 ->Reactivating
 endif
 
-<-Storage abs <-StorageCapacity gte <-dead not and <-Destructible neq0 and if
-	<-Deathtimer eq0 if
-		self 3 destroy
+<-Storage <-StorageCapacity gte  <-DestructibleC and <-Storage <-StorageCapacity neg lte <-DestructibleAC and or <-dead not and if #If the unit exceeded the creeper storage and is destructible with creeper OR it exceeded the AC storage and is destructivle with AC AND we haven't yet tripped this, activate the dying effects
+	<-Deathtimer eq0 if #If we have no delay before dying just get right down to business
+		@DestructionEffect
+		return
 	endif
-	
+	#Otherwise we display a message for a bit and set ourselves to die.
 	0 5 RandInt ->rand
 	<-rand 0 eq if
 	"STORAGE OVERLOAD" SetText
@@ -67,22 +90,23 @@ endif
 	"TERMINATING" SetText
 	endif
 	50 220 50 255 SetTextColor 20 SetTextY 1.1 SetTextSize
-	#Set the dead state so the emitter behaves properly in the interim period before being destroyed.
+	#Set a flag that we are dying. Prevents the absorption from working. Deliberately does not affect the auras.
 	1 ->dead
 	<-Deathtimer SetTimer0
 endif
 
-<-dead if
+<-dead if #If we are flagged for death AND the death delay expired, trigger the destruction effect. 
 	GetTimer0 eq0 if
-		self 3 destroy
+		@DestructionEffect
+		return
 	endif
-else
+else #If we are not dead, absorb nearby C and AC. Will not absorb C/AC of the relevant storage is full and will correct overabsorption.
 	CurrentX <-AbsorbRange add 1 add CurrentX <-AbsorbRange sub do # J = X
 		CurrentY <-AbsorbRange add 1 add CurrentY <-AbsorbRange sub do # I = Y
 			J I GetCreeper asfloat ->Value
 			<-Value 0 gt if
 				<-Storage <-StorageCapacity lt if
-					<-Storage <-Value <-AbsorbCmod mul add  ->Storage
+					<-Storage <-Value <-AbsorbCmod mul add  ->Storage #Absorbed value is multiplied by the relevant modifier
 					J I 0 SetCreeper
 				endif
 			else
@@ -93,9 +117,10 @@ else
 			endif
 		loop
 	loop
-	<-Storage <-StorageCapacity min <-StorageCapacity neg max ->Storage
+	<-Storage <-StorageCapacity min <-StorageCapacity neg max ->Storage #Checks that the storage is not outside the limit.
 	@GeneratePopupText
-	<-Storage 0 lt if
+	GetCreeperColors 255 mul ->AC_B 255 mul ->AC_G 255 mul ->AC_R 255 mul ->C_B 255 mul ->C_G 255 mul ->C_R
+	<-Storage 0 lt if #Paints the absorber with appropriate creeper color. Uses actual creeper colors set by the player. The emitter becomes less transparent as it fills up
 		Self "main" <-AC_R <-AC_G <-AC_B 255 <-Storage abs <-StorageCapacity div mul asint 100 max SetImageColor
 	else
 		<-Storage 0 gt if
@@ -106,24 +131,24 @@ else
 	endif
 endif
 
-<-HealthChanger neq0 <-AmmoChanger neq0 or <-ACammoChanger neq0 or GetTimer2 eq0 and if
+<-HealthChanger neq0 <-AmmoChanger neq0 or <-ACammoChanger neq0 or GetTimer2 eq0 and if #Aura effect. Triggers every second.
 	CreateList ->AffectedUnits
-	CurrentCoords <-AuraRadius 1 GetAllUnitsInRange 0 do
+	CurrentCoords <-AuraRadius 1 GetAllUnitsInRange 0 do #Adds every unit in a square AuraRange
 		->unit
 		<-AffectedUnits <-unit  AppendToList
 	loop
 	<-AffectedUnits GetListCount 0 do
 		<-AffectedUnits I GetListElement ->TargetUnit
 		<-TargetUnit CONST_ISBUILDING GetUnitAttribute 1 neq if
-			<-HealthChanger <-Storage neg <-StorageCapacity div mul ->HealthChange
+			<-HealthChanger <-Storage neg <-StorageCapacity div mul ->HealthChange #Auras are modified by % of storage filled. Filling with AC will produce a positive multiplier, filling with C a negative one.
 			<-TargetUnit CONST_HEALTH dup2 GetUnitAttribute <-HealthChange add SetUnitAttribute
 			<-TargetUnit CONST_HEALTH GetUnitAttribute eq0 <-HealthChange 0 lt and if
-				<-TargetUnit GetUnitType ->Type 
+				<-TargetUnit GetUnitType ->Type #We only destroy standard units upon them reaching 0 health and only if the aura is a health drain. The list has to be specific as otherwise it would destroy power zones n stuff too.
 				<-Type "COMMANDNODE" eq <-Type "COLLECTOR" eq or <-Type "REACTOR" eq or <-Type "RELAY" eq or <-Type "OREMINE" eq or <-Type "SIPHON" eq or <-Type "TERP" eq or <-Type "GUPPY" eq or <-Type "GUPPYAIR" eq or <-Type "SHIELD" eq or <-Type "PULSECANNON" eq or <-Type "MORTAR" eq or <-Type "STRAFER" eq or <-Type "STRAFERAIR " eq or <-Type "BOMBER" eq or <-Type "BOMBERAIR" eq or <-Type "SPRAYER" eq or <-Type "NULLIFIER" eq or <-Type "BEAM" eq or <-Type "SNIPER" eq or <-Type "SHIELD" eq or  <-Type "FORGE" eq or <-Type "BERTHA" eq or <-Type "THOR" eq or if
 					<-TargetUnit 3 Destroy
 				endif
 			endif
-			<-TargetUnit CONST_AMMOAC dup2 GetUnitAttribute <-ACammoChanger <-Storage neg <-StorageCapacity div mul add SetUnitAttribute
+			<-TargetUnit CONST_AMMOAC dup2 GetUnitAttribute <-ACammoChanger <-Storage neg <-StorageCapacity div mul add SetUnitAttribute 
 			<-TargetUnit CONST_AMMO dup2 GetUnitAttribute <-AmmoChanger <-Storage neg <-StorageCapacity div mul add SetUnitAttribute
 		endif
 	loop
@@ -152,14 +177,14 @@ endif
 			Self "main" 255 255 255 255 SetImageColor
 		endif
 	endif
-	<-AbsorbRange 0 gt if
+	<-AbsorbRange 0 gt <-Reactivating not and if 
 		Self "range" <-ImageSquare SetImage
 		Self "range" <-AbsorbRange 2 mul 1.0 add 3.0 div dup SetImageScale
 		Self "range" 255 255 255 255 SetImageColor
 	else	
 		Self "range" "NONE" SetImage
 	endif
-	<-AuraRadius 0 gt if
+	<-AuraRadius 0 gt <-Reactivating not and if
 		Self "rangea" <-ImageSquare SetImage
 		Self "rangea" <-AuraRadius 2 mul 1.0 add 3.0 div dup SetImageScale
 		Self "rangea" 0 255 0 100 SetImageColor
@@ -167,8 +192,9 @@ endif
 		Self "rangea" "NONE" SetImage
 	endif
 :GeneratePopupText #General method for determining popup text
+#First generate basic info: That this is the absorber, absorption modifiers and current storage state.
 "Absorber R" <-AbsorbRange concat " Cmod " concat <-AbsorbCmod concat " ACmod " concat <-AbsorbACmod concat "
- Storage at " concat <-Storage abs concat "/" concat <-StorageCapacity concat "
+ Storage at " concat <-Storage abs 0 round concat "/" concat <-StorageCapacity concat "
  " concat
  <-Storage 0 lt if
 	"Currently storing anticreeper" concat ->PopupText
@@ -179,7 +205,14 @@ else
 		"Currently empty" concat ->PopupText
 	endif
 endif
-<-HealthChanger neq0 if
+GetTimer1 neq0 if #If we are recovering after a burst, we stop generating text and show some ticking numbers above
+	<-PopupText "
+Currently recovering from overflow" concat ->PopupText
+	<-PopupText SetPopupText
+	GetTimer1 30.0 div 0 round SetText
+	return
+endif
+<-HealthChanger neq0 if #Next, detail effects of current auras
 	<-PopupText "
 Will alter the health of nearby units by " concat <-HealthChanger <-Storage neg <-StorageCapacity div mul 2 round  concat " every second" concat ->PopupText
 endif
@@ -191,7 +224,7 @@ endif
 	<-PopupText "
 Will alter the AC stores of nearby units by " concat <-ACammoChanger <-Storage neg <-StorageCapacity div mul 2 round concat " every second" concat ->PopupText
 endif
-<-Destructible if
+<-DestructibleC <-DestructibleAC or if #If the unit is destructible specify the on-overflow effects and any immunities.
 	<-LeavePZ if
 		<-PopupText "
 Will leave behind a Power Zone on death" concat ->PopupText
@@ -208,14 +241,26 @@ Will leak storage contents on death" concat ->PopupText
 		<-PopupText "
 Will leave behind a " concat <-TowerPower concat " power tower on death" concat ->PopupText
 	endif
-else
+	<-DestructibleC not if
+		<-PopupText "
+Will not die when full of creeper" concat ->PopupText
+	endif
+	<-DestructibleAC not if
+		<-PopupText "
+Will not die when full of anticreeper" concat ->PopupText
+	endif
+else #If it isn't destructible, state so
 	<-PopupText "
-Will not die when full" concat ->PopupText
+Will not die from overflow" concat ->PopupText
 endif
-
+<-ReactivationTimer neq0 if
+	<-PopupText "
+Instead of dying, will reactivate in " concat <-ReactivationTimer 30.0 div 0 round concat " seconds" concat ->PopupText
+endif
 <-PopupText SetPopupText
-:destroyed
-<-Rain if
+:DestructionEffect
+#Triggers any on-overflow effects
+<-Rain if #If made to rain, creates a rain of 100-creeper droplets depending on storage
 	<-Storage abs asfloat 100.0 div floor ->Droplets
 	<-Droplets 1 gt if
 		<-Droplets 100 <-Storage <-Storage abs div mul MakeRain
@@ -223,7 +268,7 @@ endif
 		<-Storage asfloat 15.0 div floor 15 MakeRain
 	endif
 endif
-<-Dump if
+<-Dump if #If made to dump, finds the amount of squares it can fill with 2000-high creeper, gets the proper size of a square to fill (but no bigger than 7x7) and fills the tiles. EX: A 80000 storage emitter will fill 40 tiles which fits a 7x7 square. Thus each square will have 1632 creeper on it 
 	<-Storage abs asfloat 2000.0 div ceil sqrt ceil 7.0 min ->Radius
 	<-Storage asfloat <-Radius 2 pow div 2000 min ->CreeperPower
 	CurrentX <-Radius 2 div floor add 1 add CurrentX <-Radius 2 div ceil sub 1 add do # J = X
@@ -232,8 +277,46 @@ endif
 		loop
 	loop
 endif
-<-TowerPower neq0 if
+<-TowerPower neq0 if #If allowed to dop a tower, drops a tower.
 	"CRPLCORE" CurrentX CurrentY CreateUnit ->Tower
 	<-Tower "ACmultitower.crpl" AddScriptToUnit
 	<-Tower "ACmultitower.crpl" "Power" <-TowerPower SetScriptVar
+endif
+<-ReactivationTimer neq0 if #If allowed to reactivate, resets storage and dead states and enters a cooldown period.
+	0 ->Storage
+	0 ->dead
+	"" SetText
+	1 ->Reactivating
+	Self "range" "NONE" SetImage
+	Self "rangea" "NONE" SetImage
+	Self "main" 255 255 255 255 SetImageColor
+	<-ReactivationTimer SetTimer1
+else #Otherwise it is destroyed.
+	1 ->Effected
+	Self 3 Destroy
+endif
+:destroyed
+<-Effected not if #If the unit was destroyed by anything other than the internal overflow, triggers all on-death effects.
+	<-Rain if
+		<-Storage abs asfloat 100.0 div floor ->Droplets
+		<-Droplets 1 gt if
+			<-Droplets 100 <-Storage <-Storage abs div mul MakeRain
+		else
+			<-Storage asfloat 15.0 div floor 15 MakeRain
+		endif
+	endif
+	<-Dump if
+		<-Storage abs asfloat 2000.0 div ceil sqrt ceil 7.0 min ->Radius
+		<-Storage asfloat <-Radius 2 pow div 2000 min ->CreeperPower
+		CurrentX <-Radius 2 div floor add 1 add CurrentX <-Radius 2 div ceil sub 1 add do # J = X
+			CurrentY <-Radius 2 div floor add 1 add CurrentY <-Radius 2 div ceil sub 1 add do # I = Y
+				J I <-CreeperPower SetCreeper
+			loop
+		loop
+	endif
+	<-TowerPower neq0 if
+		"CRPLCORE" CurrentX CurrentY CreateUnit ->Tower
+		<-Tower "ACmultitower.crpl" AddScriptToUnit
+		<-Tower "ACmultitower.crpl" "Power" <-TowerPower SetScriptVar
+	endif
 endif
