@@ -87,7 +87,7 @@ endonce
 		endif
 		GetTimer0 30.0 div 0 round SetText
 		GetTimer0 eq0 if
-			<-MovingUnit "DockerInterface.crpl" "DockableType" GetScriptVar "BlockerDocker" eq if #allows you to dispose of excess defusers by blowing them on blockers
+			<-MovingUnit "DockerInterface.crpl" "DockableType" GetScriptVar "" concat "BlockerDocker"  eq if #allows you to dispose of excess defusers by blowing them on blockers
 				<-MovingUnit "DockerInterface.crpl" "Occupied" 0 SetScriptVar
 				<-CreatedBy "ChipFactory.crpl" dup2 "STATE_RESET" GetScriptVar "state" swap SetScriptVar
 				Self 0 Destroy
