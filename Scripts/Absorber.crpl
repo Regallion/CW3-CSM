@@ -22,6 +22,7 @@ $ReactivationTimer:0 #How many frames to wait for reactivation. If not 0, means 
 $Name:"Absorber"
 #ImageSlot can be changed if you want to use a different slot.
 $ImageSlot:"Custom85"
+$ImageBgSlot:"Custom86"
 $ImageSquare:"Custom5_256"
 Once
 "" SetText
@@ -121,10 +122,10 @@ else #If we are not dead, absorb nearby C and AC. Will not absorb C/AC of the re
 	@GeneratePopupText
 	GetCreeperColors 255 mul ->AC_B 255 mul ->AC_G 255 mul ->AC_R 255 mul ->C_B 255 mul ->C_G 255 mul ->C_R
 	<-Storage 0 lt if #Paints the absorber with appropriate creeper color. Uses actual creeper colors set by the player. The emitter becomes less transparent as it fills up
-		Self "main" <-AC_R <-AC_G <-AC_B 255 <-Storage abs <-StorageCapacity div mul asint 100 max SetImageColor
+		Self "main" <-AC_R <-AC_G <-AC_B 255 <-Storage asfloat abs <-StorageCapacity asfloat div mul 100 max SetImageColor
 	else
 		<-Storage 0 gt if
-			Self "main" <-C_R <-C_G <-C_B 255 <-Storage abs <-StorageCapacity div mul asint 100 max SetImageColor
+			Self "main" <-C_R <-C_G <-C_B 255 <-Storage asfloat abs <-StorageCapacity asfloat div mul 100 max SetImageColor
 		else
 			Self "main" 255 255 255 255 SetImageColor
 		endif
@@ -166,13 +167,16 @@ endif
 		Self CONST_CREATEPZ 1 SetUnitAttribute
 	endif
 	Self "main" <-ImageSlot SetImage
+	Self "mainbg" <-ImageBgSlot SetImage
+	Self "mainbg" 0 0 0.01 SetImagePosition
 	Self "main" 0.8 0.3 1 <-Storage abs <-StorageCapacity  div add mul add dup SetImageScale
+	Self "mainbg" 0.8 0.3 1 <-Storage abs <-StorageCapacity  div add mul add dup SetImageScale
 	GetCreeperColors 255 mul ->AC_B 255 mul ->AC_G 255 mul ->AC_R 255 mul ->C_B 255 mul ->C_G 255 mul ->C_R
 	<-Storage 0 lt if
-		Self "main" <-AC_R <-AC_G <-AC_B 255 <-Storage abs <-StorageCapacity div mul asint 100 max SetImageColor
+		Self "main" <-AC_R <-AC_G <-AC_B 255 <-Storage asfloat abs <-StorageCapacity asfloat div mul 100 max SetImageColor
 	else
 		<-Storage 0 gt if
-			Self "main" <-C_R <-C_G <-C_B 255 <-Storage abs <-StorageCapacity div mul asint 100 max SetImageColor
+			Self "main" <-C_R <-C_G <-C_B 255 <-Storage asfloat abs <-StorageCapacity asfloat div mul 100 max SetImageColor
 		else
 			Self "main" 255 255 255 255 SetImageColor
 		endif
