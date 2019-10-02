@@ -290,7 +290,11 @@ endif
 	endif
 	<-InsertedChip "TowerChip.crpl" "TimeSpent" <-InsertedChip "TowerChip.crpl" "TimeSpent"  GetScriptVar 1 add SetScriptVar
 endif
-
+<-Movable not if
+	<-selected if
+		0 ->selected 
+	endif
+endif
 <-Movable if
 		#Check for click event
 	0 GetMouseButtonDown if
