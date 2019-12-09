@@ -6,6 +6,7 @@ $VerificationCooldown:20 #how long it takes to come online
 $EmissionEffect:10 #flat increase to emissions per upgrade level
 $UpgradeLimit:5 #0 for unlimited, otherwise this is how much you can upgrade any given emitter.
 $RequestRate:7 #How many frames between packet requests by upgrading emitters
+$AutoCancel:0 #If 1, automatically cancels all pending upgrades on chip collection
 
 once
 @awake
@@ -67,8 +68,12 @@ endif
 		<-Unit "EmitterInterface.crpl" "BaseValue" <-BaseValue SetScriptVar
 		<-Unit "EmitterInterface.crpl" "AddValue" <-AddValue SetScriptVar
 		<-Unit "EmitterInterface.crpl" "UpgradeLimit" <-UpgradeLimit SetScriptVar
+		<-ShouldCancel <-AutoCancel and if
+			<-Unit "EmitterInterface.crpl" "StopContUpgrade" 1 SetScriptVar
+		endif
 	loop
 	0 ->Changed
+	0 ->ShouldCancel
 endif
 
 :FormText
@@ -87,6 +92,10 @@ endif
 	<-UpgradeLimit neq0 if
 		<-PopupText "
 		You can upgrade up to " <-UpgradeLimit " times" concat concat concat ->PopupText
+	endif
+	<-AutoCancel neq0 if
+		<-PopupText "
+		Will automatically cancel all auto-upgrades when collecting a chip"  ->PopupText
 	endif
 	<-PopupText "
 	Click this to switch to instructions display. " concat ->PopupText

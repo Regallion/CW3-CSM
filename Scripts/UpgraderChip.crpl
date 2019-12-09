@@ -7,6 +7,7 @@ $EmissionEffectMod:5 #Increases EmissionEffect by that much. Can be negative.
 $UpgradeLimitMod:1 #Increases UpgradeLimit by that much. Can be negative, but reducing UpgradeLimit to 0 will uncap upgrades, be aware.
 $RequestRateMod:-1 #Increases RequestRate by that much. Can and should be negative.
 
+
 once
 @awake
 	Self CONST_AMMO 0 SetUnitAttribute
@@ -111,5 +112,6 @@ endif
 	<-Unit "Upgrader.crpl" "BaseValue" <-Unit "Upgrader.crpl" "BaseValue" GetScriptVar <-BaseValueMod add 0 max  SetScriptVar #Negative base value makes no sense
 	<-Unit "Upgrader.crpl" "AddValue" <-Unit "Upgrader.crpl" "AddValue" GetScriptVar <-AddValueMod add  SetScriptVar
 	<-Unit "Upgrader.crpl" "UpgradeLimit" <-Unit "Upgrader.crpl" "UpgradeLimit" GetScriptVar <-UpgradeLimitMod add 0 max SetScriptVar #negative upgrade limit makes no sense
+	<-Unit "Upgrader.crpl" "ShouldCancel" 1 SetScriptVar
 	<-Unit "Upgrader.crpl" "Changed" 1 SetScriptVar
 	Self 0 Destroy
