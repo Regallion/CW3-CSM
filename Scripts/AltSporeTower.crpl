@@ -1,0 +1,475 @@
+# AltSporeTower.crpl
+# Created on: 2/5/2020 7:03:09 PM
+# ------------------------------------------
+$state:0
+$amt:10
+$chipLevel:0
+#Flood will produce multiple spores per interval, and interval will increase to match
+$flood:0
+#Blow up instead of allowing itself to be captured?
+$selfDestruct:0
+$Name:"AltSporeTower"
+$IdleImage:"Custom4pp"
+$ArmedImage:"Custom5pp"
+$SelectImage:"Custom6pp"
+$CrosshairImage:"Custom7pp"
+
+once
+	HideTraceLog
+	30 ->interval
+	"" ->tooltipText
+	0 ->newAmmo
+	0 ->newChip
+	1 ->newText
+	@Reset
+	<-interval Delay
+endonce
+
+GetTimer0 eq0 if
+	#ShowTraceLog
+	#ClearTraceLog
+	<-interval SetTimer0
+	<-newChip neq0 if
+		@Fixup
+	endif
+	#Check unit damage and takeover
+	CurrentCoords GetCreeper neq0 if
+		<-state CurrentCoords GetCreeper div 0 lte if
+			0 ->satAmt
+			<-satAmt CurrentCoords GetCreeper add ->satAmt
+			<-satPt 1.0 lt if
+				1.0 ->satPt
+			endif
+			<-satAmt abs ->nDamage
+			#If there is enough opposing creeper, convert the tower.	
+			<-satAmt abs Self CONST_HEALTH GetUnitAttribute gte if
+				#selfDestruct prevents capture.
+				<-selfDestruct 0 gt if
+					Self <-nDamage Damage
+				else
+					<-satAmt <-satAmt abs div ->state
+					@StateUpdate
+				endif
+				@StateUpdate
+			else
+				#Otherwise, just deal damage.
+				Self <-nDamage Damage
+			endif
+		else
+		endif
+	endif
+#	"" ->traceText
+#	<-traceText ", satAmt" concat <-satAmt concat ->traceText
+#	<-traceText ", satPt" concat <-satPt concat ->traceText
+#	<-traceText ", H" concat Self CONST_HEALTH GetUnitAttribute concat ->traceText
+#	<-traceText "/" concat Self CONST_MAXHEALTH GetUnitAttribute concat ->traceText
+#	<-traceText Trace
+	##--		######	--##
+	<-state neq0 if
+		@FiringCycle
+	else
+		45 SetTimer0
+		#If an idle tower gets some AC packets, enable it for the player.
+		Self CONST_AMMOAC GetUnitAttribute 0 gt if
+			-1 ->state
+			@StateUpdate
+		else
+			1 ->newText	
+		endif
+	endif
+	##--		######	--##
+endif
+
+<-firing 0 gt if
+	@FireSpores
+endif
+
+<-selected if
+	GetTimer0 5 mod if
+	#Move targeting crosshair?
+		<-CrosshairImage "" eq not if
+			CurrentPixelCoords ->uY ->uX
+			GetMousePosition ->y ->x
+			Self "CrosshairImage" <-x <-uX sub <-y <-uY sub -0.01 SetImagePosition
+		endif
+	endif
+endif
+
+<-newText neq0 if
+	0 ->newText
+	@TextUpdate
+endif
+
+if(GetKeyDown("X"))
+	#Only allow self-destruct when player owned.
+	<-state 0 lt if
+	@IsMouseIn if
+		if(GetKey("LeftShift") GetKey("RightShift") or)
+			Self Self CONST_HEALTH GetUnitAttribute 2 mul Damage
+		endif
+	endif
+	endif
+endif
+
+if(GetKeyDown("H"))
+	@IsMouseIn if
+		ClearConversation
+		1 "AltSporeTower.crpl, Right click to toggle network link.
+		Click to select, can set target while selected.
+		Target the unit itself and manual target will be removed.
+		[Shift][X] to destroy when player owned." AddConversationMessage
+		1 "AltSporeTower.crpl: AC packets can increase fire rate. Chip Towers can increase AC output. Output over 2000 will cause multiple spores to be fired. I'm not sure if the tooltip interval is accurate or not here." AddConversationMessage
+		ShowConversation
+	endif
+endif
+
+if (GetMouseButtonDown(0))
+	0 ->onUnit
+	@IsMouseIn if
+		1 ->onUnit
+		@Select
+	endif
+	<-onUnit eq0 if
+		@Deselect
+	endif
+endif
+if (GetMouseButtonDown(1))
+	@IsMouseIn if
+		@Toggle
+	endif
+endif
+
+
+#return
+:IsMouseIn
+	GetMouseCell ->my ->mx
+	CurrentX ->x
+	CurrentY ->y
+	<-x <-mx sub abs 1 lte if
+		<-y <-my sub abs 1 lte if
+			1
+			return
+		endif
+	endif
+	0
+	return
+
+:Reset
+	3 ->prev
+	-1 ->targetX
+	-1 ->targetY
+	#HideTraceLog
+	#ShowTraceLog
+	#ClearTraceLog
+	self "main" 127 127 127 255 SetImageColor
+	Self CONST_AMMO 0 SetUnitAttribute
+	Self CONST_AMMOAC 0 SetUnitAttribute
+	
+	@Fixup
+	<-flood 0 gt <-state eq0 or if
+		#Flood spores start at full health?
+		Self CONST_HEALTH Self CONST_MAXHEALTH GetUnitAttribute SetUnitAttribute
+	else
+		Self CONST_HEALTH 1 SetUnitAttribute
+	endif
+	Self 30 mod SetTimer0
+	return
+
+:Fixup
+	Self CONST_REQUESTPACKETS True SetUnitAttribute
+	Self CONST_REQUESTACPACKETS True SetUnitAttribute
+	Self CONST_CANREQUESTAMMO False SetUnitAttribute
+	CurrentX ->x
+	CurrentY ->y
+	Self CONST_CELLWIDTH GetUnitAttribute ->cellWidth
+	Self CONST_CELLHEIGHT GetUnitAttribute ->cellHeight
+	<-cellWidth 2 div ->cellWidthRadius
+	<-cellHeight 2 div ->cellHeightRadius
+	<-cellWidth <-cellHeight mul ->cells
+	<-amt 1 max ->amt
+	<-chipLevel 1 max ->chipLevel
+	<-chipLevel <-amt max 1 max ->amtAC
+	15 ->ammoX
+	8 ->amtX
+	#MaxAmmo based on Amt, will be dumped into spore contents on firing, increased by upgrades
+	<-flood 0 gt if
+		Self CONST_MAXAMMO <-amt <-cells mul <-ammoX mul 1 max SetUnitAttribute
+		Self CONST_MAXAMMOAC <-amtAC <-cells mul <-ammoX mul 1 max SetUnitAttribute
+	else
+		Self CONST_MAXAMMO <-amt <-ammoX mul 1 max SetUnitAttribute
+		Self CONST_MAXAMMOAC <-amtAC <-ammoX mul 1 max SetUnitAttribute
+	endif
+	<-chipLevel 12 div floor 1 max ->ammoRate
+	@FixInterval
+	0 ->lastAC
+	0 ->newChip
+	1 ->newText
+	0 ->satAmt
+	@StateFix
+	@StateUpdate
+	@FixHealth
+	return
+
+:FixInterval
+	<-state 0 lt if
+	 	<-chipLevel ->maxAmt
+	else
+		<-amt ->maxAmt
+	endif
+	<-maxAmt 1 max ->maxAmt
+	<-flood 0 gt if
+		#Should give a rediculous boost at high levels
+		480 <-maxAmt div 15 max 60 min floor ->interval
+	else
+		120 <-maxAmt 0.5 pow div 15 max 60 min floor ->interval
+	endif
+	Self CONST_ACPACKETREQUESTDELAY <-interval 5 sub 1 max 20 min SetUnitAttribute
+	<-flood 0 gt if
+		<-interval <-cells mul ->interval
+		<-cells ->cost
+	else
+		1 ->cost
+	endif
+	1 ->newText
+	@FixHealth
+	return
+
+:FixHealth
+	<-flood 0 gt if
+		<-maxAmt abs 1 max <-cells mul ->satPt
+	else
+		<-maxAmt 1 max ->satPt
+	endif
+	Self CONST_MAXHEALTH <-satPt abs 1.0 max SetUnitAttribute
+	return
+
+
+:StateFix
+	#Sets things to match current state, but doesn't toggle network connection
+	<-state eq0 if
+		self "main" 223 223 223 255 SetImageColor
+		<-IdleImage "" eq not if
+			Self "main" <-IdleImage SetImage
+		endif
+		Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute
+		Self CONST_NULLIFIERDAMAGES 1 SetUnitAttribute
+		Self CONST_SUPPORTSDIGITALIS 0 SetUnitAttribute
+	else
+		<-ArmedImage "" eq not if
+			Self "main" <-ArmedImage SetImage
+		endif
+		<-state 0 lt if
+			self "main" 16 255 255 255 SetImageColor
+			Self CONST_COUNTSFORVICTORY 0 SetUnitAttribute
+			Self CONST_NULLIFIERDAMAGES 0 SetUnitAttribute
+			Self CONST_SUPPORTSDIGITALIS 0 SetUnitAttribute
+			Self CONST_SHOWAMMOACBAR True SetUnitAttribute
+		else
+			self "main" 64 128 255 255 SetImageColor
+			Self CONST_COUNTSFORVICTORY 1 SetUnitAttribute
+			Self CONST_NULLIFIERDAMAGES 1 SetUnitAttribute
+			Self CONST_NULLIFIERDAMAGEAMT 5 SetUnitAttribute
+			Self CONST_SUPPORTSDIGITALIS 1 SetUnitAttribute
+			Self CONST_SHOWAMMOBAR True SetUnitAttribute
+		endif
+	endif
+	1 ->newText
+	@FixInterval
+	return
+
+:StateUpdate
+	#Called when the state changes, should usually be 1 or -1
+	<-state <-prev neq if
+		0 ->lastAC
+		<-state ->prev
+		@StateFix
+		<-state 0 lt if
+			#If the last emitter is captured instead of destroyed, there may be a bug that prevents victory.
+			#So we'll create an evil unit and destroy it too, just in case
+			CreateUnit("CRPLCORE" CurrentCoords) ->child
+			<-child "SelfDestructEnemy.crpl" AddScriptToUnit
+			#Enable network connection for friendly creep by default
+			Self CONST_CONNECTABLE True SetUnitAttribute
+		else
+			#Break network connection for evil tower by default
+			<-state neq0 if
+				Self CONST_CONNECTABLE False SetUnitAttribute
+			endif
+			
+		endif
+		@FixInterval
+		1 ->newText
+	endif
+	return
+
+:FiringCycle
+	<-state eq0 if
+		#Maybe add ammo here, then set state to 1 if ammo fills up? Or just wait for creeper...
+		return
+	endif
+
+	<-state 0 gt if
+		#Currently producing Creeper Spores, ammo shows progress.
+		Self CONST_AMMO Self CONST_AMMO GetUnitAttribute <-cost add SetUnitAttribute
+		Self CONST_AMMO GetUnitAttribute Self CONST_MAXAMMO GetUnitAttribute gte if
+			#We have enough ammo, launch some spores?
+			Self CONST_AMMO 0 SetUnitAttribute
+			Self CONST_AMMOAC 0 SetUnitAttribute
+			<-amt dup mul <-amtX mul <-state mul ->outAmt
+			<-amt 10 div 1 max ->sporeHP
+		else
+			0 ->outAmt
+		endif
+	else
+		#Currently producing AC Spores, AC packets show progress.
+		Self CONST_AMMOAC Self CONST_AMMOAC GetUnitAttribute <-cost add SetUnitAttribute
+		Self CONST_AMMOAC GetUnitAttribute Self CONST_MAXAMMOAC GetUnitAttribute gte if
+			#We have enough ammo, launch some AC spores?
+			Self CONST_AMMO 0 SetUnitAttribute
+			Self CONST_AMMOAC 0 SetUnitAttribute
+			<-amtAC dup mul <-amtX mul <-state mul ->outAmt
+			<-amtAC 10 div 1 max ->sporeHP
+		else
+			0 ->outAmt
+		endif
+	endif
+	<-outAmt 0 neq if
+		<-outAmt abs 2000 gt if
+			<-outAmt abs 2000 div floor 1 add ->shots
+		else
+			1 ->shots
+		endif
+		<-sporeHP <-shots div 1 max ->sporeHP
+		<-outAmt <-shots div ->shotAmt
+		<-flood 0 gt if
+			<-shots <-cells mul ->shots
+		endif
+		1 ->firing
+	endif
+	return
+
+:FireSpores
+	#Call this function whenever <-shots is greater than 0
+	<-shots 0 gt if
+		<-shots 1 sub ->shots
+	else
+		0 ->firing
+		return
+	endif
+	<-shotAmt 0 neq if
+		<-shotAmt 0 gt if
+			#Firing creeper
+			RandUnitCoords ->tY ->tX
+			<-tX 0 lt <-tY 0 lt or if
+				#No targets found, firing blind.
+				CurrentCoords RandXCoord RandYCoord <-sporeHP <-shotAmt CreateSpore
+			else
+				#Firing at a random player unit.
+				CurrentCoords RandUnitCoords <-sporeHP <-shotAmt CreateSpore
+			endif		
+		endif
+		<-shotAmt 0 lt if
+			#Check if manual target is set.
+			<-targetX ->tX
+			<-targetY ->tY
+			<-tX 0 lt <-tY 0 lt or if
+				#Auto target AC Spores
+				CurrentCoords 16 FALSE TRUE FALSE FALSE GetNearestGroundEnemy ->tY ->tX
+				<-tX 0 lt <-tY 0 lt or if
+					#No targets found, try another method?
+					GetDeepestCreeperCell ->tY ->tX
+					<-tX 0 lt <-tY 0 lt or if
+						#No targets found, firing blind.
+						CurrentCoords RandXCoord RandYCoord <-sporeHP <-shotAmt CreateSpore
+						return
+					endif
+				endif
+			endif
+			CurrentCoords <-tX <-tY <-sporeHP <-shotAmt CreateSpore		
+		endif
+	endif
+	return
+
+
+:Select
+	#Selects the unit... when selected we should show a selection circle and targeting crosshair.
+	<-selected if
+		#In case of a double click, switch back to auto targeting
+		0 ->selected
+		-1 ->targetX
+		-1 ->targetY
+		Self RemoveImages
+	else
+		1 ->selected
+		<-SelectImage "" eq not if
+			Self "SelectImage" <-SelectImage SetImage
+			Self "SelectImage" -0.01 SetImagePositionZ
+			<-cellWidthRadius 1 gt if
+				Self "SelectImage" <-cellWidthRadius 0.5 max <-cellHeightRadius 0.5 max SetImageScale
+			else
+				Self "SelectImage" 1 1 SetImageScale
+			endif
+		endif
+			<-CrosshairImage "" eq not if
+			Self "CrosshairImage" <-CrosshairImage SetImage
+			Self "CrosshairImage" -0.01 SetImagePositionZ
+			<-cellWidthRadius 1 gt if
+				Self "CrosshairImage" <-cellWidthRadius 0.5 max <-cellHeightRadius 0.5 max SetImageScale
+			else
+				Self "CrosshairImage" 1 1 SetImageScale
+			endif
+		endif
+	endif
+	return
+
+:Deselect
+	<-selected if
+		0 ->selected
+		<-my ->targetY
+		<-mx ->targetX
+		Self RemoveImages
+	endif
+	return
+
+:Toggle
+	#Someone right clicked on the emitter, so toggle the network link
+	Self CONST_CONNECTABLE Self CONST_CONNECTABLE GetUnitAttribute not SetUnitAttribute
+	return
+
+:TextUpdate
+	<-state eq0 if
+		"Supply AC packets to activate.
+		Amt: " <-amt dup mul <-amtX mul concat ->tooltipText
+	else
+		<-state 0 lt if
+			"Click to select target.
+			Target self to auto-target." ->tooltipText
+			<-tooltipText "
+			AC Amt: " concat <-amtAC dup mul <-amtX mul abs concat ->tooltipText
+		else
+			"Amt: " <-amt dup mul <-amtX mul abs concat ->tooltipText
+		endif
+		<-flood 0 gt if
+			<-tooltipText "x" concat ->tooltipText
+		endif
+	endif
+	#<-tooltipText "Amt: " concat <-amt concat ->tooltipText
+	<-state 0 lt if
+		<-amtAC <-ammoX mul <-interval mul 30 div ->timeEstimate
+	else
+		<-amt <-ammoX mul <-interval mul 30 div ->timeEstimate
+	endif
+	<-flood 0 gt if
+		<-timeEstimate <-cells div ->timeEstimate
+	endif
+	<-tooltipText "
+	Interval: " concat <-timeEstimate concat ->tooltipText
+	<-tooltipText "
+	Elev: " concat CurrentCoords GetTerrainOverride concat ->tooltipText
+	SetPopupText(<-tooltipText)
+	return
+
+:GameLoaded
+	@Reset
+	@Fixup
+	return

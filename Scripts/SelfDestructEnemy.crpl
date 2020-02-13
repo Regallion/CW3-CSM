@@ -1,0 +1,13 @@
+# SelfDestructEnemy.crpl
+# Created on: 1/7/2020 2:03:54 PM
+# ------------------------------------------
+# This unit should destroy itself after half a second
+$Name:"SelfDestructEnemy"
+
+once
+	self CONST_CREATEPZ 0 SetUnitAttribute
+	self CONST_COUNTSFORVICTORY 1 SetUnitAttribute
+	self CONST_DESTROYMODE 0 SetUnitAttribute
+endonce
+
+Damage(self 0.2)

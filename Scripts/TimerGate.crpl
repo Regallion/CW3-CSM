@@ -1,0 +1,204 @@
+# TimerGate.crpl
+# Created on: 1/11/2020 4:12:40 PM
+# ------------------------------------------
+$sealed:1
+$charged:0
+$interval:150
+$requiresAC:1
+$recheck:0
+$Name:"TimerGate"
+$floodTrigger:0
+
+once
+	self "main" 127 127 127 255 SetImageColor
+	@Fixup
+endonce
+
+GetTimer0 eq0 if
+	270 SetTimer0
+	@WallGen
+endif
+GetTimer1 eq0 if
+	<-charged not if
+		<-requiresAC if
+			CurrentX ->x
+			CurrentY ->y
+			<-cellWidth 2 div 1 add ->wRadius
+			<-cellHeight 2 div 1 add ->hRadius
+			0 ->bank
+			<-y <-cellHeightRadius add 1 add <-y <-cellHeightRadius sub do
+				<-x <-cellWidthRadius 1 add add I GetCreeper 0 lt if <-bank 1 add ->bank endif
+				<-x <-cellWidthRadius 1 add sub I GetCreeper 0 lt if <-bank 1 add ->bank endif
+			loop
+			<-x <-cellWidthRadius add 1 add <-x <-cellWidthRadius sub do
+				I <-y <-cellWidthRadius 1 add add GetCreeper 0 lt if <-bank 1 add ->bank endif
+				I <-y <-cellWidthRadius 1 add sub GetCreeper 0 lt if <-bank 1 add ->bank endif
+			loop
+			<-charges <-bank add ->charges
+		else
+			<-charges 1 add ->charges			
+		endif
+		CurrentCoords GetCreeper 1 max <-charges lte if
+			1 ->charged
+			@StateUpdate
+		else
+		endif
+	endif
+	<-floodTrigger if
+		CurrentCoords GetCreeper <-floodTrigger gte if
+		0 ->charged
+		1 ->sealed
+		@StateUpdate
+		0 ->floodTrigger
+		endif
+	endif
+	<-interval SetTimer1
+endif
+<-recheck if
+	@Fixup
+endif
+
+if(GetKeyDown("X"))
+	#Only allow self-destruct when player owned.
+	<-charged if
+	@IsMouseIn if
+		if(GetKey("LeftShift") GetKey("RightShift") or)
+			Self Self CONST_HEALTH GetUnitAttribute 2 mul Damage
+		endif
+	endif
+	endif
+endif
+
+if(GetKeyDown("H"))
+	@IsMouseIn if
+		ClearConversation
+		1 "TimerGate.crpl
+		Left click to open or close the gate, must be charged.
+		[Shift][X] to self-destruct, must be charged." AddConversationMessage
+		1 "TimerGate.crpl: Some will close automatically when flooded with creeper; these gates may take some time to open. Likely requires contact with anti-creeper to charge." AddConversationMessage
+		ShowConversation
+	endif
+endif
+
+if (GetMouseButtonDown(0))
+	@IsMouseIn if
+		<-charged if
+			0 ->charged
+			<-interval SetTimer1
+			@Toggle
+		endif
+	endif
+endif
+
+return
+:IsMouseIn
+	GetMouseCell ->my ->mx
+	CurrentX ->x
+	CurrentY ->y
+	<-x <-mx sub abs 1 lte if
+		<-y <-my sub abs 1 lte if
+			1
+			return
+		endif
+	endif
+	0
+	return
+
+:Reset
+	Self CONST_AMMO 0 SetUnitAttribute
+	@Fixup
+	return
+
+:Fixup
+	Self "main" "custom8pp" SetImage
+	Self CONST_CREATEPZ False SetUnitAttribute
+	Self CONST_COUNTSFORVICTORY False SetUnitAttribute
+	Self CONST_CONNECTABLE False SetUnitAttribute
+	Self CONST_SUPPORTSDIGITALIS 0 SetUnitAttribute
+	@StateUpdate
+	return
+
+:Toggle
+	#Open or close the gate.
+	<-sealed not ->sealed
+	0 ->charges
+	@StateUpdate
+	return
+
+:StateUpdate
+	<-charged if
+		255 ->gCol
+		191 ->rCol
+		191 ->bCol
+		<-sealed if
+			"Click the gate to open." ->chargedText
+		else
+			"Click the gate to close." ->chargedText
+		endif
+	else
+		255 ->rCol
+		127 ->gCol
+		127 ->bCol
+		"Gate is charging, standby." ->chargedText
+		<-requiresAC if
+			<-chargedText "
+			Charging requires contact with anticreeper." concat ->chargedText
+		else
+			<-chargedText "
+			Charging will take longer while flooded with creeper." concat ->chargedText
+		endif
+	endif
+	<-sealed if
+		"Gate closed.
+		" <-chargedText concat ->tooltipText
+		self "main" <-rCol <-gCol <-bCol 255 SetImageColor
+	else
+		"Gate open.
+		" <-chargedText concat ->tooltipText	
+		self "main" <-rCol <-gCol <-bCol 127 SetImageColor	
+	endif
+	SetPopupText(<-tooltipText)
+	@WallGen
+	return
+
+:WallGen
+	CurrentX ->x
+	CurrentY ->y
+
+	Self CONST_CELLWIDTH GetUnitAttribute ->cellWidth
+	Self CONST_CELLHEIGHT GetUnitAttribute ->cellHeight
+
+	<-cellWidth 2 div ->cellWidthRadius
+	<-cellHeight 2 div ->cellHeightRadius
+	<-sealed if
+		1 ->WallValue
+	else
+		0 ->WallValue
+	endif
+	<-y <-cellHeightRadius add 1 add <-y <-cellHeightRadius sub do
+		<-x <-cellWidthRadius add 1 add <-x <-cellWidthRadius sub do
+			I J <-WallValue SetWall
+		loop
+	loop
+	return
+
+:destroyed
+	CurrentX ->x
+	CurrentY ->y
+
+	Self CONST_CELLWIDTH GetUnitAttribute ->cellWidth
+	Self CONST_CELLHEIGHT GetUnitAttribute ->cellHeight
+
+	<-cellWidth 2 div ->cellWidthRadius
+	<-cellHeight 2 div ->cellHeightRadius
+
+	<-y <-cellHeightRadius add 1 add <-y <-cellHeightRadius sub do
+		<-x <-cellWidthRadius add 1 add <-x <-cellWidthRadius sub do
+			I J 0 SetWall
+		loop
+	loop
+	return
+
+:GameLoaded
+	@Fixup
+	return
